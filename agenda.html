@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão Integrada Pro - Painel Central</title>
+<style>
+:root {
+  --roxo: #6c5ce7;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --texto: #1f2430;
+  --muted: #94a3b8;
+  --input-bg: #ffffff;
+  --hover-menu: #f5f6f8;
+}
+
+[data-theme="dark"] {
+  --bg: #121319;
+  --card: #1c1e26;
+  --border: #2d313e;
+  --texto: #f1f3f9;
+  --muted: #9aa1b1;
+  --input-bg: #252833;
+  --hover-menu: #252833;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--texto); background: var(--bg); transition: background 0.3s ease, color 0.3s ease; }
+
+/* BARRA SUPERIOR DE SIMULAÇÃO */
+.bar-simulacao {
+  background: #1f2430; color: #fff; padding: 10px 20px; font-size: 13px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+.bar-simulacao-controles { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bar-simulacao select { padding: 4px 8px; border-radius: 4px; border: none; font-size: 12px; background: #fff; color: #000; font-weight: 600; }
+
+.btn-tema {
+  background: #2d313e; color: #fff; border: 1px solid #454c5e; border-radius: 6px;
+  padding: 5px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s ease;
+}
+.btn-tema:hover { background: #3b4052; }
+
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 40px); }
+
+/* SIDEBAR */
+.sidebar { background: var(--card); border-right: 1px solid var(--border); padding: 18px 14px; }
+.logo { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+.logo-icone { width: 32px; height: 32px; border-radius: 8px; background: var(--roxo); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.menu { display: flex; flex-direction: column; gap: 2px; }
+.menu-item { padding: 9px 10px; border-radius: 8px; color: var(--texto); text-decoration: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.menu-item:hover { background: var(--hover-menu); }
+.menu-item.ativo { background: #efeaff; color: var(--roxo); font-weight: 600; }
+[data-theme="dark"] .menu-item.ativo { background: #2d264e; color: #a29bfe; }
+
+/* CONTEÚDO PRINCIPAL */
+.conteudo { padding: 22px 24px; display: flex; flex-direction: column; gap: 26px; }
+h2 { font-size: 17px; margin: 0 0 12px; }
+
+/* CARDS FINANCEIRO */
+.financeiro-grid { display: grid; grid-template-columns: repeat(3, 1fr) 1.4fr; gap: 14px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; min-height: 100px; }
+.stat-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.stat-valor { font-size: 18px; font-weight: 700; }
+
+.stat-card.bloqueado .conteudo-bloqueavel { visibility: hidden; opacity: 0; }
+
+.overlay-bloqueio {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--card);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; z-index: 5; text-align: center; padding: 10px;
+}
+.overlay-bloqueio .box-cadeado {
+  background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .overlay-bloqueio .box-cadeado { background: #252833; }
+.overlay-bloqueio .icone-cadeado { font-size: 20px; }
+.overlay-bloqueio .tag-pro { font-size: 11px; font-weight: 600; color: var(--texto); background: var(--card); padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border); }
+
+.grafico-pagamentos { display: flex; gap: 10px; height: 80px; margin-top: 6px; }
+.eixo-y { display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: var(--muted); text-align: right; }
+.barras { display: flex; align-items: flex-end; gap: 16px; flex: 1; }
+.barra-col { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; flex: 1; }
+.barra { width: 100%; max-width: 24px; border-radius: 4px 4px 0 0; height: 0; background: var(--roxo); transition: height 0.3s ease; }
+.barra-col label { font-size: 10px; margin-top: 4px; color: var(--muted); }
+
+/* AGENDA */
+.agenda-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+.agenda-titulo-data { display: flex; align-items: center; gap: 12px; }
+.input-data-seletor, .select-colunas { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; color: var(--texto); background: var(--input-bg); cursor: pointer; }
+.agenda-controles { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.agenda-controles button { border: 1px solid var(--border); background: var(--card); color: var(--texto); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+.btn-novo-agendamento { background: var(--roxo) !important; color: #fff !important; border-color: var(--roxo) !important; font-weight: 600; }
+
+.paginacao { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.paginacao button { width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; }
+
+.toggle-view { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--card); }
+.toggle-view button { border: none; border-radius: 0; padding: 6px 12px; font-size: 12px; background: transparent; color: var(--texto); cursor: pointer; }
+.toggle-view button.ativo { background: #1b1f3b; color: #fff; font-weight: 600; }
+[data-theme="dark"] .toggle-view button.ativo { background: var(--roxo); }
+
+.agenda-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+.agenda { display: flex; flex-direction: column; min-width: 600px; }
+.agenda-cabecalho { display: grid; grid-template-columns: 50px repeat(var(--n-colab), minmax(160px, 1fr)); }
+.cab { padding: 10px 8px; font-size: 12px; font-weight: 600; text-align: center; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.cab-avatar { width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.6); margin-bottom: 2px; }
+.cab-nome { font-size: 12px; font-weight: 700; }
+.cab-cargo { font-size: 10px; opacity: 0.9; font-weight: 400; }
+
+.agenda-corpo { display: grid; grid-template-columns: 50px repeat(var(--n-colab), minmax(160px, 1fr)); position: relative; }
+.col-horarios { display: flex; flex-direction: column; }
+.hora-label { height: 48px; font-size: 11px; color: var(--muted); text-align: right; padding-right: 6px; border-top: 1px solid var(--border); box-sizing: border-box; display: flex; align-items: center; justify-content: flex-end; }
+.col-colab { position: relative; border-left: 1px solid var(--border); height: calc(var(--n-horas) * 48px); }
+.linha-hora { height: 48px; border-top: 1px solid var(--border); box-sizing: border-box; }
+
+.agendamento {
+  position: absolute; border-radius: 6px; padding: 4px 18px 4px 6px; font-size: 11px; color: #fff; overflow: hidden; box-sizing: border-box; z-index: 10;
+  display: flex; flex-direction: column; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.12); cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0.2s ease;
+}
+.agendamento:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 12px rgba(0,0,0,0.25); z-index: 50; }
+.agendamento strong { display: block; font-size: 11px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agendamento span { opacity: .9; font-size: 10px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.agendamento .remover { position: absolute; top: 2px; right: 4px; background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 11px; font-weight: bold; padding: 0; z-index: 2; }
+.agendamento .remover:hover { color: #fff; }
+
+/* ADMINISTRATIVO */
+.admin-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+.admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.admin-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.admin-card-header h3 { margin: 0; }
+.colaboradores-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+.colaborador-item { position: relative; border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; gap: 10px; align-items: center; background: var(--card); }
+.colaborador-avatar { width: 32px; height: 32px; border-radius: 50%; background: #e5e7eb; flex-shrink: 0; }
+.colaborador-info strong { display: block; font-size: 12.5px; }
+.colaborador-info small { color: var(--muted); font-size: 11px; }
+.status-ativo { display: inline-block; margin-top: 3px; background: #d1fae5; color: #059669; font-size: 10px; padding: 1px 8px; border-radius: 10px; }
+.colaborador-remover { position: absolute; top: 6px; right: 6px; background: none; border: none; color: #b0b4bd; cursor: pointer; font-size: 11px; padding: 2px; }
+.colaborador-remover:hover { color: #e11d48; }
+
+.tabela-contratos { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tabela-contratos th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.tabela-contratos td { padding: 8px 0; border-bottom: 1px solid var(--border); }
+
+/* FORMULÁRIO */
+.form-agendamento { display: grid; gap: 12px; }
+.form-agendamento .campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.form-agendamento input, .form-agendamento select { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
+.form-botoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+.btn-salvar { background: var(--roxo); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.btn-cancelar { background: none; border: 1px solid var(--border); color: var(--texto); border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+
+/* MODAL */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-overlay[hidden] { display: none; }
+.modal-card { background: var(--card); color: var(--texto); border-radius: 12px; width: 100%; max-width: 450px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid var(--border); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-header h3 { margin: 0; font-size: 16px; }
+
+/* CARD DE BLOQUEIO */
+.card-bloqueio-plano {
+  background: var(--card); border: 1px dashed var(--border); border-radius: 12px;
+  padding: 40px; text-align: center; margin-top: 20px;
+}
+.card-bloqueio-plano h3 { font-size: 18px; margin-bottom: 8px; }
+.card-bloqueio-plano p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+
+/* TELA DE SELEÇÃO DE PLANOS */
+.planos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 15px; }
+.card-plano {
+  background: var(--card); border: 2px solid var(--border); border-radius: 12px;
+  padding: 24px; display: flex; flex-direction: column; justify-content: space-between;
+  position: relative; transition: border-color 0.2s, transform 0.2s;
+}
+.card-plano:hover { transform: translateY(-3px); }
+.card-plano.destaque { border-color: var(--roxo); }
+.card-plano .badge { position: absolute; top: 12px; right: 12px; background: var(--roxo); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.card-plano h3 { margin: 0 0 10px; font-size: 20px; }
+.card-plano .preco { font-size: 24px; font-weight: 800; margin-bottom: 15px; }
+.card-plano .preco span { font-size: 12px; color: var(--muted); font-weight: 400; }
+.card-plano ul { list-style: none; padding: 0; margin: 0 0 20px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
+.card-plano ul li { display: flex; align-items: center; gap: 6px; }
+.btn-selecionar-plano { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; }
+.btn-selecionar-plano.atual { background: var(--border); color: var(--muted); cursor: default; }
+</style>
+</head>
+<body>
+
+<div class="bar-simulacao">
+  <span><strong>Simulador de Permissões:</strong></span>
+  <div class="bar-simulacao-controles">
+    <div>
+      <label for="select-plano">Plano contratado: </label>
+      <select id="select-plano">
+        <option value="BASICO" selected>Plano Básico (Grátis)</option>
+        <option value="INTERMEDIARIO">Plano Intermediário</option>
+        <option value="PRO">Plano Pro (Completo)</option>
+      </select>
+    </div>
+    <div>
+      <label for="select-perfil">Perfil do Usuário: </label>
+      <select id="select-perfil"></select>
+    </div>
+    <button type="button" id="btn-toggle-tema" class="btn-tema">🌙 Modo Noturno</button>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <span class="logo-icone">G</span>
+      <div><strong>Gestão Integrada Pro</strong></div>
+    </div>
+    <nav class="menu">
+      <a class="menu-item ativo" data-menu="Dashboard">Dashboard</a>
+      <a class="menu-item" data-menu="Agenda">Agenda</a>
+      <a class="menu-item" data-menu="Financeiro">
+        <span>Financeiro</span>
+        <span id="tag-lock-fin" style="font-size:12px;" hidden>🔒</span>
+      </a>
+      <a class="menu-item" data-menu="Administracao">Administração</a>
+      <a class="menu-item" data-menu="Planos">
+        <span> Planos</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ÁREA PRINCIPAL -->
+  <div class="main">
+    <main class="conteudo">
+
+      <!-- FINANCEIRO -->
+      <section id="secao-financeiro">
+        <h2>Financeiro</h2>
+        
+        <div id="aviso-bloqueio-financeiro-pagina" class="card-bloqueio-plano" hidden>
+          <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
+          <h3>Recurso exclusivo dos Planos Intermediário e Pro</h3>
+          <p>Faça upgrade do seu plano para ter acesso total ao módulo de Gestão Financeira, fluxo de caixa e gráficos de recebimento.</p>
+          <button class="btn-salvar" onclick="irParaTelaPlanos('Financeiro')">Fazer Upgrade do Plano</button>
+        </div>
+
+        <div class="financeiro-grid" id="grid-financeiro-cards">
+          
+          <div class="stat-card" id="card-receitas">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Pro</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label" id="titulo-receitas">Receitas (Dia)</span>
+              <strong class="stat-valor" id="valor-receitas">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="stat-card" id="card-despesas">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Pro</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label">Despesas</span>
+              <strong class="stat-valor" id="valor-despesas">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="stat-card" id="card-saldo">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Pro</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label">Saldo Final</span>
+              <strong class="stat-valor" id="valor-saldo">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="stat-card grafico-card" id="card-grafico">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Pro</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label">Meios de Pagamento</span>
+              <div class="grafico-pagamentos">
+                <div class="eixo-y">
+                  <span class="eixo-max">6.000</span>
+                  <span class="eixo-meio">3.000</span>
+                  <span class="eixo-min">0</span>
+                </div>
+                <div class="barras">
+                  <div class="barra-col" data-meio="pix">
+                    <div class="barra"></div>
+                    <label>Pix</label>
+                  </div>
+                  <div class="barra-col" data-meio="cartao">
+                    <div class="barra"></div>
+                    <label>Cartão de Crédito</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- AGENDA -->
+      <section id="secao-agenda">
+        <div class="agenda-header">
+          <div class="agenda-titulo-data">
+            <h2 id="agenda-data-texto" style="margin:0;">Data:</h2>
+            <input type="date" id="seletor-data" class="input-data-seletor" value="2026-09-25">
+          </div>
+
+          <div class="agenda-controles">
+            <div class="paginacao" id="container-paginacao">
+              <button type="button" id="btn-pag-anterior">‹</button>
+              <span id="pag-info">1 de 1</span>
+              <button type="button" id="btn-pag-proxima">›</button>
+            </div>
+
+            <div>
+              <label for="seletor-colunas" style="font-size: 12px; color: var(--muted);">Colunas:</label>
+              <select id="seletor-colunas" class="select-colunas"></select>
+            </div>
+
+            <button type="button" id="btn-abrir-agendamento" class="btn-novo-agendamento">+ Novo Agendamento</button>
+
+            <div class="toggle-view">
+              <button type="button" id="btn-modo-dia" class="ativo">Dia</button>
+              <button type="button" id="btn-modo-semana">Semana</button>
+              <button type="button" id="btn-modo-mes">Mês</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="agenda-wrap">
+          <div class="agenda" id="agenda"></div>
+        </div>
+      </section>
+
+      <!-- ADMINISTRATIVO -->
+      <section id="secao-administrativo">
+        <h2>Administrativo</h2>
+        <div class="admin-grid">
+
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h3>Cadastrar Novo Colaborador</h3>
+            </div>
+
+            <form id="form-colaborador" class="form-agendamento" style="border:1px solid var(--border); padding:20px; border-radius:10px; background: var(--card); margin-bottom: 20px;">
+              <div class="campo">
+                <label for="colab-nome">Nome Completo</label>
+                <input type="text" id="colab-nome" placeholder="Ex: Fernanda Lima" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-cargo">Cargo / Especialidade</label>
+                <input type="text" id="colab-cargo" placeholder="Ex: Esteticista" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-email">E-mail (Acesso ao Sistema)</label>
+                <input type="email" id="colab-email" placeholder="fernanda@agendaexpress.com" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-senha">Senha de Acesso</label>
+                <input type="text" id="colab-senha" placeholder="Digite a senha" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-cor">Cor do Cabeçalho</label>
+                <input type="color" id="colab-cor" value="#00c0ef" style="height:38px; width:60px; padding:2px; cursor:pointer; border-radius:6px; border:1px solid var(--border);">
+              </div>
+
+              <div class="form-botoes" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button type="submit" class="btn-salvar">Salvar Colaborador</button>
+                <button type="reset" class="btn-cancelar">Limpar</button>
+              </div>
+            </form>
+
+            <h3>Equipe Cadastrada</h3>
+            <div class="colaboradores-lista" id="colaboradores-lista"></div>
+          </div>
+
+          <div class="admin-card">
+            <h3>Contratos Próximos do Vencimento</h3>
+            <table class="tabela-contratos">
+              <thead>
+                <tr><th>Nome</th><th>Vencimento</th></tr>
+              </thead>
+              <tbody id="contratos-lista"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TELA DE PLANOS DE ASSINATURA -->
+      <section id="secao-planos" style="display: none;">
+        <h2>Planos e Assinaturas</h2>
+        <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Escolha o plano ideal para gerenciar o seu negócio.</p>
+        
+        <div class="planos-grid">
+          
+          <!-- PLANO BÁSICO -->
+          <div class="card-plano" id="card-plano-basico">
+            <div>
+              <h3>Básico</h3>
+              <div class="preco">Grátis</div>
+              <ul>
+                <li>✓ Gestão de Agenda</li>
+                <li>✓ Cadastro de Profissionais</li>
+                <li>✕ Relatórios Financeiros</li>
+                <li>✕ Fluxo de Caixa Avançado</li>
+              </ul>
+            </div>
+            <button class="btn-selecionar-plano" id="btn-plano-basico" onclick="escolherPlano('BASICO')">Selecionar Plano</button>
+          </div>
+
+          <!-- PLANO INTERMEDIÁRIO -->
+          <div class="card-plano">
+            <div>
+              <h3>Intermediário</h3>
+              <div class="preco">R$ 49 <span>/mês</span></div>
+              <ul>
+                <li>✓ Gestão de Agenda</li>
+                <li>✓ Cadastro de Profissionais</li>
+                <li>✓ Módulo Financeiro Básico</li>
+                <li>✕ Gráficos Consolidados</li>
+              </ul>
+            </div>
+            <button class="btn-selecionar-plano" id="btn-plano-intermediario" onclick="escolherPlano('INTERMEDIARIO')">Escolher Intermediário</button>
+          </div>
+
+          <!-- PLANO PRO -->
+          <div class="card-plano destaque">
+            <span class="badge">RECOMENDADO</span>
+            <div>
+              <h3>Pro (Completo)</h3>
+              <div class="preco">R$ 89 <span>/mês</span></div>
+              <ul>
+                <li>✓ Agenda Ilimitada</li>
+                <li>✓ Cadastro ilimitado de equipe</li>
+                <li>✓ Financeiro e Caixa em Tempo Real</li>
+                <li>✓ Gráficos e Relatórios Pro</li>
+              </ul>
+            </div>
+            <button class="btn-selecionar-plano" id="btn-plano-pro" onclick="escolherPlano('PRO')">Escolher Pro</button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL DE NOVO AGENDAMENTO -->
+<div class="modal-overlay" id="modal-agendamento" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Agendar Cliente</h3>
+      <button type="button" id="btn-fechar-modal" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <form id="form-novo-agendamento" class="form-agendamento">
+      <div class="campo">
+        <label>Cliente</label>
+        <input type="text" id="agend-cliente" placeholder="Ex: João Pereira" required autocomplete="off">
+      </div>
+
+      <div class="campo">
+        <label>Serviço</label>
+        <input type="text" id="agend-servico" placeholder="Ex: Corte de cabelo" autocomplete="off">
+      </div>
+
+      <div class="campo">
+        <label>Profissional Responsável</label>
+        <select id="agend-profissional" required></select>
+      </div>
+
+      <div class="campo">
+        <label>Data</label>
+        <input type="date" id="agend-data" required>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="campo">
+          <label>Hora Início</label>
+          <input type="time" id="agend-hora-inicio" value="08:00" required>
+        </div>
+        <div class="campo">
+          <label>Duração (min)</label>
+          <input type="number" id="agend-duracao" value="60" step="15" min="15" required>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Cor do Card</label>
+        <input type="color" id="agend-cor" value="#3d5a80" style="height:38px; padding:2px; cursor:pointer;">
+      </div>
+
+      <div class="form-botoes">
+        <button type="submit" class="btn-salvar">Confirmar Agendamento</button>
+        <button type="button" id="btn-cancelar-agendamento" class="btn-cancelar">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// --- CONTROLADOR DE TEMA NOTURNO ---
+const btnToggleTema = document.getElementById("btn-toggle-tema");
+btnToggleTema.addEventListener("click", function () {
+  const htmlEl = document.documentElement;
+  if (htmlEl.getAttribute("data-theme") === "dark") {
+    htmlEl.removeAttribute("data-theme");
+    btnToggleTema.textContent = "🌙 Modo Noturno";
+  } else {
+    htmlEl.setAttribute("data-theme", "dark");
+    btnToggleTema.textContent = "☀️ Tema Claro";
+  }
+});
+
+// --- ESTADO DA APLICAÇÃO ---
+let planoAtual = "BASICO"; 
+let usuarioLogado = { perfil: "DONO", colaboradorId: null };
+let abaAtiva = "Dashboard";
+let abaOrigemPlanos = "Dashboard"; // Guarda de onde o utilizador veio antes de ir aos planos
+let modoVisualizacao = "Dia";
+let colunasVisiveis = 3;
+let paginaAtual = 0;
+
+const financeiroPorPeriodo = {
+  Dia: { receitas: 3150.00, despesas: 420.00, saldo: 2730.00, pagamentos: { pix: 2400, cartao: 3900 }, eixoMaximo: 6000 },
+  Semana: { receitas: 18500.00, despesas: 2300.00, saldo: 16200.00, pagamentos: { pix: 10500, cartao: 8000 }, eixoMaximo: 20000 },
+  Mês: { receitas: 64000.00, despesas: 11200.00, saldo: 52800.00, pagamentos: { pix: 38000, cartao: 26000 }, eixoMaximo: 70000 }
+};
+
+let colaboradores = [
+  { id: 1, nome: "Ana Beatriz Rocha", cargo: "Manicure", email: "ana@agendaexpress.com", cor: "#c6c92c" },
+  { id: 2, nome: "Joaquim Augusto", cargo: "Cabeleireiro", email: "joaquim@agendaexpress.com", cor: "#e91e8c" },
+  { id: 3, nome: "Laura Mendes", cargo: "Esteticista", email: "laura@agendaexpress.com", cor: "#26b3c4" },
+  { id: 4, nome: "Vitor Almeida", cargo: "Cabeleireiro", email: "vitor@agendaexpress.com", cor: "#f4a300" },
+  { id: 5, nome: "Marina Lopes", cargo: "Esteticista", email: "marina@agendaexpress.com", cor: "#9b59b6" }
+];
+
+let agendamentos = [
+  { id: 1, colaboradorId: 1, cliente: "Liliana Crivero", servico: "Mão/pé", data: "2026-09-25", horaInicio: "08:00", duracaoMin: 60, cor: "#3d5a80" },
+  { id: 2, colaboradorId: 1, cliente: "Davi de Luccas", servico: "", data: "2026-09-25", horaInicio: "11:00", duracaoMin: 30, cor: "#e0a458" },
+  { id: 3, colaboradorId: 1, cliente: "Cristina Aguilhera", servico: "Mão/pé", data: "2026-09-25", horaInicio: "13:00", duracaoMin: 60, cor: "#3d5a80" },
+  { id: 4, colaboradorId: 2, cliente: "Carlos Alcaraz", servico: "Mechas", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 120, cor: "#8f8f8f" },
+  { id: 5, colaboradorId: 2, cliente: "Danilo", servico: "Cabelo", data: "2026-09-25", horaInicio: "10:30", duracaoMin: 60, cor: "#3d5a80" },
+  { id: 6, colaboradorId: 2, cliente: "Amanda Jesus Silva", servico: "Corte fem.", data: "2026-09-25", horaInicio: "13:00", duracaoMin: 60, cor: "#588157" },
+  { id: 7, colaboradorId: 3, cliente: "Patricia", servico: "Corte feminino", data: "2026-09-25", horaInicio: "08:00", duracaoMin: 60, cor: "#4361ee" },
+  { id: 8, colaboradorId: 3, cliente: "Beatriz", servico: "Escova", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 90, cor: "#588157" },
+  { id: 9, colaboradorId: 4, cliente: "Rafael Souza", servico: "Barba", data: "2026-09-25", horaInicio: "09:00", duracaoMin: 30, cor: "#3d5a80" },
+  { id: 10, colaboradorId: 5, cliente: "Juliana Prado", servico: "Limpeza de pele", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 90, cor: "#8f8f8f" }
+];
+
+const contratos = [
+  { nome: "#202606100003 Mania Contrato", vencimento: "11/09/2026" },
+  { nome: "#202606100005 Mania Contrato", vencimento: "26/09/2026" },
+  { nome: "#202606100004 Mania Contrato", vencimento: "09/09/2026" }
+];
+
+// --- GERENCIAMENTO DE PLANOS ---
+function irParaTelaPlanos(origem) {
+  abaOrigemPlanos = origem || abaAtiva;
+  mudarAba("Planos");
+}
+
+function escolherPlano(novoPlano) {
+  planoAtual = novoPlano;
+  document.getElementById("select-plano").value = novoPlano;
+  atualizarPlano();
+
+  // Retorna automaticamente para a aba onde o utilizador estava
+  mudarAba(abaOrigemPlanos);
+}
+
+function atualizarPlano() {
+  planoAtual = document.getElementById("select-plano").value;
+  
+  const cardsBloqueaveis = ["card-receitas", "card-despesas", "card-saldo", "card-grafico"];
+  const estaBloqueado = (planoAtual === "BASICO");
+
+  cardsBloqueaveis.forEach(id => {
+    const el = document.getElementById(id);
+    const overlay = el.querySelector(".overlay-bloqueio");
+    if (estaBloqueado) {
+      el.classList.add("bloqueado");
+      overlay.hidden = false;
+    } else {
+      el.classList.remove("bloqueado");
+      overlay.hidden = true;
+    }
+  });
+
+  document.getElementById("tag-lock-fin").hidden = !estaBloqueado;
+
+  // Atualiza os botões da tela de planos
+  document.getElementById("btn-plano-basico").className = planoAtual === "BASICO" ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
+  document.getElementById("btn-plano-basico").textContent = planoAtual === "BASICO" ? "Plano Atual" : "Selecionar Plano";
+
+  document.getElementById("btn-plano-intermediario").className = planoAtual === "INTERMEDIARIO" ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
+  document.getElementById("btn-plano-intermediario").textContent = planoAtual === "INTERMEDIARIO" ? "Plano Atual" : "Escolher Intermediário";
+
+  document.getElementById("btn-plano-pro").className = planoAtual === "PRO" ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
+  document.getElementById("btn-plano-pro").textContent = planoAtual === "PRO" ? "Plano Atual" : "Escolher Pro";
+
+  atualizarNavegacao();
+}
+
+document.getElementById("select-plano").addEventListener("change", atualizarPlano);
+
+// --- NAVEGAÇÃO ENTRE ABAS ---
+function mudarAba(nomeAba) {
+  document.querySelectorAll(".menu-item").forEach(m => {
+    if (m.dataset.menu === nomeAba) {
+      m.classList.add("ativo");
+    } else {
+      m.classList.remove("ativo");
+    }
+  });
+  abaAtiva = nomeAba;
+  atualizarNavegacao();
+}
+
+document.querySelectorAll(".menu-item").forEach(item => {
+  item.addEventListener("click", function() {
+    mudarAba(this.dataset.menu);
+  });
+});
+
+function atualizarNavegacao() {
+  const secFin = document.getElementById("secao-financeiro");
+  const secAgenda = document.getElementById("secao-agenda");
+  const secAdmin = document.getElementById("secao-administrativo");
+  const secPlanos = document.getElementById("secao-planos");
+
+  const gridCardsFin = document.getElementById("grid-financeiro-cards");
+  const avisoBloqueioFin = document.getElementById("aviso-bloqueio-financeiro-pagina");
+
+  // Esconde tudo primeiro
+  secFin.style.display = "none";
+  secAgenda.style.display = "none";
+  secAdmin.style.display = "none";
+  secPlanos.style.display = "none";
+
+  if (abaAtiva === "Dashboard") {
+    secFin.style.display = (usuarioLogado.perfil === "DONO") ? "block" : "none";
+    gridCardsFin.style.display = "grid";
+    avisoBloqueioFin.hidden = true;
+    secAgenda.style.display = "block";
+    secAdmin.style.display = (usuarioLogado.perfil === "DONO") ? "block" : "none";
+  } else if (abaAtiva === "Financeiro") {
+    secFin.style.display = "block";
+    if (planoAtual === "BASICO") {
+      gridCardsFin.style.display = "none";
+      avisoBloqueioFin.hidden = false;
+    } else {
+      gridCardsFin.style.display = "grid";
+      avisoBloqueioFin.hidden = true;
+    }
+  } else if (abaAtiva === "Agenda") {
+    secAgenda.style.display = "block";
+  } else if (abaAtiva === "Administracao") {
+    secAdmin.style.display = "block";
+  } else if (abaAtiva === "Planos") {
+    secPlanos.style.display = "block";
+  }
+}
+
+// --- FUNÇÕES AUXILIARES ---
+function paraMinutos(hora) {
+  const [h, m] = hora.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function formatarMoeda(v) { return "R$ " + v.toFixed(2).replace(".", ","); }
+
+function atualizarSelectLoginSimulado() {
+  const select = document.getElementById("select-perfil");
+  const valorAtual = select.value;
+  select.innerHTML = `<option value="DONO">Administrador (Dono)</option>`;
+  colaboradores.forEach(c => {
+    select.insertAdjacentHTML("beforeend", `<option value="COLAB_${c.id}">${c.nome}</option>`);
+  });
+  if (valorAtual) select.value = valorAtual;
+}
+
+function atualizarOpcoesSeletorColunas() {
+  const seletor = document.getElementById("seletor-colunas");
+  seletor.innerHTML = "";
+  for (let i = 1; i <= Math.min(5, colaboradores.length); i++) {
+    seletor.insertAdjacentHTML("beforeend", `<option value="${i}" ${i === colunasVisiveis ? 'selected' : ''}>${i} Coluna${i > 1 ? 's' : ''}</option>`);
+  }
+}
+
+function atualizarFinanceiro() {
+  const d = financeiroPorPeriodo[modoVisualizacao];
+  document.getElementById("titulo-receitas").textContent = `Receitas (${modoVisualizacao})`;
+  document.getElementById("valor-receitas").textContent = formatarMoeda(d.receitas);
+  document.getElementById("valor-despesas").textContent = formatarMoeda(d.despesas);
+  document.getElementById("valor-saldo").textContent = formatarMoeda(d.saldo);
+
+  document.querySelector(".eixo-max").textContent = d.eixoMaximo.toLocaleString("pt-BR");
+  document.querySelector(".eixo-meio").textContent = (d.eixoMaximo / 2).toLocaleString("pt-BR");
+
+  document.querySelector('[data-meio="pix"] .barra').style.height = (d.pagamentos.pix / d.eixoMaximo) * 100 + "%";
+  document.querySelector('[data-meio="cartao"] .barra').style.height = (d.pagamentos.cartao / d.eixoMaximo) * 100 + "%";
+}
+
+// --- PAGINAÇÃO DA AGENDA ---
+function obterColaboradoresPagina() {
+  if (usuarioLogado.perfil === "COLABORADOR") {
+    const meuPerfil = colaboradores.find(c => c.id === usuarioLogado.colaboradorId);
+    return meuPerfil ? [meuPerfil] : [];
+  }
+  const inicio = paginaAtual * colunasVisiveis;
+  return colaboradores.slice(inicio, inicio + colunasVisiveis);
+}
+
+function obterTotalPaginas() {
+  if (usuarioLogado.perfil === "COLABORADOR") return 1;
+  return Math.ceil(colaboradores.length / colunasVisiveis) || 1;
+}
+
+function atualizarInfoPaginacao() {
+  document.getElementById("pag-info").textContent = `${paginaAtual + 1} de ${obterTotalPaginas()}`;
+}
+
+// --- DISTRIBUIÇÃO DA AGENDA ---
+function calcularLayoutColuna(itens) {
+  const ordenados = itens.slice().sort((a, b) => paraMinutos(a.ag.horaInicio) - paraMinutos(b.ag.horaInicio));
+  const layout = [];
+  let grupoAtual = [];
+  let fimGrupo = -1;
+
+  for (let i = 0; i < ordenados.length; i++) {
+    const item = ordenados[i];
+    const inicioMin = paraMinutos(item.ag.horaInicio);
+    const fimMin = inicioMin + item.ag.duracaoMin;
+
+    if (grupoAtual.length > 0 && inicioMin >= fimGrupo) {
+      processarGrupo(grupoAtual, layout);
+      grupoAtual = [];
+      fimGrupo = -1;
+    }
+
+    grupoAtual.push(item);
+    fimGrupo = Math.max(fimGrupo, fimMin);
+  }
+  if (grupoAtual.length > 0) processarGrupo(grupoAtual, layout);
+
+  return layout;
+}
+
+function processarGrupo(grupo, layoutSaida) {
+  const finsColunas = [];
+  for (let i = 0; i < grupo.length; i++) {
+    const item = grupo[i];
+    const inicioMin = paraMinutos(item.ag.horaInicio);
+    const fimMin = inicioMin + item.ag.duracaoMin;
+
+    let colunaEncontrada = -1;
+    for (let c = 0; c < finsColunas.length; c++) {
+      if (finsColunas[c] <= inicioMin) {
+        colunaEncontrada = c;
+        break;
+      }
+    }
+
+    if (colunaEncontrada === -1) {
+      colunaEncontrada = finsColunas.length;
+      finsColunas.push(fimMin);
+    } else {
+      finsColunas[colunaEncontrada] = fimMin;
+    }
+
+    layoutSaida.push({ ag: item.ag, id: item.ag.id, coluna: colunaEncontrada });
+  }
+
+  const totalColunas = finsColunas.length;
+  for (let i = layoutSaida.length - grupo.length; i < layoutSaida.length; i++) {
+    layoutSaida[i].totalColunas = totalColunas;
+  }
+}
+
+// --- RENDERIZAÇÃO DA AGENDA ---
+const horaInicio = 7;
+const horaFim = 15;
+const totalHoras = horaFim - horaInicio;
+const agenda = document.getElementById("agenda");
+const seletorData = document.getElementById("seletor-data");
+const seletorColunas = document.getElementById("seletor-colunas");
+
+function removerAgendamento(id, event) {
+  if (event) event.stopPropagation();
+  agendamentos = agendamentos.filter(a => a.id !== id);
+  renderizarAgenda();
+}
+
+function verDetalhesAgendamento(ag) {
+  alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}`);
+}
+
+function renderizarAgenda() {
+  agenda.innerHTML = "";
+  const colaboradoresPagina = obterColaboradoresPagina();
+  const dataSelecionada = seletorData.value;
+
+  agenda.style.setProperty("--n-colab", colaboradoresPagina.length);
+  agenda.style.setProperty("--n-horas", totalHoras);
+  atualizarInfoPaginacao();
+
+  const divCabecalho = document.createElement("div");
+  divCabecalho.className = "agenda-cabecalho";
+  divCabecalho.innerHTML = `<div class="cab" style="background: transparent;"></div>`;
+  colaboradoresPagina.forEach(c => {
+    divCabecalho.innerHTML += `
+      <div class="cab" style="background:${c.cor}">
+        <div class="cab-avatar"></div>
+        <div class="cab-nome">${c.nome}</div>
+        <div class="cab-cargo">${c.cargo}</div>
+      </div>`;
+  });
+  agenda.appendChild(divCabecalho);
+
+  const divCorpo = document.createElement("div");
+  divCorpo.className = "agenda-corpo";
+
+  const colHorarios = document.createElement("div");
+  colHorarios.className = "col-horarios";
+  for (let h = horaInicio; h < horaFim; h++) {
+    colHorarios.insertAdjacentHTML("beforeend", `<div class="hora-label">${String(h).padStart(2, "0")}</div>`);
+  }
+  divCorpo.appendChild(colHorarios);
+
+  colaboradoresPagina.forEach(coluna => {
+    const col = document.createElement("div");
+    col.className = "col-colab";
+
+    for (let h = horaInicio; h < horaFim; h++) {
+      col.insertAdjacentHTML("beforeend", `<div class="linha-hora"></div>`);
+    }
+
+    const agsDoColab = agendamentos
+      .filter(a => a.colaboradorId === coluna.id && a.data === dataSelecionada)
+      .map(ag => ({ ag }));
+
+    const layoutColuna = calcularLayoutColuna(agsDoColab);
+
+    layoutColuna.forEach(item => {
+      const ag = item.ag;
+      const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
+      const minInicio = (hIni - horaInicio) * 60 + mIni;
+
+      const topPx = (minInicio / 60) * 48;
+      const heightPx = Math.max((ag.duracaoMin / 60) * 48, 38);
+
+      const largura = 100 / item.totalColunas;
+      const esquerda = item.coluna * largura;
+
+      const bloco = document.createElement("div");
+      bloco.className = "agendamento";
+      bloco.style.cssText = `top: ${topPx}px; height: ${heightPx}px; left: calc(${esquerda}% + 2px); width: calc(${largura}% - 4px); background: ${ag.cor};`;
+      bloco.setAttribute("title", `Cliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nHorário: ${ag.horaInicio}`);
+
+      bloco.addEventListener("click", () => verDetalhesAgendamento(ag));
+
+      bloco.innerHTML = `
+        <button type="button" class="remover" onclick="removerAgendamento(${ag.id}, event)">✕</button>
+        <strong>${ag.cliente}</strong>
+        ${ag.servico ? `<span>${ag.servico}</span>` : ''}
+      `;
+      col.appendChild(bloco);
+    });
+
+    divCorpo.appendChild(col);
+  });
+
+  agenda.appendChild(divCorpo);
+}
+
+// --- EVENTOS E PERMISSÕES ---
+function aplicarPermissoes() {
+  const containerPaginacao = document.getElementById("container-paginacao");
+  const seletorColunasDiv = seletorColunas.parentElement;
+  const menusRestritos = document.querySelectorAll('.menu-item[data-menu="Financeiro"], .menu-item[data-menu="Administracao"]');
+
+  if (usuarioLogado.perfil === "COLABORADOR") {
+    containerPaginacao.style.display = "none";
+    seletorColunasDiv.style.display = "none";
+    menusRestritos.forEach(m => m.style.display = "none");
+  } else {
+    containerPaginacao.style.display = "flex";
+    seletorColunasDiv.style.display = "block";
+    menusRestritos.forEach(m => m.style.display = "flex");
+  }
+  paginaAtual = 0;
+  atualizarNavegacao();
+  renderizarAgenda();
+}
+
+document.getElementById("select-perfil").addEventListener("change", function () {
+  const v = this.value;
+  if (v === "DONO") {
+    usuarioLogado = { perfil: "DONO", colaboradorId: null };
+  } else {
+    const id = parseInt(v.replace("COLAB_", ""));
+    usuarioLogado = { perfil: "COLABORADOR", colaboradorId: id };
+  }
+  aplicarPermissoes();
+});
+
+seletorData.addEventListener("change", renderizarAgenda);
+
+seletorColunas.addEventListener("change", function () {
+  colunasVisiveis = parseInt(this.value);
+  paginaAtual = 0;
+  renderizarAgenda();
+});
+
+document.getElementById("btn-pag-anterior").addEventListener("click", () => {
+  if (paginaAtual > 0) { paginaAtual--; renderizarAgenda(); }
+});
+
+document.getElementById("btn-pag-proxima").addEventListener("click", () => {
+  if (paginaAtual < obterTotalPaginas() - 1) { paginaAtual++; renderizarAgenda(); }
+});
+
+["Dia", "Semana", "Mês"].forEach(modo => {
+  const btnId = modo === "Mês" ? "btn-modo-mes" : modo === "Semana" ? "btn-modo-semana" : "btn-modo-dia";
+  document.getElementById(btnId).addEventListener("click", function() {
+    document.querySelectorAll(".toggle-view button").forEach(b => b.classList.remove("ativo"));
+    this.classList.add("ativo");
+    modoVisualizacao = modo;
+    atualizarFinanceiro();
+  });
+});
+
+// --- MODAL DE AGENDAMENTO ---
+const modalAgendamento = document.getElementById("modal-agendamento");
+const btnAbrirAgendamento = document.getElementById("btn-abrir-agendamento");
+const btnFecharModal = document.getElementById("btn-fechar-modal");
+const btnCancelarAgendamento = document.getElementById("btn-cancelar-agendamento");
+const selectProfissional = document.getElementById("agend-profissional");
+const formAgendamento = document.getElementById("form-novo-agendamento");
+
+btnAbrirAgendamento.addEventListener("click", () => {
+  selectProfissional.innerHTML = "";
+  colaboradores.forEach(c => {
+    selectProfissional.insertAdjacentHTML("beforeend", `<option value="${c.id}">${c.nome}</option>`);
+  });
+  document.getElementById("agend-data").value = seletorData.value;
+  modalAgendamento.hidden = false;
+});
+
+function fecharModalAgendamento() { modalAgendamento.hidden = true; }
+btnFecharModal.addEventListener("click", fecharModalAgendamento);
+btnCancelarAgendamento.addEventListener("click", fecharModalAgendamento);
+
+formAgendamento.addEventListener("submit", function(e) {
+  e.preventDefault();
+  const novoAgendamento = {
+    id: Date.now(),
+    cliente: document.getElementById("agend-cliente").value,
+    servico: document.getElementById("agend-servico").value,
+    colaboradorId: parseInt(selectProfissional.value),
+    data: document.getElementById("agend-data").value,
+    horaInicio: document.getElementById("agend-hora-inicio").value,
+    duracaoMin: parseInt(document.getElementById("agend-duracao").value),
+    cor: document.getElementById("agend-cor").value
+  };
+
+  agendamentos.push(novoAgendamento);
+  seletorData.value = novoAgendamento.data;
+  renderizarAgenda();
+  fecharModalAgendamento();
+  formAgendamento.reset();
+});
+
+// --- ADMINISTRATIVO ---
+const formColab = document.getElementById("form-colaborador");
+formColab.addEventListener("submit", function (e) {
+  e.preventDefault();
+  const novoColab = {
+    id: colaboradores.length ? Math.max(...colaboradores.map(c => c.id)) + 1 : 1,
+    nome: document.getElementById("colab-nome").value,
+    cargo: document.getElementById("colab-cargo").value,
+    email: document.getElementById("colab-email").value,
+    cor: document.getElementById("colab-cor").value
+  };
+
+  colaboradores.push(novoColab);
+  atualizarSelectLoginSimulado();
+  atualizarOpcoesSeletorColunas();
+  renderizarListaColaboradores();
+  renderizarAgenda();
+  formColab.reset();
+});
+
+function removerColaborador(id) {
+  colaboradores = colaboradores.filter(c => c.id !== id);
+  agendamentos = agendamentos.filter(a => a.colaboradorId !== id);
+  atualizarSelectLoginSimulado();
+  atualizarOpcoesSeletorColunas();
+  renderizarListaColaboradores();
+  renderizarAgenda();
+}
+
+function renderizarListaColaboradores() {
+  const lista = document.getElementById("colaboradores-lista");
+  lista.innerHTML = "";
+  colaboradores.forEach(c => {
+    lista.insertAdjacentHTML("beforeend", `
+      <div class="colaborador-item" style="border-left: 4px solid ${c.cor}">
+        <span class="colaborador-avatar"></span>
+        <div class="colaborador-info">
+          <strong>${c.nome}</strong>
+          <small>${c.cargo}</small><br>
+          <span class="status-ativo">Ativo</span>
+        </div>
+        <button type="button" class="colaborador-remover" onclick="removerColaborador(${c.id})">✕</button>
+      </div>`);
+  });
+}
+
+function renderizarContratos() {
+  const listaContratos = document.getElementById("contratos-lista");
+  listaContratos.innerHTML = "";
+  contratos.forEach(ct => {
+    listaContratos.insertAdjacentHTML("beforeend", `<tr><td>${ct.nome}</td><td>${ct.vencimento}</td></tr>`);
+  });
+}
+
+// --- INICIALIZAÇÃO ---
+atualizarSelectLoginSimulado();
+atualizarOpcoesSeletorColunas();
+atualizarFinanceiro();
+renderizarListaColaboradores();
+renderizarContratos();
+atualizarPlano();
+aplicarPermissoes();
+</script>
+</body>
+</html>

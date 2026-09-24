@@ -1,34 +1,23 @@
 // ===================================================================
-// DADOS DE EXEMPLO COM SUPORTE A "DIA" E "SEMANA"
+// DADOS DE EXEMPLO — no projeto real, cada bloco abaixo vira um
+// fetch('algo.php') que devolve isso pronto, vindo do banco.
 // ===================================================================
 
-const financeiroPorPeriodo = {
-  Dia: {
-    receitas: 3150.00,
-    despesas: 420.00,
-    saldo: 2730.00,
-    pagamentos: { pix: 2400, cartao: 3900 },
-    eixoMaximo: 6000
-  },
-  Semana: {
-    receitas: 18500.00,
-    despesas: 2300.00,
-    saldo: 16200.00,
-    pagamentos: { pix: 12000, cartao: 18000 },
-    eixoMaximo: 25000
-  }
+const financeiro = {
+  receitas: 3150.00,
+  despesas: 420.00,
+  saldo: 2730.00
 };
 
-let modoVisualizacao = "Dia"; // 'Dia' ou 'Semana'
+const pagamentos = { pix: 2400, cartao: 3900 };
+const eixoMaximo = 6000;
 
 const colaboradores = [
   { id: 1, nome: "Ana Beatriz Rocha", cargo: "Manicure", cor: "#c6c92c" },
   { id: 2, nome: "Joaquim Augusto", cargo: "Cabeleireiro", cor: "#e91e8c" },
   { id: 3, nome: "Laura Mendes", cargo: "Esteticista", cor: "#26b3c4" },
   { id: 4, nome: "Vitor Almeida", cargo: "Cabeleireiro", cor: "#f4a300" },
-  { id: 5, nome: "Marina Lopes", cargo: "Esteticista", cor: "#9b59b6" },
-  { id: 6, nome: "Carlos Andrade", cargo: "Barbeiro", cor: "#2a9d8f" },
-  { id: 7, nome: "Fernanda Costa", cargo: "Manicure", cor: "#e76f51" }
+  { id: 5, nome: "Marina Lopes", cargo: "Esteticista", cor: "#9b59b6" }
 ];
 
 let agendamentos = [
@@ -51,51 +40,28 @@ const contratos = [
 ];
 
 // ===================================================================
-// FINANCEIRO DINÂMICO
+// FINANCEIRO — preenche os 3 cards e o gráfico
 // ===================================================================
 
 function formatarMoeda(valor) {
   return "R$ " + valor.toFixed(2).replace(".", ",");
 }
 
-function atualizarFinanceiro() {
-  const dados = financeiroPorPeriodo[modoVisualizacao];
+document.getElementById("valor-receitas").textContent = formatarMoeda(financeiro.receitas);
+document.getElementById("valor-despesas").textContent = formatarMoeda(financeiro.despesas);
+document.getElementById("valor-saldo").textContent = formatarMoeda(financeiro.saldo);
 
-  // Atualiza o título do card de Receita
-  const elemTituloReceita = document.getElementById("titulo-receita") || document.querySelector(".card-receita h4");
-  if (elemTituloReceita) {
-    elemTituloReceita.textContent = `Receitas (${modoVisualizacao})`;
-  }
+document.querySelector(".eixo-max").textContent = eixoMaximo.toLocaleString("pt-BR");
+document.querySelector(".eixo-meio").textContent = (eixoMaximo / 2).toLocaleString("pt-BR");
 
-  // Atualiza os valores do topo
-  document.getElementById("valor-receitas").textContent = formatarMoeda(dados.receitas);
-  document.getElementById("valor-despesas").textContent = formatarMoeda(dados.despesas);
-  document.getElementById("valor-saldo").textContent = formatarMoeda(dados.saldo);
-
-  // Atualiza gráfico de meios de pagamento
-  const elemEixoMax = document.querySelector(".eixo-max");
-  const elemEixoMeio = document.querySelector(".eixo-meio");
-
-  if (elemEixoMax) elemEixoMax.textContent = dados.eixoMaximo.toLocaleString("pt-BR");
-  if (elemEixoMeio) elemEixoMeio.textContent = (dados.eixoMaximo / 2).toLocaleString("pt-BR");
-
-  const alturaPix = (dados.pagamentos.pix / dados.eixoMaximo) * 100;
-  const alturaCartao = (dados.pagamentos.cartao / dados.eixoMaximo) * 100;
-
-  const barraPix = document.querySelector('[data-meio="pix"] .barra');
-  const barraCartao = document.querySelector('[data-meio="cartao"] .barra');
-
-  if (barraPix) {
-    barraPix.style.height = alturaPix + "%";
-    barraPix.style.background = "#26b3c4";
-  }
-  if (barraCartao) {
-    barraCartao.style.height = alturaCartao + "%";
-  }
-}
+const alturaPix = (pagamentos.pix / eixoMaximo) * 100;
+const alturaCartao = (pagamentos.cartao / eixoMaximo) * 100;
+document.querySelector('[data-meio="pix"] .barra').style.height = alturaPix + "%";
+document.querySelector('[data-meio="pix"] .barra').style.background = "#26b3c4";
+document.querySelector('[data-meio="cartao"] .barra').style.height = alturaCartao + "%";
 
 // ===================================================================
-// AGENDA & ESTRUTURA
+// AGENDA — mesmo componente que já construímos
 // ===================================================================
 
 const horaInicio = 7;
@@ -103,20 +69,17 @@ const horaFim = 15;
 const totalHoras = horaFim - horaInicio;
 
 const agenda = document.getElementById("agenda");
-if (agenda) agenda.style.setProperty("--n-horas", totalHoras);
+agenda.style.setProperty("--n-horas", totalHoras);
 
 const hoje = new Date();
-const elemAgendaData = document.getElementById("agenda-data");
-if (elemAgendaData) {
-  elemAgendaData.textContent =
-    "Hoje: " + hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" });
-}
+document.getElementById("agenda-data").textContent =
+  "Hoje: " + hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "short", year: "numeric" });
 
 // ===================================================================
-// PAGINAÇÃO E COLUNAS DINÂMICAS (Permite mais de 5 colunas)
+// PAGINAÇÃO — controla quantos colaboradores aparecem por vez
 // ===================================================================
 
-let colunasVisiveis = 5; // Padrão
+let colunasVisiveis = 3;
 let paginaAtual = 0;
 
 function obterColaboradoresPagina() {
@@ -125,21 +88,23 @@ function obterColaboradoresPagina() {
 }
 
 function obterTotalPaginas() {
-  return Math.ceil(colaboradores.length / colunasVisiveis) || 1;
+  return Math.ceil(colaboradores.length / colunasVisiveis);
 }
 
 function atualizarInfoPaginacao() {
-  const elemPagInfo = document.getElementById("pag-info");
-  if (elemPagInfo) {
-    elemPagInfo.textContent = (paginaAtual + 1) + " de " + obterTotalPaginas();
-  }
+  document.getElementById("pag-info").textContent =
+    (paginaAtual + 1) + " de " + obterTotalPaginas();
 }
 
+// converte "08:30" em minutos (510) pra facilitar comparação de horários
 function paraMinutos(hora) {
   const [h, m] = hora.split(":").map(Number);
   return h * 60 + m;
 }
 
+// recebe os agendamentos de UM colaborador e devolve, pra cada um,
+// em qual "coluna" ele deve ficar e quantas colunas existem no total
+// (isso é o que evita o card ficar em cima do outro quando o horário bate)
 function calcularLayoutColuna(itens) {
   const ordenados = itens.slice().sort(function (a, b) {
     return paraMinutos(a.ag.inicio) - paraMinutos(b.ag.inicio);
@@ -154,6 +119,8 @@ function calcularLayoutColuna(itens) {
     const inicioMin = paraMinutos(item.ag.inicio);
     const fimMin = inicioMin + item.ag.fimMin;
 
+    // se esse agendamento começa depois de todos os outros do grupo terminarem,
+    // o grupo de sobreposição acabou aqui — fecha e processa
     if (grupoAtual.length > 0 && inicioMin >= fimGrupo) {
       processarGrupo(grupoAtual, layout);
       grupoAtual = [];
@@ -168,8 +135,9 @@ function calcularLayoutColuna(itens) {
   return layout;
 }
 
+// dentro de um grupo que se sobrepõe, distribui cada item numa coluna livre
 function processarGrupo(grupo, layoutSaida) {
-  const finsColunas = [];
+  const finsColunas = []; // guarda o horário de término de cada coluna usada
 
   for (let i = 0; i < grupo.length; i++) {
     const item = grupo[i];
@@ -179,13 +147,13 @@ function processarGrupo(grupo, layoutSaida) {
     let colunaEncontrada = -1;
     for (let c = 0; c < finsColunas.length; c++) {
       if (finsColunas[c] <= inicioMin) {
-        colunaEncontrada = c;
+        colunaEncontrada = c; // essa coluna já está livre nesse horário
         break;
       }
     }
 
     if (colunaEncontrada === -1) {
-      colunaEncontrada = finsColunas.length;
+      colunaEncontrada = finsColunas.length; // precisa de uma coluna nova
       finsColunas.push(fimMin);
     } else {
       finsColunas[colunaEncontrada] = fimMin;
@@ -194,15 +162,16 @@ function processarGrupo(grupo, layoutSaida) {
     layoutSaida.push({ ag: item.ag, indiceOriginal: item.indiceOriginal, coluna: colunaEncontrada });
   }
 
+  // todo item desse grupo divide a largura pelo total de colunas que o grupo usou
   const totalColunas = finsColunas.length;
   for (let i = layoutSaida.length - grupo.length; i < layoutSaida.length; i++) {
     layoutSaida[i].totalColunas = totalColunas;
   }
 }
 
+// desenha (ou redesenha) a agenda inteira a partir do array `agendamentos`
 function renderizarAgenda() {
-  if (!agenda) return;
-  agenda.innerHTML = "";
+  agenda.innerHTML = ""; // limpa antes de redesenhar
 
   const colaboradoresPagina = obterColaboradoresPagina();
   agenda.style.setProperty("--n-colab", colaboradoresPagina.length);
@@ -235,6 +204,8 @@ function renderizarAgenda() {
       col.insertAdjacentHTML("beforeend", `<div class="linha-hora"></div>`);
     }
 
+    // separa só os agendamentos desse colaborador, guardando o índice original
+    // (precisamos do índice original pro botão "remover" saber o que tirar do array)
     const agendamentosColaborador = [];
     for (let j = 0; j < agendamentos.length; j++) {
       if (agendamentos[j].colaboradorId === colaborador.id) {
@@ -253,6 +224,7 @@ function renderizarAgenda() {
       const topPx = (minutosDesdeInicio / 60) * 48;
       const heightPx = (ag.fimMin / 60) * 48;
 
+      // se não tem sobreposição, totalColunas é 1 e ocupa 100% como antes
       const largura = 100 / item.totalColunas;
       const esquerda = item.coluna * largura;
 
@@ -272,116 +244,86 @@ function renderizarAgenda() {
     agenda.appendChild(col);
   }
 
+  // liga o clique de cada botão "remover" recém-criado
   const botoesRemover = agenda.querySelectorAll(".remover");
   for (let i = 0; i < botoesRemover.length; i++) {
     botoesRemover[i].addEventListener("click", function () {
       const indice = Number(this.dataset.index);
-      agendamentos.splice(indice, 1);
-      renderizarAgenda();
+      agendamentos.splice(indice, 1); // remove esse agendamento do array
+      renderizarAgenda();             // redesenha tudo
+      // no projeto real, aqui também entra um fetch DELETE pro PHP
     });
   }
 }
 
-// Evento para mudança de colunas
-const campoColunas = document.getElementById("campo-colunas");
-if (campoColunas) {
-  campoColunas.addEventListener("change", function () {
-    colunasVisiveis = Number(this.value);
-    paginaAtual = 0;
+renderizarAgenda();
+
+// select de "Colunas" — muda quantos colaboradores aparecem por vez
+document.getElementById("campo-colunas").addEventListener("change", function () {
+  colunasVisiveis = Number(this.value);
+  paginaAtual = 0; // volta pro início ao mudar a quantidade de colunas
+  renderizarAgenda();
+});
+
+// setas de paginação — navegam entre os grupos de colaboradores
+document.getElementById("btn-pag-anterior").addEventListener("click", function () {
+  if (paginaAtual > 0) {
+    paginaAtual--;
     renderizarAgenda();
-  });
-}
+  }
+});
 
-// Eventos de Paginação
-const btnPagAnterior = document.getElementById("btn-pag-anterior");
-if (btnPagAnterior) {
-  btnPagAnterior.addEventListener("click", function () {
-    if (paginaAtual > 0) {
-      paginaAtual--;
-      renderizarAgenda();
-    }
-  });
-}
-
-const btnPagProxima = document.getElementById("btn-pag-proxima");
-if (btnPagProxima) {
-  btnPagProxima.addEventListener("click", function () {
-    if (paginaAtual < obterTotalPaginas() - 1) {
-      paginaAtual++;
-      renderizarAgenda();
-    }
-  });
-}
-
-// Eventos de seleção do Modo "Dia" / "Semana"
-const btnModoDia = document.getElementById("btn-modo-dia");
-const btnModoSemana = document.getElementById("btn-modo-semana");
-
-if (btnModoDia) {
-  btnModoDia.addEventListener("click", function () {
-    modoVisualizacao = "Dia";
-    btnModoDia.classList.add("active");
-    if (btnModoSemana) btnModoSemana.classList.remove("active");
-    atualizarFinanceiro();
-  });
-}
-
-if (btnModoSemana) {
-  btnModoSemana.addEventListener("click", function () {
-    modoVisualizacao = "Semana";
-    btnModoSemana.classList.add("active");
-    if (btnModoDia) btnModoDia.classList.remove("active");
-    atualizarFinanceiro();
-  });
-}
+document.getElementById("btn-pag-proxima").addEventListener("click", function () {
+  if (paginaAtual < obterTotalPaginas() - 1) {
+    paginaAtual++;
+    renderizarAgenda();
+  }
+});
 
 // ===================================================================
-// FORMULÁRIOS & GESTÃO DE COLABORADORES
+// FORMULÁRIO — abrir/fechar e adicionar novo agendamento
 // ===================================================================
 
 const form = document.getElementById("form-agendamento");
 const selectColaborador = document.getElementById("campo-colaborador");
 
-const btnNovoAgendamento = document.getElementById("btn-novo-agendamento");
-if (btnNovoAgendamento && form) {
-  btnNovoAgendamento.addEventListener("click", function () {
-    form.hidden = !form.hidden;
-  });
-}
+document.getElementById("btn-novo-agendamento").addEventListener("click", function () {
+  form.hidden = !form.hidden;
+});
 
-const btnCancelar = document.getElementById("btn-cancelar");
-if (btnCancelar && form) {
-  btnCancelar.addEventListener("click", function () {
-    form.reset();
-    form.hidden = true;
-  });
-}
+document.getElementById("btn-cancelar").addEventListener("click", function () {
+  form.reset();
+  form.hidden = true;
+});
 
-if (form) {
-  form.addEventListener("submit", function (evento) {
-    evento.preventDefault();
+form.addEventListener("submit", function (evento) {
+  evento.preventDefault(); // impede o formulário de recarregar a página
 
-    const novoAgendamento = {
-      colaboradorId: Number(selectColaborador.value),
-      cliente: document.getElementById("campo-cliente").value,
-      servico: document.getElementById("campo-servico").value,
-      inicio: document.getElementById("campo-inicio").value,
-      fimMin: Number(document.getElementById("campo-duracao").value),
-      cor: document.getElementById("campo-cor").value
-    };
+  const novoAgendamento = {
+    colaboradorId: Number(selectColaborador.value),
+    cliente: document.getElementById("campo-cliente").value,
+    servico: document.getElementById("campo-servico").value,
+    inicio: document.getElementById("campo-inicio").value,
+    fimMin: Number(document.getElementById("campo-duracao").value),
+    cor: document.getElementById("campo-cor").value // a cor escolhida no seletor
+  };
 
-    agendamentos.push(novoAgendamento);
-    renderizarAgenda();
+  agendamentos.push(novoAgendamento); // adiciona no array
+  renderizarAgenda();                 // redesenha com o novo bloco
 
-    form.reset();
-    form.hidden = true;
-  });
-}
+  // no projeto real, aqui entra um fetch POST pro PHP salvando no banco
+
+  form.reset();
+  form.hidden = true;
+});
+
+// ===================================================================
+// ADMINISTRATIVO — colaboradores ativos (mesmo array usado na agenda) + contratos
+// ===================================================================
 
 function renderizarColaboradoresAtivos() {
   const listaColaboradores = document.getElementById("colaboradores-lista");
-  if (!listaColaboradores) return;
-  listaColaboradores.innerHTML = "";
+  listaColaboradores.innerHTML = ""; // limpa antes de redesenhar
 
   for (let i = 0; i < colaboradores.length; i++) {
     const c = colaboradores[i];
@@ -398,6 +340,7 @@ function renderizarColaboradoresAtivos() {
     `);
   }
 
+  // liga o clique de cada "x" recém-criado
   const botoesRemoverColab = listaColaboradores.querySelectorAll(".colaborador-remover");
   for (let i = 0; i < botoesRemoverColab.length; i++) {
     botoesRemoverColab[i].addEventListener("click", function () {
@@ -408,6 +351,7 @@ function renderizarColaboradoresAtivos() {
 }
 
 function removerColaborador(id) {
+  // acha e remove o colaborador do array
   for (let i = 0; i < colaboradores.length; i++) {
     if (colaboradores[i].id === id) {
       colaboradores.splice(i, 1);
@@ -415,20 +359,23 @@ function removerColaborador(id) {
     }
   }
 
+  // remove também os agendamentos que eram desse colaborador
   agendamentos = agendamentos.filter(function (ag) {
     return ag.colaboradorId !== id;
   });
 
+  // se a página atual da agenda ficou "vazia" depois da remoção, volta uma página
   const totalPaginas = Math.max(1, obterTotalPaginas());
   if (paginaAtual >= totalPaginas) paginaAtual = totalPaginas - 1;
 
   renderizarColaboradoresAtivos();
   atualizarSelectColaborador();
   renderizarAgenda();
+  // no projeto real, aqui também entra um fetch DELETE pro PHP
 }
 
 function atualizarSelectColaborador() {
-  if (!selectColaborador) return;
+  const selectColaborador = document.getElementById("campo-colaborador");
   selectColaborador.innerHTML = "";
   for (let i = 0; i < colaboradores.length; i++) {
     const c = colaboradores[i];
@@ -444,56 +391,45 @@ function gerarNovoId(lista) {
   return maior + 1;
 }
 
-const formColaborador = document.getElementById("form-colaborador");
-const btnNovoColaborador = document.getElementById("btn-novo-colaborador");
-
-if (btnNovoColaborador && formColaborador) {
-  btnNovoColaborador.addEventListener("click", function () {
-    formColaborador.hidden = !formColaborador.hidden;
-  });
-}
-
-const btnColabCancelar = document.getElementById("btn-colab-cancelar");
-if (btnColabCancelar && formColaborador) {
-  btnColabCancelar.addEventListener("click", function () {
-    formColaborador.reset();
-    formColaborador.hidden = true;
-  });
-}
-
-if (formColaborador) {
-  formColaborador.addEventListener("submit", function (evento) {
-    evento.preventDefault();
-
-    const novoColaborador = {
-      id: gerarNovoId(colaboradores),
-      nome: document.getElementById("campo-colab-nome").value,
-      cargo: document.getElementById("campo-colab-cargo").value,
-      cor: document.getElementById("campo-colab-cor").value
-    };
-
-    colaboradores.push(novoColaborador);
-
-    renderizarColaboradoresAtivos();
-    atualizarSelectColaborador();
-    renderizarAgenda();
-
-    formColaborador.reset();
-    formColaborador.hidden = true;
-  });
-}
-
-const listaContratos = document.getElementById("contratos-lista");
-if (listaContratos) {
-  for (let i = 0; i < contratos.length; i++) {
-    const ct = contratos[i];
-    listaContratos.insertAdjacentHTML("beforeend",
-      `<tr><td>${ct.nome}</td><td>${ct.vencimento}</td></tr>`);
-  }
-}
-
-// INICIALIZAÇÃO DO SISTEMA
-atualizarFinanceiro();
 renderizarColaboradoresAtivos();
 atualizarSelectColaborador();
-renderizarAgenda();
+
+// formulário de novo colaborador
+const formColaborador = document.getElementById("form-colaborador");
+
+document.getElementById("btn-novo-colaborador").addEventListener("click", function () {
+  formColaborador.hidden = !formColaborador.hidden;
+});
+
+document.getElementById("btn-colab-cancelar").addEventListener("click", function () {
+  formColaborador.reset();
+  formColaborador.hidden = true;
+});
+
+formColaborador.addEventListener("submit", function (evento) {
+  evento.preventDefault();
+
+  const novoColaborador = {
+    id: gerarNovoId(colaboradores),
+    nome: document.getElementById("campo-colab-nome").value,
+    cargo: document.getElementById("campo-colab-cargo").value,
+    cor: document.getElementById("campo-colab-cor").value
+  };
+
+  colaboradores.push(novoColaborador);
+
+  renderizarColaboradoresAtivos();
+  atualizarSelectColaborador();
+  renderizarAgenda();
+  // no projeto real, aqui entra um fetch POST pro PHP salvando no banco
+
+  formColaborador.reset();
+  formColaborador.hidden = true;
+});
+
+const listaContratos = document.getElementById("contratos-lista");
+for (let i = 0; i < contratos.length; i++) {
+  const ct = contratos[i];
+  listaContratos.insertAdjacentHTML("beforeend",
+    `<tr><td>${ct.nome}</td><td>${ct.vencimento}</td></tr>`);
+}
