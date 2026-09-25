@@ -27,7 +27,13 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--texto); background: var(--bg); transition: background 0.3s ease, color 0.3s ease; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--bg);
+  transition: background 0.3s ease, color 0.3s ease;
+}
 
 /* BARRA SUPERIOR DE SIMULAÇÃO */
 .bar-simulacao {
@@ -46,9 +52,49 @@ body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ro
 
 .layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 40px); }
 
+/* Gestão Integrada - botão para esconder a lateral */
+.logo {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+  cursor: pointer;
+  user-select: none;
+}
+.logo:hover { opacity: 0.85; }
+
+/* Esconde a barra lateral */
+.sidebar.oculta {
+  display: none !important;
+}
+
+/* Quando a lateral estiver escondida, o conteúdo ocupa a tela inteira */
+.layout.sidebar-oculta {
+  grid-template-columns: 1fr;
+}
+.layout.sidebar-oculta .main {
+  width: 100%;
+}
+
+/* Botão para trazer a barra lateral de volta, dentro da barra superior */
+.btn-mostrar-sidebar {
+  display: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--roxo);
+  color: #fff;
+  border: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.btn-mostrar-sidebar:hover { opacity: 0.9; }
+.btn-mostrar-sidebar.mostrar {
+  display: flex;
+}
+
 /* SIDEBAR */
 .sidebar { background: var(--card); border-right: 1px solid var(--border); padding: 18px 14px; }
-.logo { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
 .logo-icone { width: 32px; height: 32px; border-radius: 8px; background: var(--roxo); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
 .menu { display: flex; flex-direction: column; gap: 2px; }
 .menu-item { padding: 9px 10px; border-radius: 8px; color: var(--texto); text-decoration: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
@@ -67,6 +113,8 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .stat-valor { font-size: 18px; font-weight: 700; }
 
 .stat-card.bloqueado .conteudo-bloqueavel { visibility: hidden; opacity: 0; }
+
+.overlay-bloqueio[hidden] { display: none !important; }
 
 .overlay-bloqueio {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -193,14 +241,15 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 <body>
 
 <div class="bar-simulacao">
+  <button type="button" id="btn-mostrar-sidebar" class="btn-mostrar-sidebar" title="Mostrar menu lateral">☰</button>
   <span><strong>Simulador de Permissões:</strong></span>
   <div class="bar-simulacao-controles">
     <div>
       <label for="select-plano">Plano contratado: </label>
       <select id="select-plano">
-        <option value="BASICO" selected>Plano Básico (Grátis)</option>
-        <option value="INTERMEDIARIO">Plano Intermediário</option>
-        <option value="PRO">Plano Pro (Completo)</option>
+        <option value="FREE" selected>Free (Degustação)</option>
+        <option value="BASICO">Básico</option>
+        <option value="PREMIUM">Premium</option>
       </select>
     </div>
     <div>
@@ -211,11 +260,11 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   </div>
 </div>
 
-<div class="layout">
+<div class="layout" id="layout-principal">
 
   <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <div class="logo">
+  <aside class="sidebar" id="sidebar-principal">
+    <div class="logo" id="btn-gestao" title="Ocultar menu lateral" role="button" tabindex="0">
       <span class="logo-icone">G</span>
       <div><strong>Gestão Integrada Pro</strong></div>
     </div>
@@ -228,7 +277,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       </a>
       <a class="menu-item" data-menu="Administracao">Administração</a>
       <a class="menu-item" data-menu="Planos">
-        <span> Planos</span>
+        <span>Planos</span>
       </a>
     </nav>
   </aside>
@@ -240,20 +289,20 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       <!-- FINANCEIRO -->
       <section id="secao-financeiro">
         <h2>Financeiro</h2>
-        
+
         <div id="aviso-bloqueio-financeiro-pagina" class="card-bloqueio-plano" hidden>
           <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
-          <h3>Recurso exclusivo dos Planos Intermediário e Pro</h3>
-          <p>Faça upgrade do seu plano para ter acesso total ao módulo de Gestão Financeira, fluxo de caixa e gráficos de recebimento.</p>
+          <h3>Recurso disponível apenas no Plano Premium</h3>
+          <p>Faça upgrade para o Plano Premium para ter acesso aos relatórios financeiros e aos recursos avançados.</p>
           <button class="btn-salvar" onclick="irParaTelaPlanos('Financeiro')">Fazer Upgrade do Plano</button>
         </div>
 
         <div class="financeiro-grid" id="grid-financeiro-cards">
-          
+
           <div class="stat-card" id="card-receitas">
             <div class="overlay-bloqueio" hidden>
               <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Pro</span>
+              <span class="tag-pro">Exclusivo Premium</span>
             </div>
             <div class="conteudo-bloqueavel">
               <span class="stat-label" id="titulo-receitas">Receitas (Dia)</span>
@@ -264,7 +313,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
           <div class="stat-card" id="card-despesas">
             <div class="overlay-bloqueio" hidden>
               <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Pro</span>
+              <span class="tag-pro">Exclusivo Premium</span>
             </div>
             <div class="conteudo-bloqueavel">
               <span class="stat-label">Despesas</span>
@@ -275,7 +324,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
           <div class="stat-card" id="card-saldo">
             <div class="overlay-bloqueio" hidden>
               <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Pro</span>
+              <span class="tag-pro">Exclusivo Premium</span>
             </div>
             <div class="conteudo-bloqueavel">
               <span class="stat-label">Saldo Final</span>
@@ -286,7 +335,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
           <div class="stat-card grafico-card" id="card-grafico">
             <div class="overlay-bloqueio" hidden>
               <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Pro</span>
+              <span class="tag-pro">Exclusivo Premium</span>
             </div>
             <div class="conteudo-bloqueavel">
               <span class="stat-label">Meios de Pagamento</span>
@@ -411,53 +460,58 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       <section id="secao-planos" style="display: none;">
         <h2>Planos e Assinaturas</h2>
         <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Escolha o plano ideal para gerenciar o seu negócio.</p>
-        
+
         <div class="planos-grid">
-          
+
+          <!-- PLANO FREE -->
+          <div class="card-plano" id="card-plano-free">
+            <div>
+              <h3>Free (Degustação)</h3>
+              <div class="preco">30 dias</div>
+              <ul>
+                <li>✓ Agendamentos ilimitados durante o período</li>
+                <li>✓ Até 15 colaboradores</li>
+                <li>✓ Agenda simples</li>
+                <li>✕ Sem relatórios</li>
+                <li>✕ Sem suporte prioritário</li>
+                <li>✕ Sem integrações externas</li>
+              </ul>
+            </div>
+            <button class="btn-selecionar-plano" id="btn-plano-free" onclick="escolherPlano('FREE')">Selecionar Plano</button>
+          </div>
+
           <!-- PLANO BÁSICO -->
           <div class="card-plano" id="card-plano-basico">
             <div>
               <h3>Básico</h3>
-              <div class="preco">Grátis</div>
+              <div class="preco">Sem limite de tempo</div>
               <ul>
-                <li>✓ Gestão de Agenda</li>
-                <li>✓ Cadastro de Profissionais</li>
-                <li>✕ Relatórios Financeiros</li>
-                <li>✕ Fluxo de Caixa Avançado</li>
+                <li>✓ Agendamentos ilimitados</li>
+                <li>✓ Até 10 colaboradores</li>
+                <li>✕ Sem relatórios de agenda</li>
+                <li>✕ Sem relatórios financeiros</li>
+                <li>✓ Suporte somente por e-mail</li>
+                <li>✓ Notificações por e-mail</li>
               </ul>
             </div>
-            <button class="btn-selecionar-plano" id="btn-plano-basico" onclick="escolherPlano('BASICO')">Selecionar Plano</button>
+            <button class="btn-selecionar-plano" id="btn-plano-basico" onclick="escolherPlano('BASICO')">Escolher Básico</button>
           </div>
 
-          <!-- PLANO INTERMEDIÁRIO -->
-          <div class="card-plano">
+          <!-- PLANO PREMIUM -->
+          <div class="card-plano" id="card-plano-premium">
             <div>
-              <h3>Intermediário</h3>
-              <div class="preco">R$ 49 <span>/mês</span></div>
+              <h3>Premium</h3>
+              <div class="preco">Sem limite de tempo</div>
               <ul>
-                <li>✓ Gestão de Agenda</li>
-                <li>✓ Cadastro de Profissionais</li>
-                <li>✓ Módulo Financeiro Básico</li>
-                <li>✕ Gráficos Consolidados</li>
+                <li>✓ Agendamentos ilimitados</li>
+                <li>✓ Colaboradores ilimitados</li>
+                <li>✓ Relatórios avançados (financeiro)</li>
+                <li>✓ Suporte prioritário (chat/telefone)</li>
+                <li>✓ Integração com WhatsApp</li>
+                <li>✓ Personalização de serviços e horários</li>
               </ul>
             </div>
-            <button class="btn-selecionar-plano" id="btn-plano-intermediario" onclick="escolherPlano('INTERMEDIARIO')">Escolher Intermediário</button>
-          </div>
-
-          <!-- PLANO PRO -->
-          <div class="card-plano destaque">
-            <span class="badge">RECOMENDADO</span>
-            <div>
-              <h3>Pro (Completo)</h3>
-              <div class="preco">R$ 89 <span>/mês</span></div>
-              <ul>
-                <li>✓ Agenda Ilimitada</li>
-                <li>✓ Cadastro ilimitado de equipe</li>
-                <li>✓ Financeiro e Caixa em Tempo Real</li>
-                <li>✓ Gráficos e Relatórios Pro</li>
-              </ul>
-            </div>
-            <button class="btn-selecionar-plano" id="btn-plano-pro" onclick="escolherPlano('PRO')">Escolher Pro</button>
+            <button class="btn-selecionar-plano" id="btn-plano-premium" onclick="escolherPlano('PREMIUM')">Escolher Premium</button>
           </div>
 
         </div>
@@ -534,7 +588,7 @@ btnToggleTema.addEventListener("click", function () {
 });
 
 // --- ESTADO DA APLICAÇÃO ---
-let planoAtual = "BASICO"; 
+let planoAtual = "FREE";
 let usuarioLogado = { perfil: "DONO", colaboradorId: null };
 let abaAtiva = "Dashboard";
 let abaOrigemPlanos = "Dashboard"; // Guarda de onde o utilizador veio antes de ir aos planos
@@ -585,63 +639,87 @@ function escolherPlano(novoPlano) {
   planoAtual = novoPlano;
   document.getElementById("select-plano").value = novoPlano;
   atualizarPlano();
-
   // Retorna automaticamente para a aba onde o utilizador estava
   mudarAba(abaOrigemPlanos);
 }
 
 function atualizarPlano() {
   planoAtual = document.getElementById("select-plano").value;
-  
-  const cardsBloqueaveis = ["card-receitas", "card-despesas", "card-saldo", "card-grafico"];
-  const estaBloqueado = (planoAtual === "BASICO");
 
-  cardsBloqueaveis.forEach(id => {
-    const el = document.getElementById(id);
-    const overlay = el.querySelector(".overlay-bloqueio");
-    if (estaBloqueado) {
-      el.classList.add("bloqueado");
-      overlay.hidden = false;
+  // Regras dos planos:
+  // FREE = 30 dias, sem relatórios
+  // BASICO = sem limite, sem relatórios
+  // PREMIUM = sem limite, com todos os recursos financeiros
+  //
+  // PRO também é aceito aqui para manter compatibilidade com a versão
+  // antiga do simulador.
+  const planoCompleto = (planoAtual === "PREMIUM" || planoAtual === "PRO");
+  const temAcessoFinanceiro = planoCompleto;
+  const temAcessoGraficosPro = planoCompleto;
+
+  // 1. Controle da área financeira
+  const gridCards = document.getElementById("grid-financeiro-cards");
+  const avisoBloqueio = document.getElementById("aviso-bloqueio-financeiro-pagina");
+
+  if (temAcessoFinanceiro) {
+    if (gridCards) { gridCards.hidden = false; gridCards.style.display = "grid"; }
+    if (avisoBloqueio) avisoBloqueio.hidden = true;
+  } else {
+    if (gridCards) { gridCards.hidden = true; gridCards.style.display = "none"; }
+    if (avisoBloqueio) avisoBloqueio.hidden = false;
+  }
+
+  // 2. Premium/Pro libera TODOS os cards financeiros.
+  // Antes somente o gráfico era liberado; por isso os outros
+  // cards continuavam aparecendo com cadeado.
+  const cardsFinanceiros = ["card-receitas", "card-despesas", "card-saldo", "card-grafico"];
+  cardsFinanceiros.forEach(id => {
+    const card = document.getElementById(id);
+    if (!card) return;
+    const overlay = card.querySelector(".overlay-bloqueio");
+    if (planoCompleto) {
+      card.classList.remove("bloqueado");
+      if (overlay) overlay.hidden = true;
     } else {
-      el.classList.remove("bloqueado");
-      overlay.hidden = true;
+      card.classList.add("bloqueado");
+      if (overlay) overlay.hidden = false;
     }
   });
 
-  document.getElementById("tag-lock-fin").hidden = !estaBloqueado;
+  // 3. Cadeado do menu Financeiro
+  const tagLock = document.getElementById("tag-lock-fin");
+  if (tagLock) tagLock.hidden = temAcessoFinanceiro;
 
-  // Atualiza os botões da tela de planos
-  document.getElementById("btn-plano-basico").className = planoAtual === "BASICO" ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
-  document.getElementById("btn-plano-basico").textContent = planoAtual === "BASICO" ? "Plano Atual" : "Selecionar Plano";
+  // 4. Atualiza botões dos planos
+  const planos = [
+    { id: "btn-plano-free", valor: "FREE", texto: "Selecionar Plano", atual: "Plano Atual" },
+    { id: "btn-plano-basico", valor: "BASICO", texto: "Escolher Básico", atual: "Plano Atual" },
+    { id: "btn-plano-premium", valor: "PREMIUM", texto: "Escolher Premium", atual: "Plano Atual" }
+  ];
+  planos.forEach(plano => {
+    const botao = document.getElementById(plano.id);
+    if (!botao) return;
+    const atual = planoAtual === plano.valor;
+    botao.className = atual ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
+    botao.textContent = atual ? plano.atual : plano.texto;
+  });
 
-  document.getElementById("btn-plano-intermediario").className = planoAtual === "INTERMEDIARIO" ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
-  document.getElementById("btn-plano-intermediario").textContent = planoAtual === "INTERMEDIARIO" ? "Plano Atual" : "Escolher Intermediário";
-
-  document.getElementById("btn-plano-pro").className = planoAtual === "PRO" ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
-  document.getElementById("btn-plano-pro").textContent = planoAtual === "PRO" ? "Plano Atual" : "Escolher Pro";
-
+  // Força atualização da aba atual
   atualizarNavegacao();
 }
-
 document.getElementById("select-plano").addEventListener("change", atualizarPlano);
 
 // --- NAVEGAÇÃO ENTRE ABAS ---
 function mudarAba(nomeAba) {
   document.querySelectorAll(".menu-item").forEach(m => {
-    if (m.dataset.menu === nomeAba) {
-      m.classList.add("ativo");
-    } else {
-      m.classList.remove("ativo");
-    }
+    if (m.dataset.menu === nomeAba) { m.classList.add("ativo"); }
+    else { m.classList.remove("ativo"); }
   });
   abaAtiva = nomeAba;
   atualizarNavegacao();
 }
-
 document.querySelectorAll(".menu-item").forEach(item => {
-  item.addEventListener("click", function() {
-    mudarAba(this.dataset.menu);
-  });
+  item.addEventListener("click", function() { mudarAba(this.dataset.menu); });
 });
 
 function atualizarNavegacao() {
@@ -649,7 +727,6 @@ function atualizarNavegacao() {
   const secAgenda = document.getElementById("secao-agenda");
   const secAdmin = document.getElementById("secao-administrativo");
   const secPlanos = document.getElementById("secao-planos");
-
   const gridCardsFin = document.getElementById("grid-financeiro-cards");
   const avisoBloqueioFin = document.getElementById("aviso-bloqueio-financeiro-pagina");
 
@@ -660,19 +737,29 @@ function atualizarNavegacao() {
   secPlanos.style.display = "none";
 
   if (abaAtiva === "Dashboard") {
-    secFin.style.display = (usuarioLogado.perfil === "DONO") ? "block" : "none";
-    gridCardsFin.style.display = "grid";
-    avisoBloqueioFin.hidden = true;
+    if (usuarioLogado.perfil === "DONO" && (planoAtual === "PREMIUM" || planoAtual === "PRO")) {
+      secFin.style.display = "block";
+      gridCardsFin.style.display = "grid";
+      gridCardsFin.hidden = false;
+      avisoBloqueioFin.hidden = true;
+    } else {
+      secFin.style.display = "none";
+      gridCardsFin.style.display = "none";
+      gridCardsFin.hidden = true;
+      avisoBloqueioFin.hidden = true;
+    }
     secAgenda.style.display = "block";
     secAdmin.style.display = (usuarioLogado.perfil === "DONO") ? "block" : "none";
   } else if (abaAtiva === "Financeiro") {
     secFin.style.display = "block";
-    if (planoAtual === "BASICO") {
-      gridCardsFin.style.display = "none";
-      avisoBloqueioFin.hidden = false;
-    } else {
+    if (planoAtual === "PREMIUM" || planoAtual === "PRO") {
       gridCardsFin.style.display = "grid";
+      gridCardsFin.hidden = false;
       avisoBloqueioFin.hidden = true;
+    } else {
+      gridCardsFin.style.display = "none";
+      gridCardsFin.hidden = true;
+      avisoBloqueioFin.hidden = false;
     }
   } else if (abaAtiva === "Agenda") {
     secAgenda.style.display = "block";
@@ -688,7 +775,6 @@ function paraMinutos(hora) {
   const [h, m] = hora.split(":").map(Number);
   return h * 60 + m;
 }
-
 function formatarMoeda(v) { return "R$ " + v.toFixed(2).replace(".", ","); }
 
 function atualizarSelectLoginSimulado() {
@@ -715,10 +801,8 @@ function atualizarFinanceiro() {
   document.getElementById("valor-receitas").textContent = formatarMoeda(d.receitas);
   document.getElementById("valor-despesas").textContent = formatarMoeda(d.despesas);
   document.getElementById("valor-saldo").textContent = formatarMoeda(d.saldo);
-
   document.querySelector(".eixo-max").textContent = d.eixoMaximo.toLocaleString("pt-BR");
   document.querySelector(".eixo-meio").textContent = (d.eixoMaximo / 2).toLocaleString("pt-BR");
-
   document.querySelector('[data-meio="pix"] .barra').style.height = (d.pagamentos.pix / d.eixoMaximo) * 100 + "%";
   document.querySelector('[data-meio="cartao"] .barra').style.height = (d.pagamentos.cartao / d.eixoMaximo) * 100 + "%";
 }
@@ -732,12 +816,10 @@ function obterColaboradoresPagina() {
   const inicio = paginaAtual * colunasVisiveis;
   return colaboradores.slice(inicio, inicio + colunasVisiveis);
 }
-
 function obterTotalPaginas() {
   if (usuarioLogado.perfil === "COLABORADOR") return 1;
   return Math.ceil(colaboradores.length / colunasVisiveis) || 1;
 }
-
 function atualizarInfoPaginacao() {
   document.getElementById("pag-info").textContent = `${paginaAtual + 1} de ${obterTotalPaginas()}`;
 }
@@ -759,12 +841,10 @@ function calcularLayoutColuna(itens) {
       grupoAtual = [];
       fimGrupo = -1;
     }
-
     grupoAtual.push(item);
     fimGrupo = Math.max(fimGrupo, fimMin);
   }
   if (grupoAtual.length > 0) processarGrupo(grupoAtual, layout);
-
   return layout;
 }
 
@@ -777,22 +857,16 @@ function processarGrupo(grupo, layoutSaida) {
 
     let colunaEncontrada = -1;
     for (let c = 0; c < finsColunas.length; c++) {
-      if (finsColunas[c] <= inicioMin) {
-        colunaEncontrada = c;
-        break;
-      }
+      if (finsColunas[c] <= inicioMin) { colunaEncontrada = c; break; }
     }
-
     if (colunaEncontrada === -1) {
       colunaEncontrada = finsColunas.length;
       finsColunas.push(fimMin);
     } else {
       finsColunas[colunaEncontrada] = fimMin;
     }
-
     layoutSaida.push({ ag: item.ag, id: item.ag.id, coluna: colunaEncontrada });
   }
-
   const totalColunas = finsColunas.length;
   for (let i = layoutSaida.length - grupo.length; i < layoutSaida.length; i++) {
     layoutSaida[i].totalColunas = totalColunas;
@@ -852,7 +926,6 @@ function renderizarAgenda() {
   colaboradoresPagina.forEach(coluna => {
     const col = document.createElement("div");
     col.className = "col-colab";
-
     for (let h = horaInicio; h < horaFim; h++) {
       col.insertAdjacentHTML("beforeend", `<div class="linha-hora"></div>`);
     }
@@ -867,10 +940,8 @@ function renderizarAgenda() {
       const ag = item.ag;
       const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
       const minInicio = (hIni - horaInicio) * 60 + mIni;
-
       const topPx = (minInicio / 60) * 48;
       const heightPx = Math.max((ag.duracaoMin / 60) * 48, 38);
-
       const largura = 100 / item.totalColunas;
       const esquerda = item.coluna * largura;
 
@@ -878,9 +949,7 @@ function renderizarAgenda() {
       bloco.className = "agendamento";
       bloco.style.cssText = `top: ${topPx}px; height: ${heightPx}px; left: calc(${esquerda}% + 2px); width: calc(${largura}% - 4px); background: ${ag.cor};`;
       bloco.setAttribute("title", `Cliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nHorário: ${ag.horaInicio}`);
-
       bloco.addEventListener("click", () => verDetalhesAgendamento(ag));
-
       bloco.innerHTML = `
         <button type="button" class="remover" onclick="removerAgendamento(${ag.id}, event)">✕</button>
         <strong>${ag.cliente}</strong>
@@ -899,16 +968,22 @@ function renderizarAgenda() {
 function aplicarPermissoes() {
   const containerPaginacao = document.getElementById("container-paginacao");
   const seletorColunasDiv = seletorColunas.parentElement;
-  const menusRestritos = document.querySelectorAll('.menu-item[data-menu="Financeiro"], .menu-item[data-menu="Administracao"]');
+  const menuFinanceiro = document.querySelector('.menu-item[data-menu="Financeiro"]');
+  const menuAdministracao = document.querySelector('.menu-item[data-menu="Administracao"]');
 
   if (usuarioLogado.perfil === "COLABORADOR") {
     containerPaginacao.style.display = "none";
     seletorColunasDiv.style.display = "none";
-    menusRestritos.forEach(m => m.style.display = "none");
+    if (menuFinanceiro) menuFinanceiro.style.display = "none";
+    if (menuAdministracao) menuAdministracao.style.display = "none";
   } else {
     containerPaginacao.style.display = "flex";
     seletorColunasDiv.style.display = "block";
-    menusRestritos.forEach(m => m.style.display = "flex");
+    if (menuAdministracao) menuAdministracao.style.display = "flex";
+    // Financeiro só existe no Premium
+    if (menuFinanceiro) {
+      menuFinanceiro.style.display = "flex";
+    }
   }
   paginaAtual = 0;
   atualizarNavegacao();
@@ -927,7 +1002,6 @@ document.getElementById("select-perfil").addEventListener("change", function () 
 });
 
 seletorData.addEventListener("change", renderizarAgenda);
-
 seletorColunas.addEventListener("change", function () {
   colunasVisiveis = parseInt(this.value);
   paginaAtual = 0;
@@ -937,7 +1011,6 @@ seletorColunas.addEventListener("change", function () {
 document.getElementById("btn-pag-anterior").addEventListener("click", () => {
   if (paginaAtual > 0) { paginaAtual--; renderizarAgenda(); }
 });
-
 document.getElementById("btn-pag-proxima").addEventListener("click", () => {
   if (paginaAtual < obterTotalPaginas() - 1) { paginaAtual++; renderizarAgenda(); }
 });
@@ -985,7 +1058,6 @@ formAgendamento.addEventListener("submit", function(e) {
     duracaoMin: parseInt(document.getElementById("agend-duracao").value),
     cor: document.getElementById("agend-cor").value
   };
-
   agendamentos.push(novoAgendamento);
   seletorData.value = novoAgendamento.data;
   renderizarAgenda();
@@ -997,6 +1069,17 @@ formAgendamento.addEventListener("submit", function(e) {
 const formColab = document.getElementById("form-colaborador");
 formColab.addEventListener("submit", function (e) {
   e.preventDefault();
+
+  // Limite de colaboradores:
+  // FREE = 15 | BASICO = 10 | PREMIUM = ilimitado
+  const limiteColaboradores = { FREE: 15, BASICO: 10, PREMIUM: Infinity };
+  const limite = limiteColaboradores[planoAtual];
+
+  if (colaboradores.length >= limite) {
+    alert(`O plano ${planoAtual} permite até ${limite} colaboradores.`);
+    return;
+  }
+
   const novoColab = {
     id: colaboradores.length ? Math.max(...colaboradores.map(c => c.id)) + 1 : 1,
     nome: document.getElementById("colab-nome").value,
@@ -1004,7 +1087,6 @@ formColab.addEventListener("submit", function (e) {
     email: document.getElementById("colab-email").value,
     cor: document.getElementById("colab-cor").value
   };
-
   colaboradores.push(novoColab);
   atualizarSelectLoginSimulado();
   atualizarOpcoesSeletorColunas();
@@ -1047,6 +1129,42 @@ function renderizarContratos() {
   });
 }
 
+// =====================================================
+// MOSTRAR / ESCONDER MENU LATERAL
+// Ao clicar em "Gestão Integrada Pro"
+// =====================================================
+const btnGestao = document.getElementById("btn-gestao");
+const sidebar = document.getElementById("sidebar-principal");
+const layoutPrincipal = document.getElementById("layout-principal");
+const btnMostrarSidebar = document.getElementById("btn-mostrar-sidebar");
+
+function alternarMenuLateral() {
+  if (!sidebar || !layoutPrincipal) return;
+  const vaiEsconder = !sidebar.classList.contains("oculta");
+  sidebar.classList.toggle("oculta", vaiEsconder);
+  layoutPrincipal.classList.toggle("sidebar-oculta", vaiEsconder);
+  if (btnMostrarSidebar) {
+    btnMostrarSidebar.classList.toggle("mostrar", vaiEsconder);
+  }
+}
+
+if (btnGestao) {
+  // Clique com o mouse
+  btnGestao.addEventListener("click", alternarMenuLateral);
+
+  // Teclado: Enter ou Espaço
+  btnGestao.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      alternarMenuLateral();
+    }
+  });
+}
+
+if (btnMostrarSidebar) {
+  btnMostrarSidebar.addEventListener("click", alternarMenuLateral);
+}
+
 // --- INICIALIZAÇÃO ---
 atualizarSelectLoginSimulado();
 atualizarOpcoesSeletorColunas();
@@ -1056,5 +1174,6 @@ renderizarContratos();
 atualizarPlano();
 aplicarPermissoes();
 </script>
+
 </body>
 </html>
