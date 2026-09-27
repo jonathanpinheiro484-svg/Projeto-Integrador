@@ -1,1 +1,1021 @@
+// =====================================================
+// SCRIPT ÚNICO — GESTÃO INTEGRADA PRO
+// Este arquivo reúne todo o JavaScript do site: configuração de
+// API, dashboard (agenda/financeiro/administração/planos), tela
+// de login/cadastro e a landing page (aviso de cookies).
+//
+// Cada bloco só é ativado se a página atual tiver o elemento
+// "âncora" daquela tela — então dá pra incluir este mesmo arquivo
+// em TODAS as páginas do site sem risco de erro nas que não usam
+// aquele pedaço (ex: a tela "Sobre" não roda nada, pois não tem
+// nenhuma das âncoras abaixo).
+//
+// Inclua assim, no final do <body> de cada página:
+//   <script src="script.js"></script>
+// =====================================================
 
+
+// =====================================================
+// 1. CONFIGURAÇÃO DA API (usado por todas as telas que falam com o backend)
+// Troque BASE_URL pela URL real do backend de vocês.
+// =====================================================
+const API_CONFIG = {
+  BASE_URL: "https://SEU_BACKEND_AQUI.com/api",
+
+  ENDPOINTS: {
+    LOGIN: "/auth/login",
+    COLABORADORES: "/colaboradores",
+    AGENDAMENTOS: "/agendamentos",
+    FINANCEIRO: "/financeiro",
+    CONTRATOS: "/contratos",
+    PLANO: "/plano",
+  },
+
+  token: localStorage.getItem("apiToken") || null,
+};
+
+async function apiRequest(endpointKey, options = {}, sufixoUrl = "") {
+  const caminho = API_CONFIG.ENDPOINTS[endpointKey];
+  if (!caminho) throw new Error(`Endpoint "${endpointKey}" não configurado em API_CONFIG.`);
+
+  const url = `${API_CONFIG.BASE_URL}${caminho}${sufixoUrl}`;
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+  if (API_CONFIG.token) {
+    headers["Authorization"] = `Bearer ${API_CONFIG.token}`;
+  }
+
+  const resposta = await fetch(url, {
+    method: options.method || "GET",
+    headers,
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!resposta.ok) {
+    const texto = await resposta.text().catch(() => "");
+    throw new Error(`Erro na API (${resposta.status}) em ${endpointKey}: ${texto}`);
+  }
+
+  const contentType = resposta.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return resposta.json();
+  }
+  return null;
+}
+
+function salvarTokenApi(token) {
+  API_CONFIG.token = token;
+  localStorage.setItem("apiToken", token);
+}
+
+
+// =====================================================
+// 2. DASHBOARD (index.html — agenda, financeiro, administração, planos)
+// Só roda se a página tiver o elemento #layout-principal.
+// =====================================================
+function iniciarDashboard() {
+  const layoutPrincipal = document.getElementById("layout-principal");
+  if (!layoutPrincipal) return; // esta página não é o dashboard
+
+  // --- CONTROLADOR DE TEMA NOTURNO ---
+  const btnToggleTema = document.getElementById("btn-toggle-tema");
+  if (btnToggleTema) {
+    btnToggleTema.addEventListener("click", function () {
+      const htmlEl = document.documentElement;
+      if (htmlEl.getAttribute("data-theme") === "dark") {
+        htmlEl.removeAttribute("data-theme");
+        btnToggleTema.textContent = "🌙 Modo Noturno";
+      } else {
+        htmlEl.setAttribute("data-theme", "dark");
+        btnToggleTema.textContent = "☀️ Tema Claro";
+      }
+    });
+  }
+
+  // --- ESTADO DA APLICAÇÃO ---
+  let planoAtual = "FREE";
+  let usuarioLogado = { perfil: "DONO", colaboradorId: null };
+  let abaAtiva = "Dashboard";
+  let abaOrigemPlanos = "Dashboard";
+  let modoVisualizacao = "Dia";
+  const colunasVisiveis = 5;
+  let paginaAtual = 0;
+
+  // >>> API: dados financeiros por período. Fallback fixo até o
+  // endpoint FINANCEIRO existir.
+  const financeiroPorPeriodo = {
+    Dia: { receitas: 3150.00, despesas: 420.00, saldo: 2730.00, pagamentos: { pix: 2400, cartao: 3900 }, eixoMaximo: 6000 },
+    Semana: { receitas: 18500.00, despesas: 2300.00, saldo: 16200.00, pagamentos: { pix: 10500, cartao: 8000 }, eixoMaximo: 20000 },
+    Mês: { receitas: 64000.00, despesas: 11200.00, saldo: 52800.00, pagamentos: { pix: 38000, cartao: 26000 }, eixoMaximo: 70000 }
+  };
+
+  // >>> API: colaboradores (fallback de exemplo).
+  let colaboradores = [
+    { id: 0, nome: "Você (Proprietária)", cargo: "Proprietária", email: "", cor: "#2ecc71", ativo: true, dona: true },
+    { id: 1, nome: "Ana Beatriz Rocha", cargo: "Manicure", email: "ana@agendaexpress.com", cor: "#c6c92c", ativo: true },
+    { id: 2, nome: "Joaquim Augusto", cargo: "Cabeleireiro", email: "joaquim@agendaexpress.com", cor: "#e91e8c", ativo: true },
+    { id: 3, nome: "Laura Mendes", cargo: "Esteticista", email: "laura@agendaexpress.com", cor: "#26b3c4", ativo: true },
+    { id: 4, nome: "Vitor Almeida", cargo: "Cabeleireiro", email: "vitor@agendaexpress.com", cor: "#f4a300", ativo: true },
+    { id: 5, nome: "Marina Lopes", cargo: "Esteticista", email: "marina@agendaexpress.com", cor: "#9b59b6", ativo: true }
+  ];
+
+  // >>> API: agendamentos (fallback de exemplo).
+  let agendamentos = [
+    { id: 1, colaboradorId: 1, cliente: "Liliana Crivero", servico: "Mão/pé", data: "2026-09-25", horaInicio: "08:00", duracaoMin: 60, cor: "#3d5a80" },
+    { id: 2, colaboradorId: 1, cliente: "Davi de Luccas", servico: "", data: "2026-09-25", horaInicio: "11:00", duracaoMin: 30, cor: "#e0a458" },
+    { id: 3, colaboradorId: 1, cliente: "Cristina Aguilhera", servico: "Mão/pé", data: "2026-09-25", horaInicio: "13:00", duracaoMin: 60, cor: "#3d5a80" },
+    { id: 4, colaboradorId: 2, cliente: "Carlos Alcaraz", servico: "Mechas", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 120, cor: "#8f8f8f" },
+    { id: 5, colaboradorId: 2, cliente: "Danilo", servico: "Cabelo", data: "2026-09-25", horaInicio: "10:30", duracaoMin: 60, cor: "#3d5a80" },
+    { id: 6, colaboradorId: 2, cliente: "Amanda Jesus Silva", servico: "Corte fem.", data: "2026-09-25", horaInicio: "13:00", duracaoMin: 60, cor: "#588157" },
+    { id: 7, colaboradorId: 3, cliente: "Patricia", servico: "Corte feminino", data: "2026-09-25", horaInicio: "08:00", duracaoMin: 60, cor: "#4361ee" },
+    { id: 8, colaboradorId: 3, cliente: "Beatriz", servico: "Escova", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 90, cor: "#588157" },
+    { id: 9, colaboradorId: 4, cliente: "Rafael Souza", servico: "Barba", data: "2026-09-25", horaInicio: "09:00", duracaoMin: 30, cor: "#3d5a80" },
+    { id: 10, colaboradorId: 5, cliente: "Juliana Prado", servico: "Limpeza de pele", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 90, cor: "#8f8f8f" }
+  ];
+
+  // >>> API: contratos próximos do vencimento.
+  let contratos = [
+    { nome: "#202606100003 Mania Contrato", vencimento: "11/09/2026" },
+    { nome: "#202606100005 Mania Contrato", vencimento: "26/09/2026" },
+    { nome: "#202606100004 Mania Contrato", vencimento: "09/09/2026" }
+  ];
+
+  if (localStorage.getItem("nomeUsuarioCadastrado")) {
+    colaboradores = [];
+    agendamentos = [];
+  }
+
+  // >>> API: carregamento inicial. Se falhar, mantém os mocks acima.
+  async function carregarDadosIniciais() {
+    try {
+      const dadosColaboradores = await apiRequest("COLABORADORES");
+      if (Array.isArray(dadosColaboradores)) colaboradores = dadosColaboradores;
+    } catch (erro) {
+      console.warn("Não foi possível carregar colaboradores da API, usando dados de exemplo.", erro.message);
+    }
+
+    try {
+      const dadosAgendamentos = await apiRequest("AGENDAMENTOS");
+      if (Array.isArray(dadosAgendamentos)) agendamentos = dadosAgendamentos;
+    } catch (erro) {
+      console.warn("Não foi possível carregar agendamentos da API, usando dados de exemplo.", erro.message);
+    }
+
+    try {
+      const dadosContratos = await apiRequest("CONTRATOS");
+      if (Array.isArray(dadosContratos)) contratos = dadosContratos;
+    } catch (erro) {
+      console.warn("Não foi possível carregar contratos da API, usando dados de exemplo.", erro.message);
+    }
+
+    atualizarSelectLoginSimulado();
+    atualizarOpcoesSeletorColunas();
+    atualizarFiltroColaborador();
+    renderizarListaColaboradores();
+    renderizarContratos();
+    renderizarAgenda();
+  }
+
+  // --- GERENCIAMENTO DE PLANOS ---
+  function irParaTelaPlanos(origem) {
+    abaOrigemPlanos = origem || abaAtiva;
+    mudarAba("Planos");
+  }
+
+  const nomesPlanos = {
+    FREE: "Grátis",
+    BASICO: "Básico",
+    PREMIUM: "Premium",
+    PRO: "Premium"
+  };
+
+  async function escolherPlano(novoPlano) {
+    planoAtual = novoPlano;
+
+    // >>> API: avisar o backend da troca de plano.
+    // try {
+    //   await apiRequest("PLANO", { method: "PUT", body: { plano: novoPlano } });
+    // } catch (erro) {
+    //   console.warn("Não foi possível atualizar o plano na API.", erro.message);
+    // }
+
+    atualizarPlano();
+    mudarAba(abaOrigemPlanos);
+  }
+
+  function atualizarPlano() {
+    const textoPlano = document.getElementById("texto-plano");
+    if (textoPlano) textoPlano.textContent = nomesPlanos[planoAtual] || planoAtual;
+
+    const planoCompleto = (planoAtual === "PREMIUM" || planoAtual === "PRO");
+    const temAcessoFinanceiro = planoCompleto;
+
+    const gridCards = document.getElementById("grid-financeiro-cards");
+    const avisoBloqueio = document.getElementById("aviso-bloqueio-financeiro-pagina");
+
+    if (temAcessoFinanceiro) {
+      if (gridCards) { gridCards.hidden = false; gridCards.style.display = "grid"; }
+      if (avisoBloqueio) avisoBloqueio.hidden = true;
+    } else {
+      if (gridCards) { gridCards.hidden = true; gridCards.style.display = "none"; }
+      if (avisoBloqueio) avisoBloqueio.hidden = false;
+    }
+
+    const cardsFinanceiros = ["card-receitas", "card-despesas", "card-saldo", "card-grafico"];
+    cardsFinanceiros.forEach(id => {
+      const card = document.getElementById(id);
+      if (!card) return;
+      const overlay = card.querySelector(".overlay-bloqueio");
+      if (planoCompleto) {
+        card.classList.remove("bloqueado");
+        if (overlay) overlay.hidden = true;
+      } else {
+        card.classList.add("bloqueado");
+        if (overlay) overlay.hidden = false;
+      }
+    });
+
+    const tagLock = document.getElementById("tag-lock-fin");
+    if (tagLock) tagLock.hidden = temAcessoFinanceiro;
+
+    const planos = [
+      { id: "btn-plano-free", valor: "FREE", texto: "Selecionar Plano", atual: "Plano Atual" },
+      { id: "btn-plano-basico", valor: "BASICO", texto: "Escolher Básico", atual: "Plano Atual" },
+      { id: "btn-plano-premium", valor: "PREMIUM", texto: "Escolher Premium", atual: "Plano Atual" }
+    ];
+    planos.forEach(plano => {
+      const botao = document.getElementById(plano.id);
+      if (!botao) return;
+      const atual = planoAtual === plano.valor;
+      botao.className = atual ? "btn-selecionar-plano atual" : "btn-selecionar-plano";
+      botao.textContent = atual ? plano.atual : plano.texto;
+    });
+
+    atualizarNavegacao();
+  }
+
+  // --- NAVEGAÇÃO ENTRE ABAS ---
+  function mudarAba(nomeAba) {
+    document.querySelectorAll(".menu-item").forEach(m => {
+      if (m.dataset.menu === nomeAba) { m.classList.add("ativo"); }
+      else { m.classList.remove("ativo"); }
+    });
+    abaAtiva = nomeAba;
+    atualizarNavegacao();
+  }
+  document.querySelectorAll(".menu-item").forEach(item => {
+    item.addEventListener("click", function() { mudarAba(this.dataset.menu); });
+  });
+
+  function atualizarNavegacao() {
+    const secFin = document.getElementById("secao-financeiro");
+    const secAgenda = document.getElementById("secao-agenda");
+    const secAdmin = document.getElementById("secao-administrativo");
+    const secSuporte = document.getElementById("secao-suporte");
+    const secPlanos = document.getElementById("secao-planos");
+    const gridCardsFin = document.getElementById("grid-financeiro-cards");
+    const avisoBloqueioFin = document.getElementById("aviso-bloqueio-financeiro-pagina");
+
+    secFin.style.display = "none";
+    secAgenda.style.display = "none";
+    secAdmin.style.display = "none";
+    secSuporte.style.display = "none";
+    secPlanos.style.display = "none";
+
+    if (abaAtiva === "Dashboard") {
+      if (usuarioLogado.perfil === "DONO" && (planoAtual === "PREMIUM" || planoAtual === "PRO")) {
+        secFin.style.display = "block";
+        gridCardsFin.style.display = "grid";
+        gridCardsFin.hidden = false;
+        avisoBloqueioFin.hidden = true;
+      } else {
+        secFin.style.display = "none";
+        gridCardsFin.style.display = "none";
+        gridCardsFin.hidden = true;
+        avisoBloqueioFin.hidden = true;
+      }
+      secAgenda.style.display = "block";
+      secAdmin.style.display = (usuarioLogado.perfil === "DONO") ? "block" : "none";
+    } else if (abaAtiva === "Financeiro") {
+      secFin.style.display = "block";
+      if (planoAtual === "PREMIUM" || planoAtual === "PRO") {
+        gridCardsFin.style.display = "grid";
+        gridCardsFin.hidden = false;
+        avisoBloqueioFin.hidden = true;
+      } else {
+        gridCardsFin.style.display = "none";
+        gridCardsFin.hidden = true;
+        avisoBloqueioFin.hidden = false;
+      }
+    } else if (abaAtiva === "Agenda") {
+      secAgenda.style.display = "block";
+    } else if (abaAtiva === "Administracao") {
+      secAdmin.style.display = "block";
+    } else if (abaAtiva === "Suporte") {
+      secSuporte.style.display = "block";
+    } else if (abaAtiva === "Planos") {
+      secPlanos.style.display = "block";
+    }
+  }
+
+  // --- FUNÇÕES AUXILIARES ---
+  function paraMinutos(hora) {
+    const [h, m] = hora.split(":").map(Number);
+    return h * 60 + m;
+  }
+  function formatarMoeda(v) { return "R$ " + v.toFixed(2).replace(".", ","); }
+
+  function atualizarSelectLoginSimulado() {
+    const textoPerfil = document.getElementById("texto-perfil");
+    const nomeCadastrado = localStorage.getItem("nomeUsuarioCadastrado");
+    if (textoPerfil) textoPerfil.textContent = nomeCadastrado || "Admin";
+  }
+
+  function atualizarOpcoesSeletorColunas() {
+    const seletor = document.getElementById("seletor-colunas");
+    seletor.innerHTML = "";
+    for (let i = 1; i <= Math.min(5, colaboradores.length); i++) {
+      seletor.insertAdjacentHTML("beforeend", `<option value="${i}" ${i === colunasVisiveis ? 'selected' : ''}>${i} Coluna${i > 1 ? 's' : ''}</option>`);
+    }
+  }
+
+  // --- FILTRO DE COLABORADOR NA AGENDA ---
+  function atualizarFiltroColaborador() {
+    const select = document.getElementById("filtro-colaborador");
+
+    select.innerHTML = `<option value="todos">Procurar colaborador...</option>`;
+
+    colaboradores.filter(c => c.ativo !== false).forEach(c => {
+      select.insertAdjacentHTML(
+        "beforeend",
+        `<option value="${c.id}">${c.nome}</option>`
+      );
+    });
+  }
+
+  document.getElementById("filtro-colaborador")
+    .addEventListener("change", function () {
+      paginaAtual = 0;
+      renderizarAgenda();
+    });
+
+  function atualizarFinanceiro() {
+    const d = financeiroPorPeriodo[modoVisualizacao];
+    document.getElementById("titulo-receitas").textContent = `Receitas (${modoVisualizacao})`;
+    document.getElementById("valor-receitas").textContent = formatarMoeda(d.receitas);
+    document.getElementById("valor-despesas").textContent = formatarMoeda(d.despesas);
+    document.getElementById("valor-saldo").textContent = formatarMoeda(d.saldo);
+    document.querySelector(".eixo-max").textContent = d.eixoMaximo.toLocaleString("pt-BR");
+    document.querySelector(".eixo-meio").textContent = (d.eixoMaximo / 2).toLocaleString("pt-BR");
+    document.querySelector('[data-meio="pix"] .barra').style.height = (d.pagamentos.pix / d.eixoMaximo) * 100 + "%";
+    document.querySelector('[data-meio="cartao"] .barra').style.height = (d.pagamentos.cartao / d.eixoMaximo) * 100 + "%";
+  }
+
+  // --- PAGINAÇÃO DA AGENDA ---
+  function obterColaboradoresPagina() {
+    if (usuarioLogado.perfil === "COLABORADOR") {
+      const meuPerfil = colaboradores.find(c => c.id === usuarioLogado.colaboradorId);
+      return meuPerfil ? [meuPerfil] : [];
+    }
+
+    const filtro = document.getElementById("filtro-colaborador");
+    const colaboradorSelecionado = filtro ? filtro.value : "todos";
+
+    if (colaboradorSelecionado !== "todos") {
+      return colaboradores.filter(c => String(c.id) === colaboradorSelecionado);
+    }
+
+    const inicio = paginaAtual * colunasVisiveis;
+    return colaboradores.slice(inicio, inicio + colunasVisiveis);
+  }
+  function obterTotalPaginas() {
+    if (usuarioLogado.perfil === "COLABORADOR") return 1;
+
+    const filtro = document.getElementById("filtro-colaborador");
+    const colaboradorSelecionado = filtro ? filtro.value : "todos";
+    if (colaboradorSelecionado !== "todos") return 1;
+
+    return Math.ceil(colaboradores.length / colunasVisiveis) || 1;
+  }
+  function atualizarInfoPaginacao() {
+    document.getElementById("pag-info").textContent = `${paginaAtual + 1} de ${obterTotalPaginas()}`;
+  }
+
+  // --- DISTRIBUIÇÃO DA AGENDA ---
+  function calcularLayoutColuna(itens) {
+    const ordenados = itens.slice().sort((a, b) => paraMinutos(a.ag.horaInicio) - paraMinutos(b.ag.horaInicio));
+    const layout = [];
+    let grupoAtual = [];
+    let fimGrupo = -1;
+
+    for (let i = 0; i < ordenados.length; i++) {
+      const item = ordenados[i];
+      const inicioMin = paraMinutos(item.ag.horaInicio);
+      const fimMin = inicioMin + item.ag.duracaoMin;
+
+      if (grupoAtual.length > 0 && inicioMin >= fimGrupo) {
+        processarGrupo(grupoAtual, layout);
+        grupoAtual = [];
+        fimGrupo = -1;
+      }
+      grupoAtual.push(item);
+      fimGrupo = Math.max(fimGrupo, fimMin);
+    }
+    if (grupoAtual.length > 0) processarGrupo(grupoAtual, layout);
+    return layout;
+  }
+
+  function processarGrupo(grupo, layoutSaida) {
+    const finsColunas = [];
+    for (let i = 0; i < grupo.length; i++) {
+      const item = grupo[i];
+      const inicioMin = paraMinutos(item.ag.horaInicio);
+      const fimMin = inicioMin + item.ag.duracaoMin;
+
+      let colunaEncontrada = -1;
+      for (let c = 0; c < finsColunas.length; c++) {
+        if (finsColunas[c] <= inicioMin) { colunaEncontrada = c; break; }
+      }
+      if (colunaEncontrada === -1) {
+        colunaEncontrada = finsColunas.length;
+        finsColunas.push(fimMin);
+      } else {
+        finsColunas[colunaEncontrada] = fimMin;
+      }
+      layoutSaida.push({ ag: item.ag, id: item.ag.id, coluna: colunaEncontrada });
+    }
+    const totalColunas = finsColunas.length;
+    for (let i = layoutSaida.length - grupo.length; i < layoutSaida.length; i++) {
+      layoutSaida[i].totalColunas = totalColunas;
+    }
+  }
+
+  // --- RENDERIZAÇÃO DA AGENDA ---
+  const horaInicio = 7;
+  const horaFim = 15;
+  const totalHoras = horaFim - horaInicio;
+  const agenda = document.getElementById("agenda");
+  const seletorData = document.getElementById("seletor-data");
+  const seletorColunas = document.getElementById("seletor-colunas");
+
+  async function removerAgendamento(id, event) {
+    if (event) event.stopPropagation();
+
+    // >>> API: apagar agendamento no backend.
+    // try {
+    //   await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
+    // } catch (erro) {
+    //   console.warn("Não foi possível remover o agendamento na API.", erro.message);
+    // }
+
+    agendamentos = agendamentos.filter(a => a.id !== id);
+    renderizarAgenda();
+  }
+
+  function verDetalhesAgendamento(ag) {
+    alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}`);
+  }
+
+  function renderizarAgenda() {
+    agenda.innerHTML = "";
+    const colaboradoresPagina = obterColaboradoresPagina();
+    const dataSelecionada = seletorData.value;
+
+    agenda.style.setProperty("--n-colab", colaboradoresPagina.length);
+    agenda.style.setProperty("--n-horas", totalHoras);
+    atualizarInfoPaginacao();
+
+    const divCabecalho = document.createElement("div");
+    divCabecalho.className = "agenda-cabecalho";
+    divCabecalho.innerHTML = `<div class="cab" style="background: transparent;"></div>`;
+    colaboradoresPagina.forEach(c => {
+      divCabecalho.innerHTML += `
+        <div class="cab" style="background:${c.cor}">
+          <div class="cab-avatar"></div>
+          <div class="cab-nome">${c.nome}</div>
+          <div class="cab-cargo">${c.cargo}</div>
+        </div>`;
+    });
+    agenda.appendChild(divCabecalho);
+
+    const divCorpo = document.createElement("div");
+    divCorpo.className = "agenda-corpo";
+
+    const colHorarios = document.createElement("div");
+    colHorarios.className = "col-horarios";
+    for (let h = horaInicio; h < horaFim; h++) {
+      colHorarios.insertAdjacentHTML("beforeend", `<div class="hora-label">${String(h).padStart(2, "0")}</div>`);
+    }
+    divCorpo.appendChild(colHorarios);
+
+    colaboradoresPagina.forEach(coluna => {
+      const col = document.createElement("div");
+      col.className = "col-colab";
+      for (let h = horaInicio; h < horaFim; h++) {
+        col.insertAdjacentHTML("beforeend", `<div class="linha-hora"></div>`);
+      }
+
+      const agsDoColab = agendamentos
+        .filter(a => a.colaboradorId === coluna.id && a.data === dataSelecionada)
+        .map(ag => ({ ag }));
+
+      const layoutColuna = calcularLayoutColuna(agsDoColab);
+
+      layoutColuna.forEach(item => {
+        const ag = item.ag;
+        const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
+        const minInicio = (hIni - horaInicio) * 60 + mIni;
+        const topPx = (minInicio / 60) * 48;
+        const heightPx = Math.max((ag.duracaoMin / 60) * 48, 38);
+        const largura = 100 / item.totalColunas;
+        const esquerda = item.coluna * largura;
+
+        const bloco = document.createElement("div");
+        bloco.className = "agendamento";
+        bloco.style.cssText = `top: ${topPx}px; height: ${heightPx}px; left: calc(${esquerda}% + 2px); width: calc(${largura}% - 4px); background: ${ag.cor};`;
+        bloco.setAttribute("title", `Cliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nHorário: ${ag.horaInicio}`);
+        bloco.addEventListener("click", () => verDetalhesAgendamento(ag));
+        bloco.innerHTML = `
+          <button type="button" class="remover" onclick="removerAgendamento(${ag.id}, event)">✕</button>
+          <strong>${ag.cliente}</strong>
+          ${ag.servico ? `<span>${ag.servico}</span>` : ''}
+        `;
+        col.appendChild(bloco);
+      });
+
+      divCorpo.appendChild(col);
+    });
+
+    agenda.appendChild(divCorpo);
+  }
+
+  // --- EVENTOS E PERMISSÕES ---
+  function aplicarPermissoes() {
+    const containerPaginacao = document.getElementById("container-paginacao");
+    const seletorColunasDiv = seletorColunas.parentElement;
+    const menuFinanceiro = document.querySelector('.menu-item[data-menu="Financeiro"]');
+    const menuAdministracao = document.querySelector('.menu-item[data-menu="Administracao"]');
+    const menuPlanos = document.querySelector('.menu-item[data-menu="Planos"]');
+
+    if (usuarioLogado.perfil === "COLABORADOR") {
+      containerPaginacao.style.display = "none";
+      seletorColunasDiv.style.display = "none";
+      if (menuFinanceiro) menuFinanceiro.style.display = "none";
+      if (menuAdministracao) menuAdministracao.style.display = "none";
+      if (menuPlanos) menuPlanos.style.display = "none";
+      if (["Financeiro", "Administracao", "Planos"].includes(abaAtiva)) {
+        abaAtiva = "Agenda";
+        document.querySelectorAll(".menu-item").forEach(m => m.classList.toggle("ativo", m.dataset.menu === "Agenda"));
+      }
+    } else {
+      containerPaginacao.style.display = "flex";
+      seletorColunasDiv.style.display = "none";
+      if (menuAdministracao) menuAdministracao.style.display = "flex";
+      if (menuFinanceiro) menuFinanceiro.style.display = "flex";
+      if (menuPlanos) menuPlanos.style.display = "flex";
+    }
+    paginaAtual = 0;
+    atualizarNavegacao();
+    renderizarAgenda();
+  }
+
+  seletorData.addEventListener("change", renderizarAgenda);
+
+  document.getElementById("btn-pag-anterior").addEventListener("click", () => {
+    if (paginaAtual > 0) { paginaAtual--; renderizarAgenda(); }
+  });
+  document.getElementById("btn-pag-proxima").addEventListener("click", () => {
+    if (paginaAtual < obterTotalPaginas() - 1) { paginaAtual++; renderizarAgenda(); }
+  });
+
+  ["Dia", "Semana", "Mês"].forEach(modo => {
+    const btnId = modo === "Mês" ? "btn-modo-mes" : modo === "Semana" ? "btn-modo-semana" : "btn-modo-dia";
+    document.getElementById(btnId).addEventListener("click", function() {
+      document.querySelectorAll(".toggle-view button").forEach(b => b.classList.remove("ativo"));
+      this.classList.add("ativo");
+      modoVisualizacao = modo;
+      atualizarFinanceiro();
+    });
+  });
+
+  // --- MODAL DE AGENDAMENTO ---
+  const modalAgendamento = document.getElementById("modal-agendamento");
+  const btnAbrirAgendamento = document.getElementById("btn-abrir-agendamento");
+  const btnFecharModal = document.getElementById("btn-fechar-modal");
+  const btnCancelarAgendamento = document.getElementById("btn-cancelar-agendamento");
+  const selectProfissional = document.getElementById("agend-profissional");
+  const formAgendamento = document.getElementById("form-novo-agendamento");
+
+  function obterDataHojeISO() {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const dia = String(hoje.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  btnAbrirAgendamento.addEventListener("click", () => {
+    selectProfissional.innerHTML = "";
+    colaboradores.filter(c => c.ativo !== false).forEach(c => {
+      selectProfissional.insertAdjacentHTML("beforeend", `<option value="${c.id}">${c.nome}</option>`);
+    });
+    const hojeISO = obterDataHojeISO();
+    const campoData = document.getElementById("agend-data");
+    campoData.min = hojeISO;
+    campoData.value = (seletorData.value >= hojeISO) ? seletorData.value : hojeISO;
+    modalAgendamento.hidden = false;
+  });
+
+  function fecharModalAgendamento() { modalAgendamento.hidden = true; }
+  btnFecharModal.addEventListener("click", fecharModalAgendamento);
+  btnCancelarAgendamento.addEventListener("click", fecharModalAgendamento);
+
+  formAgendamento.addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const dataEscolhida = document.getElementById("agend-data").value;
+    if (dataEscolhida < obterDataHojeISO()) {
+      alert("Não é possível agendar em uma data que já passou. Escolha uma data de hoje em diante.");
+      return;
+    }
+
+    const novoAgendamento = {
+      id: Date.now(),
+      cliente: document.getElementById("agend-cliente").value,
+      servico: document.getElementById("agend-servico").value,
+      colaboradorId: parseInt(selectProfissional.value),
+      data: document.getElementById("agend-data").value,
+      horaInicio: document.getElementById("agend-hora-inicio").value,
+      duracaoMin: parseInt(document.getElementById("agend-duracao").value),
+      cor: document.getElementById("agend-cor").value
+    };
+
+    // >>> API: criar agendamento no backend.
+    // try {
+    //   const criado = await apiRequest("AGENDAMENTOS", { method: "POST", body: novoAgendamento });
+    //   if (criado && criado.id) novoAgendamento.id = criado.id;
+    // } catch (erro) {
+    //   console.warn("Não foi possível salvar o agendamento na API.", erro.message);
+    // }
+
+    agendamentos.push(novoAgendamento);
+    seletorData.value = novoAgendamento.data;
+    renderizarAgenda();
+    fecharModalAgendamento();
+    formAgendamento.reset();
+  });
+
+  // --- SUPORTE (envio de e-mail sem sair da página) ---
+  const formSuporte = document.getElementById("form-suporte");
+  const suporteSucesso = document.getElementById("suporte-sucesso");
+  const suporteErro = document.getElementById("suporte-erro");
+  const btnEnviarSuporte = document.getElementById("btn-enviar-suporte");
+  const btnSuporteNovaMensagem = document.getElementById("btn-suporte-nova-mensagem");
+
+  if (formSuporte) {
+    formSuporte.addEventListener("submit", function (e) {
+      e.preventDefault();
+      suporteErro.style.display = "none";
+      btnEnviarSuporte.disabled = true;
+      const textoOriginal = btnEnviarSuporte.textContent;
+      btnEnviarSuporte.textContent = "Enviando...";
+
+      const dadosFormulario = new FormData(formSuporte);
+
+      fetch("https://formsubmit.co/ajax/jonathanpinheiro484@gmail.com", {
+        method: "POST",
+        headers: { "Accept": "application/json" },
+        body: dadosFormulario
+      })
+        .then((resposta) => {
+          if (!resposta.ok) throw new Error("Falha no envio");
+          return resposta.json();
+        })
+        .then(() => {
+          formSuporte.reset();
+          formSuporte.style.display = "none";
+          suporteSucesso.style.display = "block";
+        })
+        .catch(() => {
+          suporteErro.style.display = "block";
+        })
+        .finally(() => {
+          btnEnviarSuporte.disabled = false;
+          btnEnviarSuporte.textContent = textoOriginal;
+        });
+    });
+  }
+
+  if (btnSuporteNovaMensagem) {
+    btnSuporteNovaMensagem.addEventListener("click", () => {
+      suporteSucesso.style.display = "none";
+      formSuporte.style.display = "block";
+    });
+  }
+
+  // --- ADMINISTRATIVO ---
+  const formColab = document.getElementById("form-colaborador");
+  formColab.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const limiteColaboradores = { FREE: 15, BASICO: 10, PREMIUM: Infinity };
+    const limite = limiteColaboradores[planoAtual];
+
+    if (colaboradores.filter(c => !c.dona).length >= limite) {
+      alert(`O plano ${planoAtual} permite até ${limite} colaboradores.`);
+      return;
+    }
+
+    const novoColab = {
+      id: colaboradores.length ? Math.max(...colaboradores.map(c => c.id)) + 1 : 1,
+      nome: document.getElementById("colab-nome").value,
+      cargo: document.getElementById("colab-cargo").value,
+      email: document.getElementById("colab-email").value,
+      cor: document.getElementById("colab-cor").value,
+      ativo: true
+    };
+
+    // >>> API: criar colaborador no backend (a senha está em #colab-senha
+    // e só deve ser enviada pra API, nunca guardada em texto puro no front).
+    // try {
+    //   const senha = document.getElementById("colab-senha").value;
+    //   const criado = await apiRequest("COLABORADORES", {
+    //     method: "POST",
+    //     body: { ...novoColab, senha },
+    //   });
+    //   if (criado && criado.id) novoColab.id = criado.id;
+    // } catch (erro) {
+    //   console.warn("Não foi possível salvar o colaborador na API.", erro.message);
+    // }
+
+    colaboradores.push(novoColab);
+    atualizarSelectLoginSimulado();
+    atualizarOpcoesSeletorColunas();
+    atualizarFiltroColaborador();
+    renderizarListaColaboradores();
+    renderizarAgenda();
+    formColab.reset();
+  });
+
+  async function removerColaborador(id) {
+    const colab = colaboradores.find(c => c.id === id);
+    if (colab && colab.dona) return;
+
+    // >>> API: remover colaborador no backend.
+    // try {
+    //   await apiRequest("COLABORADORES", { method: "DELETE" }, `/${id}`);
+    // } catch (erro) {
+    //   console.warn("Não foi possível remover o colaborador na API.", erro.message);
+    // }
+
+    colaboradores = colaboradores.filter(c => c.id !== id);
+    agendamentos = agendamentos.filter(a => a.colaboradorId !== id);
+    atualizarSelectLoginSimulado();
+    atualizarOpcoesSeletorColunas();
+    atualizarFiltroColaborador();
+    renderizarListaColaboradores();
+    renderizarAgenda();
+  }
+
+  async function alternarStatusColaborador(id) {
+    const colab = colaboradores.find(c => c.id === id);
+    if (!colab) return;
+    if (colab.dona) return;
+    colab.ativo = !colab.ativo;
+
+    // >>> API: persistir a troca de status.
+    // try {
+    //   await apiRequest("COLABORADORES", { method: "PATCH", body: { ativo: colab.ativo } }, `/${id}`);
+    // } catch (erro) {
+    //   console.warn("Não foi possível atualizar o status do colaborador na API.", erro.message);
+    // }
+
+    renderizarListaColaboradores();
+    atualizarFiltroColaborador();
+    renderizarAgenda();
+  }
+
+  function renderizarListaColaboradores() {
+    const lista = document.getElementById("colaboradores-lista");
+    lista.innerHTML = "";
+    colaboradores.forEach(c => {
+      const ativo = c.ativo !== false;
+      const acoes = c.dona
+        ? `<span class="status-ativo" style="margin-left: 6px;">Proprietária</span>`
+        : `<button type="button" class="btn-cancelar" style="padding: 2px 8px; font-size: 10px; margin-left: 6px;" onclick="alternarStatusColaborador(${c.id})">${ativo ? 'Desativar' : 'Ativar'}</button>`;
+      const btnRemover = c.dona ? "" : `<button type="button" class="colaborador-remover" onclick="removerColaborador(${c.id})">✕</button>`;
+      lista.insertAdjacentHTML("beforeend", `
+        <div class="colaborador-item" style="border-left: 4px solid ${c.cor}; ${ativo ? '' : 'opacity: 0.65;'}">
+          <span class="colaborador-avatar"></span>
+          <div class="colaborador-info">
+            <strong>${c.nome}</strong>
+            <small>${c.cargo}</small><br>
+            <span class="${ativo ? 'status-ativo' : 'status-inativo'}">${ativo ? 'Ativo' : 'Inativo'}</span>
+            ${acoes}
+          </div>
+          ${btnRemover}
+        </div>`);
+    });
+  }
+
+  function renderizarContratos() {
+    const listaContratos = document.getElementById("contratos-lista");
+    listaContratos.innerHTML = "";
+    contratos.forEach(ct => {
+      listaContratos.insertAdjacentHTML("beforeend", `<tr><td>${ct.nome}</td><td>${ct.vencimento}</td></tr>`);
+    });
+  }
+
+  // --- MOSTRAR / ESCONDER MENU LATERAL ---
+  const btnGestao = document.getElementById("btn-gestao");
+  const sidebar = document.getElementById("sidebar-principal");
+  const btnMostrarSidebar = document.getElementById("btn-mostrar-sidebar");
+
+  function alternarMenuLateral() {
+    if (!sidebar || !layoutPrincipal) return;
+    const vaiEsconder = !sidebar.classList.contains("oculta");
+    sidebar.classList.toggle("oculta", vaiEsconder);
+    layoutPrincipal.classList.toggle("sidebar-oculta", vaiEsconder);
+    if (btnMostrarSidebar) {
+      btnMostrarSidebar.classList.toggle("mostrar", vaiEsconder);
+    }
+  }
+
+  if (btnGestao) {
+    btnGestao.addEventListener("click", alternarMenuLateral);
+    btnGestao.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        alternarMenuLateral();
+      }
+    });
+  }
+
+  if (btnMostrarSidebar) {
+    btnMostrarSidebar.addEventListener("click", alternarMenuLateral);
+  }
+
+  // Expõe pro escopo global as funções chamadas via onclick="..." no HTML gerado
+  window.removerAgendamento = removerAgendamento;
+  window.removerColaborador = removerColaborador;
+  window.alternarStatusColaborador = alternarStatusColaborador;
+  window.irParaTelaPlanos = irParaTelaPlanos;
+  window.escolherPlano = escolherPlano;
+
+  // --- INICIALIZAÇÃO DO DASHBOARD ---
+  atualizarFinanceiro();
+  atualizarPlano();
+  aplicarPermissoes();
+  carregarDadosIniciais();
+}
+
+
+// =====================================================
+// 3. LOGIN & CADASTRO (login.html)
+// Só roda se a página tiver o elemento #container (o card com o slider).
+// =====================================================
+function iniciarAuth() {
+  const container = document.getElementById("container");
+  if (!container) return; // esta página não é a de login/cadastro
+
+  const registerBtn = document.getElementById("register");
+  const loginBtn = document.getElementById("login");
+
+  if (registerBtn && loginBtn) {
+    registerBtn.addEventListener("click", () => {
+      container.classList.add("active");
+    });
+
+    loginBtn.addEventListener("click", () => {
+      container.classList.remove("active");
+    });
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const modo = urlParams.get("modo");
+
+  if (modo === "cadastro") {
+    container.classList.add("active");
+  } else if (modo === "entrar") {
+    container.classList.remove("active");
+  }
+
+  const formCadastro = document.getElementById("form-cadastro");
+  const formLogin = document.getElementById("form-login");
+
+  if (formCadastro) {
+    formCadastro.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const nomeInput = formCadastro.querySelector('input[type="text"]');
+      const emailInput = formCadastro.querySelector('input[type="email"]');
+      const senhaInput = formCadastro.querySelector('input[type="password"]');
+
+      const nome = nomeInput ? nomeInput.value.trim() : "";
+      const email = emailInput ? emailInput.value.trim() : "";
+      const senha = senhaInput ? senhaInput.value : "";
+
+      // >>> API: criar conta no backend. Exemplo:
+      // try {
+      //   const resposta = await apiRequest("COLABORADORES", {
+      //     method: "POST",
+      //     body: { nome, email, senha },
+      //   });
+      //   if (resposta && resposta.token) salvarTokenApi(resposta.token);
+      // } catch (erro) {
+      //   alert("Não foi possível criar a conta agora. Tente novamente.");
+      //   console.warn(erro.message);
+      //   return;
+      // }
+
+      if (nome) {
+        localStorage.setItem("nomeUsuarioCadastrado", nome);
+      }
+      window.location.href = "agenda.html";
+    });
+  }
+
+  if (formLogin) {
+    formLogin.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const emailInput = formLogin.querySelector('input[type="email"]');
+      const senhaInput = formLogin.querySelector('input[type="password"]');
+
+      const email = emailInput ? emailInput.value.trim() : "";
+      const senha = senhaInput ? senhaInput.value : "";
+
+      // >>> API: autenticar no backend. Exemplo:
+      // try {
+      //   const resposta = await apiRequest("LOGIN", {
+      //     method: "POST",
+      //     body: { email, senha },
+      //   });
+      //   if (resposta && resposta.token) salvarTokenApi(resposta.token);
+      // } catch (erro) {
+      //   alert("E-mail ou senha inválidos.");
+      //   console.warn(erro.message);
+      //   return;
+      // }
+
+      window.location.href = "agenda.html";
+    });
+  }
+}
+
+
+// =====================================================
+// 4. LANDING PAGE (home.html — aviso de cookies)
+// Só roda se a página tiver o elemento #aviso-cookies.
+// =====================================================
+function iniciarLanding() {
+  const avisoCookies = document.getElementById("aviso-cookies");
+  if (!avisoCookies) return; // esta página não tem aviso de cookies
+
+  const btnAceitar = document.getElementById("btn-aceitar-cookies");
+  const btnRecusar = document.getElementById("btn-recusar-cookies");
+
+  const CHAVE_PREFERENCIA = "preferenciaCookies"; // "aceito" | "recusado"
+
+  const preferenciaSalva = localStorage.getItem(CHAVE_PREFERENCIA);
+  if (!preferenciaSalva) {
+    avisoCookies.hidden = false;
+  }
+
+  function esconderAvisoCookies() {
+    avisoCookies.hidden = true;
+  }
+
+  if (btnAceitar) {
+    btnAceitar.addEventListener("click", () => {
+      localStorage.setItem(CHAVE_PREFERENCIA, "aceito");
+
+      // >>> API: se vocês tiverem analytics/marketing que só deve
+      // rodar com consentimento, é aqui que ele deve ser iniciado.
+      // if (window.iniciarAnalytics) window.iniciarAnalytics();
+
+      esconderAvisoCookies();
+    });
+  }
+
+  if (btnRecusar) {
+    btnRecusar.addEventListener("click", () => {
+      localStorage.setItem(CHAVE_PREFERENCIA, "recusado");
+      esconderAvisoCookies();
+    });
+  }
+}
+
+
+// =====================================================
+// 5. PONTO DE ENTRADA — dispara cada bloco quando a página carrega.
+// Cada função já verifica sozinha se deve ou não rodar naquela tela.
+// =====================================================
+document.addEventListener("DOMContentLoaded", function () {
+  iniciarDashboard();
+  iniciarAuth();
+  iniciarLanding();
+});

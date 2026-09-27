@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nome da Empresa</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- <link rel="stylesheet" href="css/styles.css"> -->
 </head>
 <body>
 
@@ -16,18 +16,27 @@
             <a href="index.html">Nome da Empresa</a>
         </div>
 
-        <nav class="menu">
-            <ul class="menu-lista">
-                <li><a href="index.html">Início</a></li>
-                <li><a href="sobre.html">Quem Somos</a></li>
-                <li><a href="planos.html">Planos</a></li>
-                <li><a href="agenda.html">Agenda</a></li>
-            </ul>
+        <aside class="sidebar">
+
+    <h2>Gestão Integrada Pro</h2>
+
+    <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="sobre.html">Sobre</a>
+            <a href="planos.html">Planos</a>
         </nav>
+    <!-- <nav>
+        <a href="#">Dashboard</a>
+        <a href="agenda.html">Agenda</a>
+        <a href="#">Financeiro</a>
+        <a href="#">Administração</a>
+    </nav> -->
+
+</aside>
 
         <div class="menu-acoes">
-            <a href="login.html" class="botao secundario">Entrar</a>
-            <a href="cadastro.html" class="botao primario">Cadastrar</a>
+            <a href="cadastro.html?modo=entrar" class="botao secundario">Entrar</a>
+            <a href="cadastro.html?modo=cadastro" class="botao primario">Cadastrar</a>
         </div>
     </header>
 
@@ -46,7 +55,7 @@
                     horários, serviços e informações do seu negócio.
                 </p>
                 <div class="banner-acoes">
-                    <a href="cadastro.html" class="botao primario">Começar agora</a>
+                    <a href="cadastro.html?modo=cadastro" class="botao primario">Começar agora</a>
                     <a href="agenda.html" class="botao secundario">Conhecer a agenda</a>
                 </div>
             </div>
@@ -120,7 +129,7 @@
         <section class="chamada">
             <h2>Pronto para organizar sua rotina?</h2>
             <p>Conheça nossa plataforma e veja como ela pode facilitar o seu dia a dia.</p>
-            <a href="cadastro.html" class="botao primario">Criar cadastro</a>
+            <a href="cadastro.html?modo=cadastro" class="botao primario">Criar cadastro</a>
         </section>
 
     </main>
@@ -144,16 +153,18 @@
     <!-- =========================
          AVISO DE COOKIES
     ========================== -->
-    <div class="cookies">
+    <div class="cookies" id="aviso-cookies" hidden>
         <div class="cookies-texto">
             <h3>Nós usamos cookies</h3>
             <p>Utilizamos cookies para melhorar sua experiência durante a navegação em nossa plataforma.</p>
         </div>
         <div class="cookies-acoes">
-            <button type="button" class="botao primario">Aceitar</button>
-            <button type="button" class="botao secundario">Recusar</button>
+            <button type="button" class="botao primario" id="btn-aceitar-cookies">Aceitar</button>
+            <button type="button" class="botao secundario" id="btn-recusar-cookies">Recusar</button>
         </div>
     </div>
 
+    <!-- Todo o JavaScript do site está reunido em um único arquivo -->
+    <script src="js/script.js"></script>
 </body>
 </html>

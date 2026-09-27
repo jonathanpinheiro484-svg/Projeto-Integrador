@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão Integrada Pro - Painel Central</title>
+<!-- Todo o JavaScript do site está reunido em um único arquivo -->
+<script src="js/script.js"></script>
+
+<style>
+:root {
+  --roxo: #6c5ce7;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --texto: #1f2430;
+  --muted: #94a3b8;
+  --input-bg: #ffffff;
+  --hover-menu: #f5f6f8;
+}
+
+[data-theme="dark"] {
+  --bg: #121319;
+  --card: #1c1e26;
+  --border: #2d313e;
+  --texto: #f1f3f9;
+  --muted: #9aa1b1;
+  --input-bg: #252833;
+  --hover-menu: #252833;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--bg);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* BARRA SUPERIOR DE SIMULAÇÃO */
+.bar-simulacao {
+  background: #1f2430; color: #fff; padding: 10px 20px; font-size: 13px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+}
+.bar-simulacao-controles { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bar-simulacao select { padding: 4px 8px; border-radius: 4px; border: none; font-size: 12px; background: #fff; color: #000; font-weight: 600; }
+
+.btn-tema {
+  background: #2d313e; color: #fff; border: 1px solid #454c5e; border-radius: 6px;
+  padding: 5px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s ease;
+}
+.btn-tema:hover { background: #3b4052; }
+
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 40px); }
+
+.logo {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+  cursor: pointer;
+  user-select: none;
+}
+.logo:hover { opacity: 0.85; }
+
+.sidebar.oculta {
+  display: none !important;
+}
+
+.layout.sidebar-oculta {
+  grid-template-columns: 1fr;
+}
+.layout.sidebar-oculta .main {
+  width: 100%;
+}
+
+.btn-mostrar-sidebar {
+  display: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--roxo);
+  color: #fff;
+  border: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.btn-mostrar-sidebar:hover { opacity: 0.9; }
+.btn-mostrar-sidebar.mostrar {
+  display: flex;
+}
+
+/* SIDEBAR */
+.sidebar { background: var(--card); border-right: 1px solid var(--border); padding: 18px 14px; }
+.logo-icone { width: 32px; height: 32px; border-radius: 8px; background: var(--roxo); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.menu { display: flex; flex-direction: column; gap: 2px; }
+.menu-item { padding: 9px 10px; border-radius: 8px; color: var(--texto); text-decoration: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+.menu-item:hover { background: var(--hover-menu); }
+.menu-item.ativo { background: #efeaff; color: var(--roxo); font-weight: 600; }
+[data-theme="dark"] .menu-item.ativo { background: #2d264e; color: #a29bfe; }
+
+/* CONTEÚDO PRINCIPAL */
+.conteudo { padding: 22px 24px; display: flex; flex-direction: column; gap: 26px; }
+h2 { font-size: 17px; margin: 0 0 12px; }
+
+/* CARDS FINANCEIRO */
+.financeiro-grid { display: grid; grid-template-columns: repeat(3, 1fr) 1.4fr; gap: 14px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; min-height: 100px; }
+.stat-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+.stat-valor { font-size: 18px; font-weight: 700; }
+
+.stat-card.bloqueado .conteudo-bloqueavel { visibility: hidden; opacity: 0; }
+
+.overlay-bloqueio[hidden] { display: none !important; }
+
+.overlay-bloqueio {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: var(--card);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; z-index: 5; text-align: center; padding: 10px;
+}
+.overlay-bloqueio .box-cadeado {
+  background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px;
+  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+[data-theme="dark"] .overlay-bloqueio .box-cadeado { background: #252833; }
+.overlay-bloqueio .icone-cadeado { font-size: 20px; }
+.overlay-bloqueio .tag-pro { font-size: 11px; font-weight: 600; color: var(--texto); background: var(--card); padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border); }
+
+.grafico-pagamentos { display: flex; gap: 10px; height: 80px; margin-top: 6px; }
+.eixo-y { display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: var(--muted); text-align: right; }
+.barras { display: flex; align-items: flex-end; gap: 16px; flex: 1; }
+.barra-col { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; flex: 1; }
+.barra { width: 100%; max-width: 24px; border-radius: 4px 4px 0 0; height: 0; background: var(--roxo); transition: height 0.3s ease; }
+.barra-col label { font-size: 10px; margin-top: 4px; color: var(--muted); }
+
+/* AGENDA */
+.agenda-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
+.agenda-titulo-data { display: flex; align-items: center; gap: 12px; }
+.input-data-seletor, .select-colunas { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; color: var(--texto); background: var(--input-bg); cursor: pointer; }
+.agenda-controles { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.agenda-controles button { border: 1px solid var(--border); background: var(--card); color: var(--texto); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
+.btn-novo-agendamento { background: var(--roxo) !important; color: #fff !important; border-color: var(--roxo) !important; font-weight: 600; }
+
+.paginacao { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.paginacao button { width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; }
+
+.toggle-view { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--card); }
+.toggle-view button { border: none; border-radius: 0; padding: 6px 12px; font-size: 12px; background: transparent; color: var(--texto); cursor: pointer; }
+.toggle-view button.ativo { background: #1b1f3b; color: #fff; font-weight: 600; }
+[data-theme="dark"] .toggle-view button.ativo { background: var(--roxo); }
+
+.agenda-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+.agenda { display: flex; flex-direction: column; min-width: 600px; }
+.agenda-cabecalho { display: grid; grid-template-columns: 50px repeat(var(--n-colab), minmax(160px, 1fr)); }
+.cab { padding: 10px 8px; font-size: 12px; font-weight: 600; text-align: center; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.cab-avatar { width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.6); margin-bottom: 2px; }
+.cab-nome { font-size: 12px; font-weight: 700; }
+.cab-cargo { font-size: 10px; opacity: 0.9; font-weight: 400; }
+
+.agenda-corpo { display: grid; grid-template-columns: 50px repeat(var(--n-colab), minmax(160px, 1fr)); position: relative; }
+.col-horarios { display: flex; flex-direction: column; }
+.hora-label { height: 48px; font-size: 11px; color: var(--muted); text-align: right; padding-right: 6px; border-top: 1px solid var(--border); box-sizing: border-box; display: flex; align-items: center; justify-content: flex-end; }
+.col-colab { position: relative; border-left: 1px solid var(--border); height: calc(var(--n-horas) * 48px); }
+.linha-hora { height: 48px; border-top: 1px solid var(--border); box-sizing: border-box; }
+
+.agendamento {
+  position: absolute; border-radius: 6px; padding: 4px 18px 4px 6px; font-size: 11px; color: #fff; overflow: hidden; box-sizing: border-box; z-index: 10;
+  display: flex; flex-direction: column; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.12); cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0.2s ease;
+}
+.agendamento:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 12px rgba(0,0,0,0.25); z-index: 50; }
+.agendamento strong { display: block; font-size: 11px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agendamento span { opacity: .9; font-size: 10px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.agendamento .remover { position: absolute; top: 2px; right: 4px; background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 11px; font-weight: bold; padding: 0; z-index: 2; }
+.agendamento .remover:hover { color: #fff; }
+
+/* ADMINISTRATIVO */
+.admin-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+.admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.admin-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.admin-card-header h3 { margin: 0; }
+.colaboradores-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+.colaborador-item { position: relative; border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; gap: 10px; align-items: center; background: var(--card); }
+.colaborador-avatar { width: 32px; height: 32px; border-radius: 50%; background: #e5e7eb; flex-shrink: 0; }
+.colaborador-info strong { display: block; font-size: 12.5px; }
+.colaborador-info small { color: var(--muted); font-size: 11px; }
+.status-ativo { display: inline-block; margin-top: 3px; background: #d1fae5; color: #059669; font-size: 10px; padding: 1px 8px; border-radius: 10px; }
+.status-inativo { display: inline-block; margin-top: 3px; background: #fee2e2; color: #dc2626; font-size: 10px; padding: 1px 8px; border-radius: 10px; }
+.colaborador-remover { position: absolute; top: 6px; right: 6px; background: none; border: none; color: #b0b4bd; cursor: pointer; font-size: 11px; padding: 2px; }
+.colaborador-remover:hover { color: #e11d48; }
+
+.tabela-contratos { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.tabela-contratos th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+.tabela-contratos td { padding: 8px 0; border-bottom: 1px solid var(--border); }
+
+/* FORMULÁRIO */
+.form-agendamento { display: grid; gap: 12px; }
+.form-agendamento .campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.form-agendamento input, .form-agendamento select { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
+.form-botoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+.btn-salvar { background: var(--roxo); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.btn-cancelar { background: none; border: 1px solid var(--border); color: var(--texto); border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+
+/* MODAL */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.modal-overlay[hidden] { display: none; }
+.modal-card { background: var(--card); color: var(--texto); border-radius: 12px; width: 100%; max-width: 450px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid var(--border); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.modal-header h3 { margin: 0; font-size: 16px; }
+
+/* CARD DE BLOQUEIO */
+.card-bloqueio-plano {
+  background: var(--card); border: 1px dashed var(--border); border-radius: 12px;
+  padding: 40px; text-align: center; margin-top: 20px;
+}
+.card-bloqueio-plano h3 { font-size: 18px; margin-bottom: 8px; }
+.card-bloqueio-plano p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+
+/* TELA DE SELEÇÃO DE PLANOS */
+.planos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 15px; }
+.card-plano {
+  background: var(--card); border: 2px solid var(--border); border-radius: 12px;
+  padding: 24px; display: flex; flex-direction: column; justify-content: space-between;
+  position: relative; transition: border-color 0.2s, transform 0.2s;
+}
+.card-plano:hover { transform: translateY(-3px); }
+.card-plano.destaque { border-color: var(--roxo); }
+.card-plano .badge { position: absolute; top: 12px; right: 12px; background: var(--roxo); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+.card-plano h3 { margin: 0 0 10px; font-size: 20px; }
+.card-plano .preco { font-size: 24px; font-weight: 800; margin-bottom: 15px; }
+.card-plano .preco span { font-size: 12px; color: var(--muted); font-weight: 400; }
+.card-plano ul { list-style: none; padding: 0; margin: 0 0 20px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
+.card-plano ul li { display: flex; align-items: center; gap: 6px; }
+.btn-selecionar-plano { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; }
+.btn-selecionar-plano.atual { background: var(--border); color: var(--muted); cursor: default; }
+</style>
+</head>
+<body>
+
+<div class="bar-simulacao">
+  <button type="button" id="btn-mostrar-sidebar" class="btn-mostrar-sidebar" title="Mostrar menu lateral">☰</button>
+  <span><strong>Simulador de Permissões:</strong></span>
+  <div class="bar-simulacao-controles">
+    <div>
+      <label>Plano contratado: </label>
+      <strong id="texto-plano">Grátis</strong>
+    </div>
+    <div>
+      <label>Perfil do Usuário: </label>
+      <strong id="texto-perfil">Admin</strong>
+    </div>
+    <button type="button" id="btn-toggle-tema" class="btn-tema">🌙 Modo Noturno</button>
+  </div>
+</div>
+
+<div class="layout" id="layout-principal">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar-principal">
+    <div class="logo" id="btn-gestao" title="Ocultar menu lateral" role="button" tabindex="0">
+      <span class="logo-icone">G</span>
+      <div><strong>Gestão Integrada Pro</strong></div>
+    </div>
+    <nav class="menu">
+      <a class="menu-item ativo" data-menu="Dashboard">Dashboard</a>
+      <a class="menu-item" data-menu="Agenda">Agenda</a>
+      <a class="menu-item" data-menu="Financeiro">
+        <span>Financeiro</span>
+        <span id="tag-lock-fin" style="font-size:12px;" hidden>🔒</span>
+      </a>
+      <a class="menu-item" data-menu="Administracao">Administração</a>
+      <a class="menu-item" data-menu="Suporte">Suporte</a>
+      <a class="menu-item" data-menu="Planos">
+        <span>Planos</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- ÁREA PRINCIPAL -->
+  <div class="main">
+    <main class="conteudo">
+
+      <!-- FINANCEIRO -->
+      <section id="secao-financeiro">
+        <h2>Financeiro</h2>
+
+        <div id="aviso-bloqueio-financeiro-pagina" class="card-bloqueio-plano" hidden>
+          <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
+          <h3>Recurso disponível apenas no Plano Premium</h3>
+          <p>Faça upgrade para o Plano Premium para ter acesso aos relatórios financeiros e aos recursos avançados.</p>
+          <button class="btn-salvar" onclick="irParaTelaPlanos('Financeiro')">Fazer Upgrade do Plano</button>
+        </div>
+
+        <div class="financeiro-grid" id="grid-financeiro-cards">
+
+          <div class="stat-card" id="card-receitas">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Premium</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label" id="titulo-receitas">Receitas (Dia)</span>
+              <strong class="stat-valor" id="valor-receitas">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="stat-card" id="card-despesas">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Premium</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label">Despesas</span>
+              <strong class="stat-valor" id="valor-despesas">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="stat-card" id="card-saldo">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Premium</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label">Saldo Final</span>
+              <strong class="stat-valor" id="valor-saldo">R$ 0,00</strong>
+            </div>
+          </div>
+
+          <div class="stat-card grafico-card" id="card-grafico">
+            <div class="overlay-bloqueio" hidden>
+              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
+              <span class="tag-pro">Exclusivo Premium</span>
+            </div>
+            <div class="conteudo-bloqueavel">
+              <span class="stat-label">Meios de Pagamento</span>
+              <div class="grafico-pagamentos">
+                <div class="eixo-y">
+                  <span class="eixo-max">6.000</span>
+                  <span class="eixo-meio">3.000</span>
+                  <span class="eixo-min">0</span>
+                </div>
+                <div class="barras">
+                  <div class="barra-col" data-meio="pix">
+                    <div class="barra"></div>
+                    <label>Pix</label>
+                  </div>
+                  <div class="barra-col" data-meio="cartao">
+                    <div class="barra"></div>
+                    <label>Cartão de Crédito</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- AGENDA -->
+      <section id="secao-agenda">
+        <div class="agenda-header">
+          <div class="agenda-titulo-data">
+            <h2 id="agenda-data-texto" style="margin:0;">Data:</h2>
+            <input type="date" id="seletor-data" class="input-data-seletor" value="2026-09-25">
+          </div>
+
+          <div class="agenda-controles">
+            <div class="paginacao" id="container-paginacao">
+              <button type="button" id="btn-pag-anterior">‹</button>
+              <span id="pag-info">1 de 1</span>
+              <button type="button" id="btn-pag-proxima">›</button>
+            </div>
+
+            <div hidden>
+              <label for="seletor-colunas" style="font-size: 12px; color: var(--muted);">Colunas:</label>
+              <select id="seletor-colunas" class="select-colunas"></select>
+            </div>
+
+            <div>
+              <label for="filtro-colaborador">Procurar colaborador:</label>
+              <select id="filtro-colaborador" class="select-colunas">
+                <option value="todos">Procurar colaborador...</option>
+              </select>
+            </div>
+
+            <button type="button" id="btn-abrir-agendamento" class="btn-novo-agendamento">+ Novo Agendamento</button>
+
+            <div class="toggle-view">
+              <button type="button" id="btn-modo-dia" class="ativo">Dia</button>
+              <button type="button" id="btn-modo-semana">Semana</button>
+              <button type="button" id="btn-modo-mes">Mês</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="agenda-wrap">
+          <div class="agenda" id="agenda"></div>
+        </div>
+      </section>
+
+      <!-- ADMINISTRATIVO -->
+      <section id="secao-administrativo">
+        <h2>Administrativo</h2>
+        <div class="admin-grid">
+
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h3>Cadastrar Novo Colaborador</h3>
+            </div>
+
+            <form id="form-colaborador" class="form-agendamento" style="border:1px solid var(--border); padding:20px; border-radius:10px; background: var(--card); margin-bottom: 20px;">
+              <div class="campo">
+                <label for="colab-nome">Nome Completo</label>
+                <input type="text" id="colab-nome" placeholder="Ex: Fernanda Lima" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-cargo">Cargo / Especialidade</label>
+                <input type="text" id="colab-cargo" placeholder="Ex: Esteticista" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-email">E-mail (Acesso ao Sistema)</label>
+                <input type="email" id="colab-email" placeholder="fernanda@agendaexpress.com" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-senha">Senha de Acesso</label>
+                <input type="text" id="colab-senha" placeholder="Digite a senha" required>
+              </div>
+
+              <div class="campo">
+                <label for="colab-cor">Cor do Cabeçalho</label>
+                <input type="color" id="colab-cor" value="#00c0ef" style="height:38px; width:60px; padding:2px; cursor:pointer; border-radius:6px; border:1px solid var(--border);">
+              </div>
+
+              <div class="form-botoes" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
+                <button type="submit" class="btn-salvar">Salvar Colaborador</button>
+                <button type="reset" class="btn-cancelar">Limpar</button>
+              </div>
+            </form>
+
+            <h3>Equipe Cadastrada</h3>
+            <div class="colaboradores-lista" id="colaboradores-lista"></div>
+          </div>
+
+          <div class="admin-card">
+            <h3>Contratos Próximos do Vencimento</h3>
+            <table class="tabela-contratos">
+              <thead>
+                <tr><th>Nome</th><th>Vencimento</th></tr>
+              </thead>
+              <tbody id="contratos-lista"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SUPORTE -->
+      <section id="secao-suporte" style="display: none;">
+        <h2>Suporte</h2>
+        <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Envie uma mensagem para a nossa equipe. A conversa continua por e-mail.</p>
+
+        <div class="admin-card" style="max-width: 560px;">
+          <form id="form-suporte" class="form-agendamento">
+            <input type="hidden" name="_subject" value="Nova mensagem de Suporte - Gestão Integrada Pro">
+            <input type="hidden" name="_captcha" value="false">
+
+            <div class="campo">
+              <label for="suporte-email">Seu e-mail</label>
+              <input type="email" name="email" id="suporte-email" placeholder="Ex: cliente@email.com" required>
+            </div>
+
+            <div class="campo">
+              <label for="suporte-assunto">Assunto</label>
+              <input type="text" name="Assunto" id="suporte-assunto" placeholder="Ex: Dúvida sobre o plano Premium" required>
+            </div>
+
+            <div class="campo">
+              <label for="suporte-mensagem">Mensagem</label>
+              <textarea name="Mensagem" id="suporte-mensagem" rows="6" placeholder="Descreva sua dúvida ou problema..." required style="border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit; background: var(--input-bg); color: var(--texto); resize: vertical;"></textarea>
+            </div>
+
+            <p style="font-size: 12px; color: var(--muted); margin: 0;">Sua mensagem será enviada diretamente para nossa equipe. Responderemos no e-mail informado acima.</p>
+
+            <p id="suporte-erro" style="font-size: 12px; color: #e74c3c; margin: 0; display: none;">Não foi possível enviar agora. Verifique sua conexão e tente novamente.</p>
+
+            <div class="form-botoes">
+              <button type="submit" class="btn-salvar" id="btn-enviar-suporte">Enviar Mensagem</button>
+            </div>
+          </form>
+
+          <div id="suporte-sucesso" style="display: none; text-align: center; padding: 10px 0;">
+            <div style="font-size: 34px; line-height: 1;">✅</div>
+            <h3 style="margin: 10px 0 4px;">Mensagem enviada com sucesso!</h3>
+            <p style="color: var(--muted); font-size: 13px; margin: 0 0 16px;">Nossa equipe vai te responder no e-mail informado.</p>
+            <button type="button" class="btn-salvar" id="btn-suporte-nova-mensagem">Enviar outra mensagem</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- TELA DE SELEÇÃO DE PLANOS -->
+      <section id="secao-planos" style="display: none;">
+        <h2>Planos e Assinaturas</h2>
+        <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Escolha o plano ideal para gerenciar o seu negócio.</p>
+
+        <div class="planos-grid">
+
+          <!-- PLANO FREE -->
+          <div class="card-plano" id="card-plano-free">
+            <div>
+              <h3>Grátis</h3>
+              <div class="preco">30 dias</div>
+              <ul>
+                <li>✓ Agendamentos ilimitados durante o período</li>
+                <li>✓ Até 15 colaboradores</li>
+                <li>✓ Agenda simples</li>
+                <li>✕ Sem relatórios</li>
+                <li>✕ Sem suporte prioritário</li>
+                <li>✕ Sem integrações externas</li>
+              </ul>
+            </div>
+            <button class="btn-selecionar-plano" id="btn-plano-free" onclick="escolherPlano('FREE')">Selecionar Plano</button>
+          </div>
+
+          <!-- PLANO BÁSICO -->
+          <div class="card-plano" id="card-plano-basico">
+            <div>
+              <h3>Básico</h3>
+              <div class="preco">Sem limite de tempo</div>
+              <ul>
+                <li>✓ Agendamentos ilimitados</li>
+                <li>✓ Até 10 colaboradores</li>
+                <li>✕ Sem relatórios de agenda</li>
+                <li>✕ Sem relatórios financeiros</li>
+                <li>✓ Suporte somente por e-mail</li>
+                <li>✓ Notificações por e-mail</li>
+              </ul>
+            </div>
+            <button class="btn-selecionar-plano" id="btn-plano-basico" onclick="escolherPlano('BASICO')">Escolher Básico</button>
+          </div>
+
+          <!-- PLANO PREMIUM -->
+          <div class="card-plano" id="card-plano-premium">
+            <div>
+              <h3>Premium</h3>
+              <div class="preco">Sem limite de tempo</div>
+              <ul>
+                <li>✓ Agendamentos ilimitados</li>
+                <li>✓ Colaboradores ilimitados</li>
+                <li>✓ Relatórios avançados (financeiro)</li>
+                <li>✓ Suporte prioritário (chat/telefone)</li>
+                <li>✓ Integração com WhatsApp</li>
+                <li>✓ Personalização de serviços e horários</li>
+              </ul>
+            </div>
+            <button class="btn-selecionar-plano" id="btn-plano-premium" onclick="escolherPlano('PREMIUM')">Escolher Premium</button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL DE NOVO AGENDAMENTO -->
+<div class="modal-overlay" id="modal-agendamento" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Agendar Cliente</h3>
+      <button type="button" id="btn-fechar-modal" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <form id="form-novo-agendamento" class="form-agendamento">
+      <div class="campo">
+        <label>Cliente</label>
+        <input type="text" id="agend-cliente" placeholder="Ex: João Pereira" required autocomplete="off">
+      </div>
+
+      <div class="campo">
+        <label>Serviço</label>
+        <input type="text" id="agend-servico" placeholder="Ex: Corte de cabelo" autocomplete="off">
+      </div>
+
+      <div class="campo">
+        <label>Profissional Responsável</label>
+        <select id="agend-profissional" required></select>
+      </div>
+
+      <div class="campo">
+        <label>Data</label>
+        <input type="date" id="agend-data" required>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="campo">
+          <label>Hora Início</label>
+          <input type="time" id="agend-hora-inicio" value="08:00" required>
+        </div>
+        <div class="campo">
+          <label>Duração (min)</label>
+          <input type="number" id="agend-duracao" value="60" step="15" min="15" required>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Cor do Card</label>
+        <input type="color" id="agend-cor" value="#3d5a80" style="height:38px; padding:2px; cursor:pointer;">
+      </div>
+
+      <div class="form-botoes">
+        <button type="submit" class="btn-salvar">Confirmar Agendamento</button>
+        <button type="button" id="btn-cancelar-agendamento" class="btn-cancelar">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+</body>
+</html>
