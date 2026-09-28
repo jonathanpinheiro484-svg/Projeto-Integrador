@@ -1,4 +1,4 @@
-/* Login */
+/* CADASTRO */
 
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
@@ -10,15 +10,55 @@
 }
 
 body {
-    background-color: #c9d6ff;
-    background: linear-gradient(to right, #e2e2e2, #c9d6ff);
+    
+        background: linear-gradient(to right, #e2e2e2, #e37878);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        height: 100vh;
+    }
+
+
+/* --- CABEÇALHO --- */
+.topo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    height: 100vh;
+    padding: 15px 30px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
 }
 
+.topo .logo a {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #333;
+    text-decoration: none;
+}
+
+.sidebar h2 {
+    font-size: 1rem;
+    display: none;
+}
+
+.sidebar nav a {
+    margin: 0 10px;
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+}
+
+.sidebar nav a:hover {
+    color: #512da8;
+}
+
+/* --- CONTAINER PRINCIPAL --- */
 .container {
     background-color: #fff;
     border-radius: 30px;
@@ -28,6 +68,7 @@ body {
     width: 768px;
     max-width: 100%;
     min-height: 480px;
+    margin-top: 60px;
 }
 
 .container p {
@@ -35,6 +76,10 @@ body {
     line-height: 20px;
     letter-spacing: 0.3px;
     margin: 20px 0;
+}
+
+.container span {
+    font-size: 12px;
 }
 
 .container a {
@@ -56,20 +101,11 @@ body {
     text-transform: uppercase;
     margin-top: 10px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
-}
-
-.container button:hover {
-    background-color: #3f2287;
 }
 
 .container button.hidden {
     background-color: transparent;
     border-color: #fff;
-}
-
-.container button.hidden:hover {
-    background-color: rgba(255, 255, 255, 0.15);
 }
 
 .container form {
@@ -86,7 +122,7 @@ body {
     background-color: #eee;
     border: none;
     margin: 8px 0;
-    padding: 12px 15px;
+    padding: 10px 15px;
     font-size: 13px;
     border-radius: 8px;
     width: 100%;
@@ -139,6 +175,7 @@ body {
     }
 }
 
+/* --- PAINEL DESLIZANTE (TOGGLE) --- */
 .toggle-container {
     position: absolute;
     top: 0;
@@ -157,12 +194,13 @@ body {
 }
 
 .toggle {
-    background-color: #512da8;
+    background: #642da8;
     height: 100%;
-    background: linear-gradient(to right, #5c6bc0, #512da8);
+    background: linear-gradient(to right, #5c6bc0, #a82d2f);
     color: #fff;
     position: relative;
     left: -100%;
+    height: 100%;
     width: 200%;
     transform: translateX(0);
     transition: all 0.6s ease-in-out;
