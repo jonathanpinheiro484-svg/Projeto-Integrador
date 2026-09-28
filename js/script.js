@@ -71,6 +71,44 @@ function salvarTokenApi(token) {
   localStorage.setItem("apiToken", token);
 }
 
+// --- LOGIN DE COLABORADORES (simulação no front até o backend PHP existir) ---
+// O dono cadastra e-mail + senha do colaborador na Administração; depois o
+// colaborador entra em login.html com esses dados.
+// IMPORTANTE: quando o backend existir, a validação de e-mail/senha deve ser
+// feita LÁ (PHP + password_hash), e estas chaves do localStorage saem.
+const CHAVE_COLABORADORES = "colaboradoresCadastrados"; // lista de colaboradores
+const CHAVE_CREDENCIAIS = "credenciaisColaboradores";   // { email: { colaboradorId, senhaHash } }
+const CHAVE_SESSAO = "sessaoUsuario";                   // { perfil, colaboradorId?, nome? }
+const CHAVE_AGENDAMENTOS = "agendamentosSalvos";        // lista de agendamentos (dono e colaboradores veem os mesmos)
+
+function lerJsonLocal(chave, padrao) {
+  try {
+    const valor = JSON.parse(localStorage.getItem(chave));
+    return valor === null || valor === undefined ? padrao : valor;
+  } catch (erro) {
+    return padrao;
+  }
+}
+
+function salvarColaboradoresLocal(lista) {
+  localStorage.setItem(CHAVE_COLABORADORES, JSON.stringify(lista));
+}
+
+function salvarAgendamentosLocal(lista) {
+  localStorage.setItem(CHAVE_AGENDAMENTOS, JSON.stringify(lista));
+}
+
+// Nunca guarda a senha em texto puro: guarda só o hash SHA-256.
+async function gerarHashSenha(senha) {
+  if (window.crypto && window.crypto.subtle) {
+    const dados = new TextEncoder().encode(senha);
+    const buffer = await window.crypto.subtle.digest("SHA-256", dados);
+    return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+  // Fallback para navegadores/contextos sem crypto.subtle
+  return btoa(unescape(encodeURIComponent(senha)));
+}
+
 
 // =====================================================
 // 2. DASHBOARD (index.html — agenda, financeiro, administração, planos)
@@ -97,78 +135,55 @@ function iniciarDashboard() {
 
   // --- ESTADO DA APLICAÇÃO ---
   let planoAtual = "FREE";
-  let usuarioLogado = { perfil: "DONO", colaboradorId: null };
+  const sessaoSalva = lerJsonLocal(CHAVE_SESSAO, null);
+  let usuarioLogado = (sessaoSalva && sessaoSalva.perfil === "COLABORADOR")
+    ? { perfil: "COLABORADOR", colaboradorId: sessaoSalva.colaboradorId }
+    : { perfil: "DONO", colaboradorId: null };
   let abaAtiva = "Dashboard";
   let abaOrigemPlanos = "Dashboard";
   let modoVisualizacao = "Dia";
   const colunasVisiveis = 5;
   let paginaAtual = 0;
 
-  // >>> API: dados financeiros por período. Fallback fixo até o
-  // endpoint FINANCEIRO existir.
+  // >>> API: dados financeiros por período. Começa zerado até o
+  // endpoint FINANCEIRO existir (eixoMaximo não pode ser 0, senão
+  // o gráfico divide por zero).
   const financeiroPorPeriodo = {
-    Dia: { receitas: 3150.00, despesas: 420.00, saldo: 2730.00, pagamentos: { pix: 2400, cartao: 3900 }, eixoMaximo: 6000 },
-    Semana: { receitas: 18500.00, despesas: 2300.00, saldo: 16200.00, pagamentos: { pix: 10500, cartao: 8000 }, eixoMaximo: 20000 },
-    Mês: { receitas: 64000.00, despesas: 11200.00, saldo: 52800.00, pagamentos: { pix: 38000, cartao: 26000 }, eixoMaximo: 70000 }
+    Dia: { receitas: 0, despesas: 0, saldo: 0, pagamentos: { pix: 0, cartao: 0 }, eixoMaximo: 100 },
+    Semana: { receitas: 0, despesas: 0, saldo: 0, pagamentos: { pix: 0, cartao: 0 }, eixoMaximo: 100 },
+    Mês: { receitas: 0, despesas: 0, saldo: 0, pagamentos: { pix: 0, cartao: 0 }, eixoMaximo: 100 }
   };
 
-  // >>> API: colaboradores (fallback de exemplo).
-  let colaboradores = [
-    { id: 0, nome: "Você (Proprietária)", cargo: "Proprietária", email: "", cor: "#2ecc71", ativo: true, dona: true },
-    { id: 1, nome: "Ana Beatriz Rocha", cargo: "Manicure", email: "ana@agendaexpress.com", cor: "#c6c92c", ativo: true },
-    { id: 2, nome: "Joaquim Augusto", cargo: "Cabeleireiro", email: "joaquim@agendaexpress.com", cor: "#e91e8c", ativo: true },
-    { id: 3, nome: "Laura Mendes", cargo: "Esteticista", email: "laura@agendaexpress.com", cor: "#26b3c4", ativo: true },
-    { id: 4, nome: "Vitor Almeida", cargo: "Cabeleireiro", email: "vitor@agendaexpress.com", cor: "#f4a300", ativo: true },
-    { id: 5, nome: "Marina Lopes", cargo: "Esteticista", email: "marina@agendaexpress.com", cor: "#9b59b6", ativo: true }
-  ];
+  // >>> API: colaboradores (começa vazio; guarda no localStorage até ter backend).
+  let colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
 
-  // >>> API: agendamentos (fallback de exemplo).
-  let agendamentos = [
-    { id: 1, colaboradorId: 1, cliente: "Liliana Crivero", servico: "Mão/pé", data: "2026-09-25", horaInicio: "08:00", duracaoMin: 60, cor: "#3d5a80" },
-    { id: 2, colaboradorId: 1, cliente: "Davi de Luccas", servico: "", data: "2026-09-25", horaInicio: "11:00", duracaoMin: 30, cor: "#e0a458" },
-    { id: 3, colaboradorId: 1, cliente: "Cristina Aguilhera", servico: "Mão/pé", data: "2026-09-25", horaInicio: "13:00", duracaoMin: 60, cor: "#3d5a80" },
-    { id: 4, colaboradorId: 2, cliente: "Carlos Alcaraz", servico: "Mechas", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 120, cor: "#8f8f8f" },
-    { id: 5, colaboradorId: 2, cliente: "Danilo", servico: "Cabelo", data: "2026-09-25", horaInicio: "10:30", duracaoMin: 60, cor: "#3d5a80" },
-    { id: 6, colaboradorId: 2, cliente: "Amanda Jesus Silva", servico: "Corte fem.", data: "2026-09-25", horaInicio: "13:00", duracaoMin: 60, cor: "#588157" },
-    { id: 7, colaboradorId: 3, cliente: "Patricia", servico: "Corte feminino", data: "2026-09-25", horaInicio: "08:00", duracaoMin: 60, cor: "#4361ee" },
-    { id: 8, colaboradorId: 3, cliente: "Beatriz", servico: "Escova", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 90, cor: "#588157" },
-    { id: 9, colaboradorId: 4, cliente: "Rafael Souza", servico: "Barba", data: "2026-09-25", horaInicio: "09:00", duracaoMin: 30, cor: "#3d5a80" },
-    { id: 10, colaboradorId: 5, cliente: "Juliana Prado", servico: "Limpeza de pele", data: "2026-09-25", horaInicio: "10:00", duracaoMin: 90, cor: "#8f8f8f" }
-  ];
+  // >>> API: agendamentos (começa vazio; guarda no localStorage até ter backend).
+  let agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
 
-  // >>> API: contratos próximos do vencimento.
-  let contratos = [
-    { nome: "#202606100003 Mania Contrato", vencimento: "11/09/2026" },
-    { nome: "#202606100005 Mania Contrato", vencimento: "26/09/2026" },
-    { nome: "#202606100004 Mania Contrato", vencimento: "09/09/2026" }
-  ];
+  // >>> API: contratos próximos do vencimento (começa vazio).
+  let contratos = [];
 
-  if (localStorage.getItem("nomeUsuarioCadastrado")) {
-    colaboradores = [];
-    agendamentos = [];
-  }
-
-  // >>> API: carregamento inicial. Se falhar, mantém os mocks acima.
+  // >>> API: carregamento inicial. Se falhar, mantém as listas vazias.
   async function carregarDadosIniciais() {
     try {
       const dadosColaboradores = await apiRequest("COLABORADORES");
       if (Array.isArray(dadosColaboradores)) colaboradores = dadosColaboradores;
     } catch (erro) {
-      console.warn("Não foi possível carregar colaboradores da API, usando dados de exemplo.", erro.message);
+      console.warn("Não foi possível carregar colaboradores da API.", erro.message);
     }
 
     try {
       const dadosAgendamentos = await apiRequest("AGENDAMENTOS");
       if (Array.isArray(dadosAgendamentos)) agendamentos = dadosAgendamentos;
     } catch (erro) {
-      console.warn("Não foi possível carregar agendamentos da API, usando dados de exemplo.", erro.message);
+      console.warn("Não foi possível carregar agendamentos da API.", erro.message);
     }
 
     try {
       const dadosContratos = await apiRequest("CONTRATOS");
       if (Array.isArray(dadosContratos)) contratos = dadosContratos;
     } catch (erro) {
-      console.warn("Não foi possível carregar contratos da API, usando dados de exemplo.", erro.message);
+      console.warn("Não foi possível carregar contratos da API.", erro.message);
     }
 
     atualizarSelectLoginSimulado();
@@ -279,6 +294,8 @@ function iniciarDashboard() {
     const gridCardsFin = document.getElementById("grid-financeiro-cards");
     const avisoBloqueioFin = document.getElementById("aviso-bloqueio-financeiro-pagina");
 
+    if (usuarioLogado.perfil === "COLABORADOR" && abaAtiva !== "Suporte") abaAtiva = "Agenda";
+
     secFin.style.display = "none";
     secAgenda.style.display = "none";
     secAdmin.style.display = "none";
@@ -330,7 +347,9 @@ function iniciarDashboard() {
 
   function atualizarSelectLoginSimulado() {
     const textoPerfil = document.getElementById("texto-perfil");
-    const nomeCadastrado = localStorage.getItem("nomeUsuarioCadastrado");
+    const nomeCadastrado = (usuarioLogado.perfil === "COLABORADOR" && sessaoSalva && sessaoSalva.nome)
+      ? sessaoSalva.nome
+      : localStorage.getItem("nomeUsuarioCadastrado");
     if (textoPerfil) textoPerfil.textContent = nomeCadastrado || "Admin";
   }
 
@@ -472,6 +491,7 @@ function iniciarDashboard() {
     // }
 
     agendamentos = agendamentos.filter(a => a.id !== id);
+    salvarAgendamentosLocal(agendamentos);
     renderizarAgenda();
   }
 
@@ -487,6 +507,14 @@ function iniciarDashboard() {
     agenda.style.setProperty("--n-colab", colaboradoresPagina.length);
     agenda.style.setProperty("--n-horas", totalHoras);
     atualizarInfoPaginacao();
+
+    // Sem colaboradores: mostra um aviso em vez de uma agenda vazia
+    if (colaboradoresPagina.length === 0) {
+      agenda.innerHTML = `<p style="padding: 24px; text-align: center; color: #888;">
+        Nenhum colaborador cadastrado. Cadastre o primeiro em Administração.
+      </p>`;
+      return;
+    }
 
     const divCabecalho = document.createElement("div");
     divCabecalho.className = "agenda-cabecalho";
@@ -566,10 +594,16 @@ function iniciarDashboard() {
       if (menuFinanceiro) menuFinanceiro.style.display = "none";
       if (menuAdministracao) menuAdministracao.style.display = "none";
       if (menuPlanos) menuPlanos.style.display = "none";
-      if (["Financeiro", "Administracao", "Planos"].includes(abaAtiva)) {
-        abaAtiva = "Agenda";
-        document.querySelectorAll(".menu-item").forEach(m => m.classList.toggle("ativo", m.dataset.menu === "Agenda"));
-      }
+
+      // Colaborador: menu lateral só com Agenda e Suporte, sem plano e sem filtro
+      abaAtiva = "Agenda";
+      document.querySelectorAll(".menu-item").forEach(m => m.classList.toggle("ativo", m.dataset.menu === "Agenda"));
+      const menuDashboard = document.querySelector('.menu-item[data-menu="Dashboard"]');
+      if (menuDashboard) menuDashboard.style.display = "none";
+      const blocoPlano = document.getElementById("texto-plano");
+      if (blocoPlano && blocoPlano.parentElement) blocoPlano.parentElement.style.display = "none";
+      const blocoFiltro = document.getElementById("filtro-colaborador");
+      if (blocoFiltro && blocoFiltro.parentElement) blocoFiltro.parentElement.style.display = "none";
     } else {
       containerPaginacao.style.display = "flex";
       seletorColunasDiv.style.display = "none";
@@ -618,8 +652,17 @@ function iniciarDashboard() {
   }
 
   btnAbrirAgendamento.addEventListener("click", () => {
+    // Sem colaborador ativo não dá pra agendar
+    if (!colaboradores.some(c => c.ativo !== false)) {
+      alert("Cadastre um colaborador antes de criar um agendamento.");
+      return;
+    }
+
     selectProfissional.innerHTML = "";
-    colaboradores.filter(c => c.ativo !== false).forEach(c => {
+    colaboradores
+      .filter(c => c.ativo !== false)
+      .filter(c => usuarioLogado.perfil !== "COLABORADOR" || c.id === usuarioLogado.colaboradorId)
+      .forEach(c => {
       selectProfissional.insertAdjacentHTML("beforeend", `<option value="${c.id}">${c.nome}</option>`);
     });
     const hojeISO = obterDataHojeISO();
@@ -662,6 +705,7 @@ function iniciarDashboard() {
     // }
 
     agendamentos.push(novoAgendamento);
+    salvarAgendamentosLocal(agendamentos);
     seletorData.value = novoAgendamento.data;
     renderizarAgenda();
     fecharModalAgendamento();
@@ -724,8 +768,16 @@ function iniciarDashboard() {
     const limiteColaboradores = { FREE: 15, BASICO: 10, PREMIUM: Infinity };
     const limite = limiteColaboradores[planoAtual];
 
-    if (colaboradores.filter(c => !c.dona).length >= limite) {
+    if (colaboradores.length >= limite) {
       alert(`O plano ${planoAtual} permite até ${limite} colaboradores.`);
+      return;
+    }
+
+    const emailNovo = document.getElementById("colab-email").value.trim().toLowerCase();
+    const senhaNova = document.getElementById("colab-senha").value;
+    const credenciais = lerJsonLocal(CHAVE_CREDENCIAIS, {});
+    if (credenciais[emailNovo]) {
+      alert("Já existe um colaborador cadastrado com esse e-mail.");
       return;
     }
 
@@ -741,10 +793,9 @@ function iniciarDashboard() {
     // >>> API: criar colaborador no backend (a senha está em #colab-senha
     // e só deve ser enviada pra API, nunca guardada em texto puro no front).
     // try {
-    //   const senha = document.getElementById("colab-senha").value;
     //   const criado = await apiRequest("COLABORADORES", {
     //     method: "POST",
-    //     body: { ...novoColab, senha },
+    //     body: { ...novoColab, senha: senhaNova },
     //   });
     //   if (criado && criado.id) novoColab.id = criado.id;
     // } catch (erro) {
@@ -752,6 +803,9 @@ function iniciarDashboard() {
     // }
 
     colaboradores.push(novoColab);
+    salvarColaboradoresLocal(colaboradores);
+    credenciais[emailNovo] = { colaboradorId: novoColab.id, senhaHash: await gerarHashSenha(senhaNova) };
+    localStorage.setItem(CHAVE_CREDENCIAIS, JSON.stringify(credenciais));
     atualizarSelectLoginSimulado();
     atualizarOpcoesSeletorColunas();
     atualizarFiltroColaborador();
@@ -761,9 +815,6 @@ function iniciarDashboard() {
   });
 
   async function removerColaborador(id) {
-    const colab = colaboradores.find(c => c.id === id);
-    if (colab && colab.dona) return;
-
     // >>> API: remover colaborador no backend.
     // try {
     //   await apiRequest("COLABORADORES", { method: "DELETE" }, `/${id}`);
@@ -773,6 +824,13 @@ function iniciarDashboard() {
 
     colaboradores = colaboradores.filter(c => c.id !== id);
     agendamentos = agendamentos.filter(a => a.colaboradorId !== id);
+    salvarAgendamentosLocal(agendamentos);
+    salvarColaboradoresLocal(colaboradores);
+    const credenciaisRestantes = lerJsonLocal(CHAVE_CREDENCIAIS, {});
+    Object.keys(credenciaisRestantes).forEach(email => {
+      if (credenciaisRestantes[email].colaboradorId === id) delete credenciaisRestantes[email];
+    });
+    localStorage.setItem(CHAVE_CREDENCIAIS, JSON.stringify(credenciaisRestantes));
     atualizarSelectLoginSimulado();
     atualizarOpcoesSeletorColunas();
     atualizarFiltroColaborador();
@@ -783,8 +841,8 @@ function iniciarDashboard() {
   async function alternarStatusColaborador(id) {
     const colab = colaboradores.find(c => c.id === id);
     if (!colab) return;
-    if (colab.dona) return;
     colab.ativo = !colab.ativo;
+    salvarColaboradoresLocal(colaboradores);
 
     // >>> API: persistir a troca de status.
     // try {
@@ -801,12 +859,16 @@ function iniciarDashboard() {
   function renderizarListaColaboradores() {
     const lista = document.getElementById("colaboradores-lista");
     lista.innerHTML = "";
+
+    if (colaboradores.length === 0) {
+      lista.innerHTML = `<p style="padding: 12px; color: #888;">Nenhum colaborador cadastrado.</p>`;
+      return;
+    }
+
     colaboradores.forEach(c => {
       const ativo = c.ativo !== false;
-      const acoes = c.dona
-        ? `<span class="status-ativo" style="margin-left: 6px;">Proprietária</span>`
-        : `<button type="button" class="btn-cancelar" style="padding: 2px 8px; font-size: 10px; margin-left: 6px;" onclick="alternarStatusColaborador(${c.id})">${ativo ? 'Desativar' : 'Ativar'}</button>`;
-      const btnRemover = c.dona ? "" : `<button type="button" class="colaborador-remover" onclick="removerColaborador(${c.id})">✕</button>`;
+      const acoes = `<button type="button" class="btn-cancelar" style="padding: 2px 8px; font-size: 10px; margin-left: 6px;" onclick="alternarStatusColaborador(${c.id})">${ativo ? 'Desativar' : 'Ativar'}</button>`;
+      const btnRemover = `<button type="button" class="colaborador-remover" onclick="removerColaborador(${c.id})">✕</button>`;
       lista.insertAdjacentHTML("beforeend", `
         <div class="colaborador-item" style="border-left: 4px solid ${c.cor}; ${ativo ? '' : 'opacity: 0.65;'}">
           <span class="colaborador-avatar"></span>
@@ -824,6 +886,12 @@ function iniciarDashboard() {
   function renderizarContratos() {
     const listaContratos = document.getElementById("contratos-lista");
     listaContratos.innerHTML = "";
+
+    if (contratos.length === 0) {
+      listaContratos.innerHTML = `<tr><td colspan="2" style="color: #888;">Nenhum contrato próximo do vencimento.</td></tr>`;
+      return;
+    }
+
     contratos.forEach(ct => {
       listaContratos.insertAdjacentHTML("beforeend", `<tr><td>${ct.nome}</td><td>${ct.vencimento}</td></tr>`);
     });
@@ -865,7 +933,20 @@ function iniciarDashboard() {
   window.irParaTelaPlanos = irParaTelaPlanos;
   window.escolherPlano = escolherPlano;
 
+  // Se o dono e o colaborador estiverem com o site aberto em abas diferentes,
+  // a agenda atualiza sozinha quando o outro adiciona/remove algo.
+  window.addEventListener("storage", function (e) {
+    if (e.key !== CHAVE_AGENDAMENTOS && e.key !== CHAVE_COLABORADORES) return;
+    agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
+    colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
+    atualizarOpcoesSeletorColunas();
+    atualizarFiltroColaborador();
+    renderizarListaColaboradores();
+    renderizarAgenda();
+  });
+
   // --- INICIALIZAÇÃO DO DASHBOARD ---
+  seletorData.value = obterDataHojeISO();
   atualizarFinanceiro();
   atualizarPlano();
   aplicarPermissoes();
@@ -934,6 +1015,7 @@ function iniciarAuth() {
       if (nome) {
         localStorage.setItem("nomeUsuarioCadastrado", nome);
       }
+      localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "DONO" }));
       window.location.href = "agenda.html";
     });
   }
@@ -961,6 +1043,23 @@ function iniciarAuth() {
       //   return;
       // }
 
+      // E-mail cadastrado pelo dono para um colaborador: valida a senha
+      const credenciais = lerJsonLocal(CHAVE_CREDENCIAIS, {});
+      const cred = credenciais[email.toLowerCase()];
+      if (cred) {
+        const hashDigitado = await gerarHashSenha(senha);
+        const colabs = lerJsonLocal(CHAVE_COLABORADORES, []);
+        const colab = colabs.find(c => c.id === cred.colaboradorId);
+        if (hashDigitado !== cred.senhaHash || !colab || colab.ativo === false) {
+          alert("E-mail ou senha inválidos.");
+          return;
+        }
+        localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "COLABORADOR", colaboradorId: colab.id, nome: colab.nome }));
+        window.location.href = "agenda.html";
+        return;
+      }
+
+      localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "DONO" }));
       window.location.href = "agenda.html";
     });
   }
