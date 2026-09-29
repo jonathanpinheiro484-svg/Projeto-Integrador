@@ -98,6 +98,58 @@ function salvarAgendamentosLocal(lista) {
   localStorage.setItem(CHAVE_AGENDAMENTOS, JSON.stringify(lista));
 }
 
+// --- VALIDAÇÕES DE FORMULÁRIO ---
+const SENHA_TAMANHO_MINIMO = 8;
+
+// Aceita: texto@dominio.ext (sem espaços, com @ e um ponto no domínio)
+function emailValido(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
+function senhaValida(senha) {
+  return typeof senha === "string" && senha.length >= SENHA_TAMANHO_MINIMO;
+}
+
+// Regras da senha na tela de CADASTRO: devolve o que ainda está faltando
+// (mínimo 8 caracteres, 1 maiúscula, 1 minúscula e 1 símbolo; número não é obrigatório)
+function senhaFaltando(senha) {
+  const faltando = [];
+  if (senha.length < SENHA_TAMANHO_MINIMO) faltando.push(`${SENHA_TAMANHO_MINIMO} caracteres`);
+  if (!/\p{Lu}/u.test(senha)) faltando.push("1 letra maiúscula");
+  if (!/\p{Ll}/u.test(senha)) faltando.push("1 letra minúscula");
+  if (!/[^\p{L}\p{N}\s]/u.test(senha)) faltando.push("1 símbolo (ex: @ # $ !)");
+  return faltando;
+}
+
+function listaEmTexto(itens) {
+  if (itens.length <= 1) return itens.join("");
+  return itens.slice(0, -1).join(", ") + " e " + itens[itens.length - 1];
+}
+
+// Mostra a mensagem de erro dentro do próprio formulário (sem alert / sem botão OK).
+// A mensagem some sozinha assim que a pessoa volta a digitar.
+function mostrarErroForm(form, mensagem, campo) {
+  let aviso = form.querySelector(".erro-form");
+  if (!aviso) {
+    aviso = document.createElement("p");
+    aviso.className = "erro-form";
+    aviso.setAttribute("role", "alert");
+    aviso.style.cssText = "color:#e74c3c; font-size:12px; margin:6px 0 0; text-align:center; white-space:pre-line;";
+    const botao = form.querySelector("button");
+    if (botao && botao.parentNode === form) form.insertBefore(aviso, botao);
+    else form.appendChild(aviso);
+    form.addEventListener("input", () => limparErroForm(form));
+  }
+  aviso.textContent = mensagem;
+  aviso.style.display = "block";
+  if (campo) campo.focus();
+}
+
+function limparErroForm(form) {
+  const aviso = form.querySelector(".erro-form");
+  if (aviso) aviso.style.display = "none";
+}
+
 // Nunca guarda a senha em texto puro: guarda só o hash SHA-256.
 async function gerarHashSenha(senha) {
   if (window.crypto && window.crypto.subtle) {
@@ -988,6 +1040,21 @@ function iniciarAuth() {
   const formLogin = document.getElementById("form-login");
 
   if (formCadastro) {
+    // Dica de como criar a senha (só na tela de cadastro)
+    const senhaCampoCadastro = formCadastro.querySelector('input[type="password"]');
+    if (senhaCampoCadastro) {
+      const dicaSenha = document.createElement("p");
+      dicaSenha.className = "dica-senha";
+      dicaSenha.style.cssText = "color:#777; font-size:11px; line-height:1.5; margin:4px 0 0; text-align:left; white-space:pre-line;";
+      dicaSenha.textContent =
+        "A senha deve ter:\n" +
+        `• pelo menos ${SENHA_TAMANHO_MINIMO} caracteres\n` +
+        "• pelo menos 1 letra maiúscula\n" +
+        "• letras minúsculas \n" +
+        "• pelo menos 1 símbolo (ex: @ # $ !)";
+      senhaCampoCadastro.insertAdjacentElement("afterend", dicaSenha);
+    }
+
     formCadastro.addEventListener("submit", async function (e) {
       e.preventDefault();
 
@@ -1011,6 +1078,24 @@ function iniciarAuth() {
       //   console.warn(erro.message);
       //   return;
       // }
+
+      // Validações da tela de cadastro
+      const erros = [];
+      let campoErro = null;
+      if (!emailValido(email)) {
+        erros.push("Digite um e-mail válido. Exemplo: nome@gmail.com");
+        campoErro = emailInput;
+      }
+      const senhaFalta = senhaFaltando(senha);
+      if (senhaFalta.length > 0) {
+        erros.push(`A senha precisa ter pelo menos ${listaEmTexto(senhaFalta)}.`);
+        if (!campoErro) campoErro = senhaInput;
+      }
+      if (erros.length > 0) {
+        mostrarErroForm(formCadastro, erros.join("\n"), campoErro);
+        return;
+      }
+      limparErroForm(formCadastro);
 
       if (nome) {
         localStorage.setItem("nomeUsuarioCadastrado", nome);
@@ -1043,6 +1128,23 @@ function iniciarAuth() {
       //   return;
       // }
 
+      // Validações da tela de entrar
+      const erros = [];
+      let campoErro = null;
+      if (!emailValido(email)) {
+        erros.push("Digite um e-mail válido. Exemplo: nome@gmail.com");
+        campoErro = emailInput;
+      }
+      if (!senhaValida(senha)) {
+        erros.push(`A senha precisa ter pelo menos ${SENHA_TAMANHO_MINIMO} caracteres.`);
+        if (!campoErro) campoErro = senhaInput;
+      }
+      if (erros.length > 0) {
+        mostrarErroForm(formLogin, erros.join("\n"), campoErro);
+        return;
+      }
+      limparErroForm(formLogin);
+
       // E-mail cadastrado pelo dono para um colaborador: valida a senha
       const credenciais = lerJsonLocal(CHAVE_CREDENCIAIS, {});
       const cred = credenciais[email.toLowerCase()];
@@ -1051,7 +1153,7 @@ function iniciarAuth() {
         const colabs = lerJsonLocal(CHAVE_COLABORADORES, []);
         const colab = colabs.find(c => c.id === cred.colaboradorId);
         if (hashDigitado !== cred.senhaHash || !colab || colab.ativo === false) {
-          alert("E-mail ou senha inválidos.");
+          mostrarErroForm(formLogin, "E-mail ou senha inválidos.", senhaInput);
           return;
         }
         localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "COLABORADOR", colaboradorId: colab.id, nome: colab.nome }));
