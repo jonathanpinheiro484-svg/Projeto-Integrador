@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
 
 
+
 * {
     margin: 0;
     padding: 0;
@@ -8,91 +9,239 @@
     font-family: 'Montserrat', sans-serif;
 }
 
-/* --- CABEÇALHO --- */
+
+       body {
+    background: linear-gradient(135deg, #0b0c10, #1f1f2e);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* deixa o conteúdo começar do topo */
+    min-height: 100vh; /* permite rolagem se o conteúdo for maior */
+    overflow-x: hidden; /* evita barra horizontal */
+}
+
+
+
+    /* --- CABEÇALHO --- */
 .topo {
-   position: fixed;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 2px 25px; /* barra mais fina */
+    padding: 15px 30px;
     background-color: #ffffff;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     z-index: 1000;
 }
 
+.topo .logo a {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #333;
+    text-decoration: none;
+}
 
-body {
-    
-        background: linear-gradient(to right, #e2e2e2, #e37878);
-        display: flex;
-        align-items: auto;
-        justify-content: AUTO;
-        flex-direction: column;
-        height: 100vh;
-    }
+.sidebar h2 {
+    font-size: 1rem;
+    display: none;
+}
 
+.sidebar nav a {
+    margin: 0 10px;
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+}
 
-    .banner-texto {
+.sidebar nav a:hover {
+    color: #512da8;
+}
+
+.banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 80px 100px;
+    background-color: #0b0c10;
+    border-radius: 20px;
+    flex-wrap: wrap; /* evita corte em telas menores */
+    min-height: auto; /* remove altura fixa */
+}
+
+.banner-texto {
     flex: 1;
-    text-align: left;
-    padding: 20px;
 }
 
 .banner-texto h1 {
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 700;
-    color: #333;
-    margin-bottom: 15px;
+    color: #fff;
+    margin-bottom: 20px;
 }
 
 .banner-texto p {
-    font-size: 1.1rem;
-    color: #555;
-    margin-bottom: 25px;
-    line-height: 1.6;
+    font-size: 1.2rem;
+    color: #ccc;
+    margin-bottom: 30px;
 }
 
-.subtitulo {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #e37878;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-    letter-spacing: 1px;
-}
-
-.banner-acoes {
-    display: flex;
-    gap: 15px;
-}
-
-.botao {
-    display: inline-block;
-    padding: 12px 25px;
-    border-radius: 8px;
+.banner-texto .botao {
+    background: linear-gradient(90deg, #7b2ff7, #f107a3);
+    color: #fff;
+    padding: 14px 30px;
+    border-radius: 30px;
     text-decoration: none;
     font-weight: 600;
-    transition: background 0.3s;
+    transition: transform 0.3s;
 }
 
-.botao.primario {
-    background-color: #512da8;
+.banner-texto .botao:hover {
+    transform: scale(1.05);
+}
+
+.banner-img img {
+    border-radius: 20px;
+    box-shadow: 0 0 40px rgba(123, 47, 247, 0.6);
+}
+
+/* --- CONTAINER PRINCIPAL --- */
+.container {
+    background-color: #fff;
+    border-radius: 30px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    width: 768px;
+    max-width: 100%;
+    min-height: 480px;
+    margin-top: 60px;
+}
+
+
+.container p {
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.3px;
+    margin: 20px 0;
+}
+
+.container span {
+    font-size: 12px;
+}
+
+.container a {
+    color: #333;
+    font-size: 13px;
+    text-decoration: none;
+    margin: 15px 0 10px;
+}
+
+
+/* CONFIGURAÇÃO DOS BLOCOS TELA INICIAL */
+
+.blocos-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;   /* permite quebrar em telas menores */
+    gap: 25px;
+    padding: 40px;
+    align-items: stretch; /* todos os blocos ficam com mesma altura */
+}
+
+.bloco {
+    flex: 1 1 250px;   /* largura mínima de 250px */
+    background-color: #11121a;
+    border-radius: 16px;
+    box-shadow: 0 0 20px rgba(123, 47, 247, 0.2);
+    padding: 30px;
+    color: #fff;
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: visible; /* evita cortar texto */
+}
+
+.bloco:hover {
+    transform: translateY(-10px) scale(1.03);
+    box-shadow: 0 0 40px rgba(123, 47, 247, 0.5);
+}
+
+.bloco h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #7b2ff7;
+    margin-bottom: 15px;
+}
+
+.bloco p {
+    font-size: 1rem;
+    color: #ccc;
+    line-height: 1.7;   /* mais espaçamento entre linhas */
+    word-wrap: break-word; /* evita cortar palavras longas */
+    margin-bottom: 0;   /* remove cortes por margem negativa */
+}
+
+
+.recursos {
+    padding: 100px 60px 80px; /* espaçamento superior generoso */
+    background: linear-gradient(180deg, #0b0c10 0%, #1a1a2e 100%);
+    color: #fff;
+    text-align: center;
+}
+
+.recursos-intro {
+    max-width: 900px;
+    margin: 0 auto 60px;
+    text-align: center;
+}
+
+.recursos-intro h2 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    margin-bottom: 15px;
     color: #fff;
 }
 
-.botao.primario:hover {
-    background-color: #673ab7;
+.recursos-intro p {
+    font-size: 1.1rem;
+    color: #ccc;
+    line-height: 1.7;
+    margin-bottom: 40px;
 }
 
-.botao.secundario {
-    background-color: #fff;
-    color: #512da8;
-    border: 2px solid #512da8;
+.blocos-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 30px;
+    padding: 20px 0;
 }
 
-.botao.secundario:hover {
-    background-color: #f2f2f2;
+.bloco {
+    flex: 1 1 250px;
+    background-color: #11121a;
+    border-radius: 16px;
+    box-shadow: 0 0 25px rgba(123, 47, 247, 0.2);
+    padding: 35px 25px;
+    color: #fff;
+    transition: all 0.4s ease;
+    position: relative;
+    overflow: visible;
+    min-width: 250px;
+}
+
+.bloco h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #a855f7;
+    margin-bottom: 15px;
+}
+
+.bloco p {
+    font-size: 1rem;
+    color: #ccc;
+    line-height: 1.7;
 }
