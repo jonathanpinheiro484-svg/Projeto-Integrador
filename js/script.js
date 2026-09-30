@@ -135,8 +135,10 @@ function mostrarErroForm(form, mensagem, campo) {
     aviso.className = "erro-form";
     aviso.setAttribute("role", "alert");
     aviso.style.cssText = "color:#e74c3c; font-size:12px; margin:6px 0 0; text-align:center; white-space:pre-line;";
+    const linhaBotoes = form.querySelector(".form-botoes");
     const botao = form.querySelector("button");
-    if (botao && botao.parentNode === form) form.insertBefore(aviso, botao);
+    if (linhaBotoes && linhaBotoes.parentNode === form) form.insertBefore(aviso, linhaBotoes);
+    else if (botao && botao.parentNode === form) form.insertBefore(aviso, botao);
     else form.appendChild(aviso);
     form.addEventListener("input", () => limparErroForm(form));
   }
@@ -159,6 +161,177 @@ async function gerarHashSenha(senha) {
   }
   // Fallback para navegadores/contextos sem crypto.subtle
   return btoa(unescape(encodeURIComponent(senha)));
+}
+
+
+// =====================================================
+// VALIDAÇÕES — CADASTRO DE COLABORADOR E NOVO AGENDAMENTO
+// Cada função devolve { erros: [mensagens], campoErro: primeiro campo com erro }.
+// As mensagens aparecem dentro do próprio formulário (mostrarErroForm).
+// =====================================================
+const COLAB_NOME_MIN = 5, COLAB_NOME_MAX = 60;
+const COLAB_CARGO_MIN = 3, COLAB_CARGO_MAX = 40;
+const COLAB_EMAIL_MAX = 80;
+const COLAB_SENHA_MAX = 20;
+const AGEND_CLIENTE_MIN = 3, AGEND_CLIENTE_MAX = 60;
+const AGEND_SERVICO_MIN = 3, AGEND_SERVICO_MAX = 60;
+const AGEND_HORA_MIN = 7 * 60;          // 07:00
+const AGEND_HORA_MAX = 14 * 60 + 45;    // 14:45
+const AGEND_DURACAO_MIN = 15, AGEND_DURACAO_MAX = 240;
+
+// Nome completo sem abreviar: cada palavra começa com maiúscula e tem 2+ letras
+// (aceita "da", "de", "do", "das", "dos", "e" em minúsculo no meio).
+const NOME_COMPLETO_REGEX = /^\p{Lu}\p{Ll}+(\s(da|de|do|das|dos|e|\p{Lu}\p{Ll}+))*\s\p{Lu}\p{Ll}+$/u;
+// Nome do cliente: letras, espaços, apóstrofo e hífen
+const NOME_CLIENTE_REGEX = /^\p{L}[\p{L}' -]+$/u;
+
+function criarColetorErros() {
+  const erros = [];
+  let campoErro = null;
+  return {
+    erros,
+    falhar(mensagem, idCampo) {
+      erros.push(mensagem);
+      if (!campoErro && idCampo) campoErro = document.getElementById(idCampo);
+    },
+    resultado() { return { erros, campoErro }; }
+  };
+}
+
+function dataHojeISO() {
+  const hoje = new Date();
+  return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+}
+
+function validarNovoColaborador() {
+  const coletor = criarColetorErros();
+  const campoNome = document.getElementById("colab-nome");
+  const campoCargo = document.getElementById("colab-cargo");
+  const campoEmail = document.getElementById("colab-email");
+  const campoSenha = document.getElementById("colab-senha");
+  const campoCor = document.getElementById("colab-cor");
+
+  // Tira espaços do começo/fim antes de validar e de salvar
+  campoNome.value = campoNome.value.trim();
+  campoCargo.value = campoCargo.value.trim();
+  campoEmail.value = campoEmail.value.trim();
+  const nome = campoNome.value;
+  const cargo = campoCargo.value;
+  const email = campoEmail.value;
+  const senha = campoSenha.value;
+
+  // Nome: obrigatório, completo (sem abreviar) e com maiúsculas
+  if (!nome) {
+    coletor.falhar("Preencha o nome completo.", "colab-nome");
+  } else if (nome.length < COLAB_NOME_MIN || nome.length > COLAB_NOME_MAX) {
+    coletor.falhar(`O nome deve ter de ${COLAB_NOME_MIN} a ${COLAB_NOME_MAX} caracteres.`, "colab-nome");
+  } else if (!NOME_COMPLETO_REGEX.test(nome)) {
+    coletor.falhar("Digite o nome completo, sem abreviar: nome e sobrenome, cada um começando com letra maiúscula. Exemplo: Fernanda Lima", "colab-nome");
+  }
+
+  // Cargo: obrigatório
+  if (!cargo) {
+    coletor.falhar("Preencha o cargo / especialidade.", "colab-cargo");
+  } else if (cargo.length < COLAB_CARGO_MIN || cargo.length > COLAB_CARGO_MAX) {
+    coletor.falhar(`O cargo deve ter de ${COLAB_CARGO_MIN} a ${COLAB_CARGO_MAX} caracteres.`, "colab-cargo");
+  }
+
+  // E-mail: obrigatório, válido e com a primeira letra maiúscula
+  if (!email) {
+    coletor.falhar("Preencha o e-mail.", "colab-email");
+  } else if (!emailValido(email) || email.length > COLAB_EMAIL_MAX) {
+    coletor.falhar("Digite um e-mail válido. Exemplo: Fernanda@agendaexpress.com", "colab-email");
+  } else if (!/^\p{Lu}/u.test(email)) {
+    coletor.falhar("A primeira letra do e-mail deve ser maiúscula. Exemplo: Fernanda@agendaexpress.com", "colab-email");
+  }
+
+  // Senha: obrigatória, até 20 caracteres e com as mesmas regras do cadastro
+  if (!senha) {
+    coletor.falhar("Preencha a senha de acesso.", "colab-senha");
+  } else if (senha.length > COLAB_SENHA_MAX) {
+    coletor.falhar(`A senha pode ter no máximo ${COLAB_SENHA_MAX} caracteres.`, "colab-senha");
+  } else {
+    const faltando = senhaFaltando(senha);
+    if (faltando.length > 0) {
+      coletor.falhar(`A senha precisa ter pelo menos ${listaEmTexto(faltando)}.`, "colab-senha");
+    }
+  }
+
+  // Cor: obrigatória
+  if (!campoCor.value) coletor.falhar("Escolha a cor do cabeçalho.", "colab-cor");
+
+  return coletor.resultado();
+}
+
+function validarNovoAgendamento() {
+  const coletor = criarColetorErros();
+  const campoCliente = document.getElementById("agend-cliente");
+  const campoServico = document.getElementById("agend-servico");
+  const campoProfissional = document.getElementById("agend-profissional"); // só existe no painel do dono
+  const campoData = document.getElementById("agend-data");
+  const campoHora = document.getElementById("agend-hora-inicio");
+  const campoDuracao = document.getElementById("agend-duracao");
+  const campoCor = document.getElementById("agend-cor");
+
+  campoCliente.value = campoCliente.value.trim();
+  campoServico.value = campoServico.value.trim();
+  const cliente = campoCliente.value;
+  const servico = campoServico.value;
+
+  // Cliente: obrigatório, só letras, espaços, apóstrofo e hífen
+  if (!cliente) {
+    coletor.falhar("Preencha o nome do cliente.", "agend-cliente");
+  } else if (cliente.length < AGEND_CLIENTE_MIN || cliente.length > AGEND_CLIENTE_MAX) {
+    coletor.falhar(`O nome do cliente deve ter de ${AGEND_CLIENTE_MIN} a ${AGEND_CLIENTE_MAX} caracteres.`, "agend-cliente");
+  } else if (!NOME_CLIENTE_REGEX.test(cliente)) {
+    coletor.falhar("O nome do cliente deve ter apenas letras, espaços, apóstrofo ou hífen.", "agend-cliente");
+  }
+
+  // Serviço: obrigatório
+  if (!servico) {
+    coletor.falhar("Preencha o serviço.", "agend-servico");
+  } else if (servico.length < AGEND_SERVICO_MIN || servico.length > AGEND_SERVICO_MAX) {
+    coletor.falhar(`O serviço deve ter de ${AGEND_SERVICO_MIN} a ${AGEND_SERVICO_MAX} caracteres.`, "agend-servico");
+  }
+
+  // Profissional: obrigatório (painel do dono)
+  if (campoProfissional && !campoProfissional.value) {
+    coletor.falhar("Escolha o profissional responsável.", "agend-profissional");
+  }
+
+  // Data: obrigatória e de hoje em diante
+  if (!campoData.value) {
+    coletor.falhar("Escolha a data do agendamento.", "agend-data");
+  } else if (campoData.value < dataHojeISO()) {
+    coletor.falhar("Não é possível agendar em uma data que já passou. Escolha uma data de hoje em diante.", "agend-data");
+  }
+
+  // Hora de início: obrigatória, entre 07:00 e 14:45, de 15 em 15 minutos
+  if (!campoHora.value) {
+    coletor.falhar("Informe a hora de início.", "agend-hora-inicio");
+  } else {
+    const [h, m] = campoHora.value.split(":").map(Number);
+    const minutos = h * 60 + m;
+    if (minutos < AGEND_HORA_MIN || minutos > AGEND_HORA_MAX) {
+      coletor.falhar("A hora de início deve ser entre 07:00 e 14:45 (a agenda funciona das 07h às 15h).", "agend-hora-inicio");
+    } else if (m % 15 !== 0) {
+      coletor.falhar("A hora de início deve ser de 15 em 15 minutos (ex: 08:00, 08:15, 08:30).", "agend-hora-inicio");
+    }
+  }
+
+  // Duração: obrigatória, número inteiro de 15 a 240, de 15 em 15
+  const duracaoTexto = campoDuracao.value.trim();
+  const duracao = Number(duracaoTexto);
+  if (!duracaoTexto) {
+    coletor.falhar("Informe a duração em minutos.", "agend-duracao");
+  } else if (!Number.isInteger(duracao) || duracao < AGEND_DURACAO_MIN || duracao > AGEND_DURACAO_MAX || duracao % 15 !== 0) {
+    coletor.falhar(`A duração deve ser de ${AGEND_DURACAO_MIN} a ${AGEND_DURACAO_MAX} minutos, de 15 em 15 (ex: 15, 30, 45, 60).`, "agend-duracao");
+  }
+
+  // Cor: obrigatória
+  if (!campoCor.value) coletor.falhar("Escolha a cor do card.", "agend-cor");
+
+  return coletor.resultado();
 }
 
 
@@ -452,15 +625,22 @@ function iniciarDashboard() {
       return meuPerfil ? [meuPerfil] : [];
     }
 
+    // Colaborador inativo some da agenda (os agendamentos dele continuam salvos)
+    const colaboradoresAtivos = colaboradores.filter(c => c.ativo !== false);
+
     const filtro = document.getElementById("filtro-colaborador");
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
 
     if (colaboradorSelecionado !== "todos") {
-      return colaboradores.filter(c => String(c.id) === colaboradorSelecionado);
+      return colaboradoresAtivos.filter(c => String(c.id) === colaboradorSelecionado);
     }
 
+    // Se a página atual ficou vazia (ex: desativou alguém), volta pra última página
+    const ultimaPagina = Math.max(Math.ceil(colaboradoresAtivos.length / colunasVisiveis) - 1, 0);
+    if (paginaAtual > ultimaPagina) paginaAtual = ultimaPagina;
+
     const inicio = paginaAtual * colunasVisiveis;
-    return colaboradores.slice(inicio, inicio + colunasVisiveis);
+    return colaboradoresAtivos.slice(inicio, inicio + colunasVisiveis);
   }
   function obterTotalPaginas() {
     if (usuarioLogado.perfil === "COLABORADOR") return 1;
@@ -469,7 +649,7 @@ function iniciarDashboard() {
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
     if (colaboradorSelecionado !== "todos") return 1;
 
-    return Math.ceil(colaboradores.length / colunasVisiveis) || 1;
+    return Math.ceil(colaboradores.filter(c => c.ativo !== false).length / colunasVisiveis) || 1;
   }
   function atualizarInfoPaginacao() {
     document.getElementById("pag-info").textContent = `${paginaAtual + 1} de ${obterTotalPaginas()}`;
@@ -560,10 +740,10 @@ function iniciarDashboard() {
     agenda.style.setProperty("--n-horas", totalHoras);
     atualizarInfoPaginacao();
 
-    // Sem colaboradores: mostra um aviso em vez de uma agenda vazia
+    // Sem colaboradores ativos: mostra um aviso em vez de uma agenda vazia
     if (colaboradoresPagina.length === 0) {
       agenda.innerHTML = `<p style="padding: 24px; text-align: center; color: #888;">
-        Nenhum colaborador cadastrado. Cadastre o primeiro em Administração.
+        Nenhum colaborador ativo. Cadastre ou ative um colaborador em Administração.
       </p>`;
       return;
     }
@@ -724,12 +904,19 @@ function iniciarDashboard() {
     modalAgendamento.hidden = false;
   });
 
-  function fecharModalAgendamento() { modalAgendamento.hidden = true; }
+  function fecharModalAgendamento() { modalAgendamento.hidden = true; limparErroForm(formAgendamento); }
   btnFecharModal.addEventListener("click", fecharModalAgendamento);
   btnCancelarAgendamento.addEventListener("click", fecharModalAgendamento);
 
   formAgendamento.addEventListener("submit", async function(e) {
     e.preventDefault();
+
+    const validacaoAgendamento = validarNovoAgendamento();
+    if (validacaoAgendamento.erros.length > 0) {
+      mostrarErroForm(formAgendamento, validacaoAgendamento.erros.join("\n"), validacaoAgendamento.campoErro);
+      return;
+    }
+    limparErroForm(formAgendamento);
 
     const dataEscolhida = document.getElementById("agend-data").value;
     if (dataEscolhida < obterDataHojeISO()) {
@@ -816,6 +1003,13 @@ function iniciarDashboard() {
   const formColab = document.getElementById("form-colaborador");
   formColab.addEventListener("submit", async function (e) {
     e.preventDefault();
+
+    const validacaoColab = validarNovoColaborador();
+    if (validacaoColab.erros.length > 0) {
+      mostrarErroForm(formColab, validacaoColab.erros.join("\n"), validacaoColab.campoErro);
+      return;
+    }
+    limparErroForm(formColab);
 
     const limiteColaboradores = { FREE: 15, BASICO: 10, PREMIUM: Infinity };
     const limite = limiteColaboradores[planoAtual];
@@ -985,6 +1179,20 @@ function iniciarDashboard() {
   window.irParaTelaPlanos = irParaTelaPlanos;
   window.escolherPlano = escolherPlano;
 
+  // --- BOTÕES DE PLANOS (antes eram onclick="..." dentro do index.html) ---
+  const btnUpgradeFinanceiro = document.getElementById("btn-upgrade-financeiro");
+  if (btnUpgradeFinanceiro) {
+    btnUpgradeFinanceiro.addEventListener("click", () => irParaTelaPlanos("Financeiro"));
+  }
+  [
+    ["btn-plano-free", "FREE"],
+    ["btn-plano-basico", "BASICO"],
+    ["btn-plano-premium", "PREMIUM"]
+  ].forEach(([idBotao, plano]) => {
+    const botao = document.getElementById(idBotao);
+    if (botao) botao.addEventListener("click", () => escolherPlano(plano));
+  });
+
   // Se o dono e o colaborador estiverem com o site aberto em abas diferentes,
   // a agenda atualiza sozinha quando o outro adiciona/remove algo.
   window.addEventListener("storage", function (e) {
@@ -1003,6 +1211,339 @@ function iniciarDashboard() {
   atualizarPlano();
   aplicarPermissoes();
   carregarDadosIniciais();
+}
+
+
+// =====================================================
+// 2.5 TELA DO COLABORADOR (colaborador.html)
+// Só roda se a página tiver o elemento #layout-colaborador.
+// Mostra só a Agenda + Suporte; o colaborador escolhe, pelos
+// botões com os nomes, de qual colaborador quer ver a agenda.
+// =====================================================
+function iniciarColaborador() {
+  const layout = document.getElementById("layout-colaborador");
+  if (!layout) return; // esta página não é a tela do colaborador
+
+  // Só colaborador logado entra aqui
+  const sessao = lerJsonLocal(CHAVE_SESSAO, null);
+  if (!sessao || sessao.perfil !== "COLABORADOR") {
+    window.location.href = "login.html";
+    return;
+  }
+  const meuId = sessao.colaboradorId;
+
+  // --- TEMA ---
+  const btnTema = document.getElementById("btn-toggle-tema");
+  btnTema.addEventListener("click", function () {
+    const htmlEl = document.documentElement;
+    if (htmlEl.getAttribute("data-theme") === "dark") {
+      htmlEl.removeAttribute("data-theme");
+      btnTema.textContent = "🌙 Modo Noturno";
+    } else {
+      htmlEl.setAttribute("data-theme", "dark");
+      btnTema.textContent = "☀️ Tema Claro";
+    }
+  });
+
+  // --- ESTADO ---
+  let colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
+  let agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
+  let colaboradorVisto = meuId; // começa na própria agenda
+  const horaInicio = 7;
+  const horaFim = 15;
+  const totalHoras = horaFim - horaInicio;
+
+  const agenda = document.getElementById("agenda");
+  const seletorData = document.getElementById("seletor-data");
+  const equipeBotoes = document.getElementById("equipe-botoes");
+  const avisoLeitura = document.getElementById("aviso-leitura");
+  const btnNovo = document.getElementById("btn-abrir-agendamento");
+
+  document.getElementById("texto-nome-colab").textContent = sessao.nome || "";
+
+  function paraMinutos(hora) {
+    const [h, m] = hora.split(":").map(Number);
+    return h * 60 + m;
+  }
+
+  function obterDataHojeISO() {
+    const hoje = new Date();
+    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+  }
+
+  // --- NAVEGAÇÃO (Agenda / Suporte / Sair) ---
+  document.querySelectorAll(".menu-item[data-menu]").forEach(item => {
+    item.addEventListener("click", function () {
+      const aba = this.dataset.menu;
+      document.querySelectorAll(".menu-item[data-menu]").forEach(m => m.classList.toggle("ativo", m === this));
+      document.getElementById("secao-agenda").style.display = aba === "Agenda" ? "block" : "none";
+      document.getElementById("secao-suporte").style.display = aba === "Suporte" ? "block" : "none";
+    });
+  });
+
+  document.getElementById("btn-sair").addEventListener("click", function () {
+    localStorage.removeItem(CHAVE_SESSAO);
+    window.location.href = "login.html";
+  });
+
+  // --- BLOCO COM OS NOMES DOS COLABORADORES ---
+  function renderizarEquipe() {
+    equipeBotoes.innerHTML = "";
+    const ativos = colaboradores.filter(c => c.ativo !== false);
+
+    ativos.forEach(c => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-colab" + (c.id === colaboradorVisto ? " ativo" : "");
+      const bolinha = document.createElement("span");
+      bolinha.className = "bolinha";
+      bolinha.style.background = c.cor;
+      const nome = document.createElement("span");
+      nome.textContent = c.id === meuId ? `${c.nome} (você)` : c.nome;
+      btn.appendChild(bolinha);
+      btn.appendChild(nome);
+      btn.addEventListener("click", function () {
+        colaboradorVisto = c.id;
+        renderizarEquipe();
+        renderizarAgenda();
+      });
+      equipeBotoes.appendChild(btn);
+    });
+  }
+
+  // --- LAYOUT DE AGENDAMENTOS SOBREPOSTOS ---
+  function calcularLayoutColuna(itens) {
+    const ordenados = itens.slice().sort((a, b) => paraMinutos(a.horaInicio) - paraMinutos(b.horaInicio));
+    const layout = [];
+    let grupo = [];
+    let fimGrupo = -1;
+    ordenados.forEach(ag => {
+      const ini = paraMinutos(ag.horaInicio);
+      if (grupo.length > 0 && ini >= fimGrupo) {
+        processarGrupo(grupo, layout);
+        grupo = [];
+        fimGrupo = -1;
+      }
+      grupo.push(ag);
+      fimGrupo = Math.max(fimGrupo, ini + ag.duracaoMin);
+    });
+    if (grupo.length > 0) processarGrupo(grupo, layout);
+    return layout;
+  }
+
+  function processarGrupo(grupo, saida) {
+    const fins = [];
+    const inicioSaida = saida.length;
+    grupo.forEach(ag => {
+      const ini = paraMinutos(ag.horaInicio);
+      const fim = ini + ag.duracaoMin;
+      let col = fins.findIndex(f => f <= ini);
+      if (col === -1) { col = fins.length; fins.push(fim); }
+      else { fins[col] = fim; }
+      saida.push({ ag, coluna: col });
+    });
+    for (let i = inicioSaida; i < saida.length; i++) saida[i].totalColunas = fins.length;
+  }
+
+  // --- AGENDA DO COLABORADOR ESCOLHIDO ---
+  async function removerAgendamento(id, event) {
+    if (event) event.stopPropagation();
+    // Só pode apagar da própria agenda
+    const alvo = agendamentos.find(a => a.id === id);
+    if (!alvo || alvo.colaboradorId !== meuId) return;
+    agendamentos = agendamentos.filter(a => a.id !== id);
+    salvarAgendamentosLocal(agendamentos);
+    renderizarAgenda();
+  }
+
+  function renderizarAgenda() {
+    agenda.innerHTML = "";
+    // Se o colaborador que estava sendo visto foi desativado, volta pra própria agenda
+    const visto = colaboradores.find(c => c.id === colaboradorVisto);
+    if (!visto || visto.ativo === false) {
+      colaboradorVisto = meuId;
+      renderizarEquipe();
+    }
+    const colab = colaboradores.find(c => c.id === colaboradorVisto);
+    const editavel = colaboradorVisto === meuId;
+
+    avisoLeitura.hidden = editavel;
+    btnNovo.style.display = editavel ? "" : "none";
+
+    if (!colab) {
+      agenda.innerHTML = `<p style="padding:24px; text-align:center; color:#888;">Colaborador não encontrado.</p>`;
+      return;
+    }
+
+    document.getElementById("agenda-titulo").textContent = editavel ? "Minha agenda" : `Agenda de ${colab.nome}`;
+    agenda.style.setProperty("--n-horas", totalHoras);
+
+    const cab = document.createElement("div");
+    cab.className = "agenda-cabecalho";
+    cab.innerHTML = `<div class="cab" style="background:transparent;"></div>`;
+    const cabColab = document.createElement("div");
+    cabColab.className = "cab";
+    cabColab.style.background = colab.cor;
+    cabColab.innerHTML = `<div class="cab-avatar"></div><div class="cab-nome"></div><div class="cab-cargo"></div>`;
+    cabColab.querySelector(".cab-nome").textContent = colab.nome;
+    cabColab.querySelector(".cab-cargo").textContent = colab.cargo;
+    cab.appendChild(cabColab);
+    agenda.appendChild(cab);
+
+    const corpo = document.createElement("div");
+    corpo.className = "agenda-corpo";
+
+    const colHorarios = document.createElement("div");
+    colHorarios.className = "col-horarios";
+    for (let h = horaInicio; h < horaFim; h++) {
+      colHorarios.insertAdjacentHTML("beforeend", `<div class="hora-label">${String(h).padStart(2, "0")}</div>`);
+    }
+    corpo.appendChild(colHorarios);
+
+    const col = document.createElement("div");
+    col.className = "col-colab";
+    for (let h = horaInicio; h < horaFim; h++) col.insertAdjacentHTML("beforeend", `<div class="linha-hora"></div>`);
+
+    const doDia = agendamentos.filter(a => a.colaboradorId === colab.id && a.data === seletorData.value);
+
+    calcularLayoutColuna(doDia).forEach(item => {
+      const ag = item.ag;
+      const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
+      const topPx = (((hIni - horaInicio) * 60 + mIni) / 60) * 48;
+      const heightPx = Math.max((ag.duracaoMin / 60) * 48, 38);
+      const largura = 100 / item.totalColunas;
+
+      const bloco = document.createElement("div");
+      bloco.className = "agendamento";
+      bloco.style.cssText = `top:${topPx}px; height:${heightPx}px; left:calc(${item.coluna * largura}% + 2px); width:calc(${largura}% - 4px); background:${ag.cor};`;
+      bloco.title = `Cliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nHorário: ${ag.horaInicio}`;
+
+      if (editavel) {
+        const btnX = document.createElement("button");
+        btnX.type = "button";
+        btnX.className = "remover";
+        btnX.textContent = "✕";
+        btnX.addEventListener("click", e => removerAgendamento(ag.id, e));
+        bloco.appendChild(btnX);
+      }
+      const strong = document.createElement("strong");
+      strong.textContent = ag.cliente;
+      bloco.appendChild(strong);
+      if (ag.servico) {
+        const span = document.createElement("span");
+        span.textContent = ag.servico;
+        bloco.appendChild(span);
+      }
+      bloco.addEventListener("click", () => {
+        alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}`);
+      });
+      col.appendChild(bloco);
+    });
+
+    corpo.appendChild(col);
+    agenda.appendChild(corpo);
+  }
+
+  seletorData.addEventListener("change", renderizarAgenda);
+
+  // --- MODAL DE NOVO AGENDAMENTO (sempre na própria agenda) ---
+  const modal = document.getElementById("modal-agendamento");
+  const formAgend = document.getElementById("form-novo-agendamento");
+
+  btnNovo.addEventListener("click", () => {
+    const hojeISO = obterDataHojeISO();
+    const campoData = document.getElementById("agend-data");
+    campoData.min = hojeISO;
+    campoData.value = seletorData.value >= hojeISO ? seletorData.value : hojeISO;
+    modal.hidden = false;
+  });
+  const fecharModal = () => { modal.hidden = true; limparErroForm(formAgend); };
+  document.getElementById("btn-fechar-modal").addEventListener("click", fecharModal);
+  document.getElementById("btn-cancelar-agendamento").addEventListener("click", fecharModal);
+
+  formAgend.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const validacaoAgend = validarNovoAgendamento();
+    if (validacaoAgend.erros.length > 0) {
+      mostrarErroForm(formAgend, validacaoAgend.erros.join("\n"), validacaoAgend.campoErro);
+      return;
+    }
+    limparErroForm(formAgend);
+    const data = document.getElementById("agend-data").value;
+    if (data < obterDataHojeISO()) {
+      alert("Não é possível agendar em uma data que já passou. Escolha uma data de hoje em diante.");
+      return;
+    }
+    const novo = {
+      id: Date.now(),
+      cliente: document.getElementById("agend-cliente").value,
+      servico: document.getElementById("agend-servico").value,
+      colaboradorId: meuId,
+      data,
+      horaInicio: document.getElementById("agend-hora-inicio").value,
+      duracaoMin: parseInt(document.getElementById("agend-duracao").value),
+      cor: document.getElementById("agend-cor").value
+    };
+    agendamentos.push(novo);
+    salvarAgendamentosLocal(agendamentos);
+    seletorData.value = data;
+    colaboradorVisto = meuId;
+    renderizarEquipe();
+    renderizarAgenda();
+    fecharModal();
+    formAgend.reset();
+  });
+
+  // --- SUPORTE ---
+  const formSuporte = document.getElementById("form-suporte");
+  const suporteSucesso = document.getElementById("suporte-sucesso");
+  const suporteErro = document.getElementById("suporte-erro");
+  const btnEnviar = document.getElementById("btn-enviar-suporte");
+
+  formSuporte.addEventListener("submit", function (e) {
+    e.preventDefault();
+    suporteErro.style.display = "none";
+    btnEnviar.disabled = true;
+    const textoOriginal = btnEnviar.textContent;
+    btnEnviar.textContent = "Enviando...";
+
+    fetch("https://formsubmit.co/ajax/jonathanpinheiro484@gmail.com", {
+      method: "POST",
+      headers: { "Accept": "application/json" },
+      body: new FormData(formSuporte)
+    })
+      .then(r => { if (!r.ok) throw new Error("Falha no envio"); return r.json(); })
+      .then(() => {
+        formSuporte.reset();
+        formSuporte.style.display = "none";
+        suporteSucesso.style.display = "block";
+      })
+      .catch(() => { suporteErro.style.display = "block"; })
+      .finally(() => {
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = textoOriginal;
+      });
+  });
+
+  document.getElementById("btn-suporte-nova-mensagem").addEventListener("click", () => {
+    suporteSucesso.style.display = "none";
+    formSuporte.style.display = "block";
+  });
+
+  // Atualiza sozinho quando o dono/outro colaborador mexe nos dados em outra aba
+  window.addEventListener("storage", function (e) {
+    if (e.key !== CHAVE_AGENDAMENTOS && e.key !== CHAVE_COLABORADORES) return;
+    agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
+    colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
+    renderizarEquipe();
+    renderizarAgenda();
+  });
+
+  // --- INICIALIZAÇÃO ---
+  seletorData.value = obterDataHojeISO();
+  renderizarEquipe();
+  renderizarAgenda();
 }
 
 
@@ -1157,7 +1698,7 @@ function iniciarAuth() {
           return;
         }
         localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "COLABORADOR", colaboradorId: colab.id, nome: colab.nome }));
-        window.location.href = "agenda.html";
+        window.location.href = "colaborador.html";
         return;
       }
 
@@ -1217,6 +1758,7 @@ function iniciarLanding() {
 // =====================================================
 document.addEventListener("DOMContentLoaded", function () {
   iniciarDashboard();
+  iniciarColaborador();
   iniciarAuth();
   iniciarLanding();
 });
