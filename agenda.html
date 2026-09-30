@@ -428,18 +428,24 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 
               <div class="campo">
                 <label for="colab-cargo">Cargo / Especialidade <span class="obrigatorio">*</span></label>
-                <input type="text" id="colab-cargo" placeholder="Ex: Esteticista" required
-                       minlength="3" maxlength="40"
-                       title="Informe o cargo ou a especialidade (entre 3 e 40 caracteres).">
+                <select id="colab-cargo" required title="Escolha o serviço que o colaborador realiza.">
+                  <option value="">Selecione o serviço...</option>
+                  <option value="Manicure">Manicure</option>
+                  <option value="Pedicure">Pedicure</option>
+                  <option value="Cabeleireiro">Cabeleireiro</option>
+                  <option value="Barbeiro">Barbeiro</option>
+                  <option value="Spa">Spa</option>
+                  <option value="Esteticista">Esteticista</option>
+                  <option value="Massagista">Massagista</option>
+                  <option value="Maquiador">Maquiador</option>
+                  <option value="Depilador">Depilador</option>
+                  <option value="Designer de Sobrancelhas">Designer de Sobrancelhas</option>
+                </select>
               </div>
 
               <div class="campo">
                 <label for="colab-email">E-mail (Acesso ao Sistema) <span class="obrigatorio">*</span></label>
-                <input type="email" id="colab-email" placeholder="Fernanda@agendaexpress.com" required
-                       maxlength="80"
-                       pattern="[A-Z][^\s@]*@[^\s@]+\.[^\s@]{2,}"
-                       title="Digite um e-mail válido começando com letra maiúscula (ex: Fernanda@agendaexpress.com).">
-                <small class="dica-campo">A primeira letra do e-mail deve ser maiúscula.</small>
+                <input type="email" id="colab-email" placeholder="Fernanda@agendaexpress.com" required maxlength="80">
               </div>
 
               <div class="campo">
@@ -449,6 +455,11 @@ h2 { font-size: 17px; margin: 0 0 12px; }
                        pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,20}"
                        title="A senha deve ter de 8 a 20 caracteres, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !).">
                 <small class="dica-campo">De 8 a 20 caracteres, com 1 maiúscula, 1 minúscula e 1 símbolo (@ # $ !).</small>
+              </div>
+
+              <div class="campo">
+                <label for="colab-senha-confirmar">Confirmar Senha <span class="obrigatorio">*</span></label>
+                <input type="text" id="colab-senha-confirmar" placeholder="Digite a senha novamente" required maxlength="20">
               </div>
 
               <div class="campo">
@@ -601,7 +612,21 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 
       <div class="campo">
         <label>Serviço</label>
-        <input type="text" id="agend-servico" placeholder="Ex: Corte de cabelo" autocomplete="off">
+        <select id="agend-servico" required>
+          <option value="">Selecione o serviço...</option>
+          <option value="Manicure">Manicure</option>
+          <option value="Pedicure">Pedicure</option>
+          <option value="Corte de cabelo">Corte de cabelo</option>
+          <option value="Escova">Escova</option>
+          <option value="Coloração">Coloração</option>
+          <option value="Barba">Barba</option>
+          <option value="Spa">Spa</option>
+          <option value="Massagem">Massagem</option>
+          <option value="Limpeza de pele">Limpeza de pele</option>
+          <option value="Maquiagem">Maquiagem</option>
+          <option value="Depilação">Depilação</option>
+          <option value="Design de sobrancelhas">Design de sobrancelhas</option>
+        </select>
       </div>
 
       <div class="campo">

@@ -209,6 +209,7 @@ function validarNovoColaborador() {
   const campoCargo = document.getElementById("colab-cargo");
   const campoEmail = document.getElementById("colab-email");
   const campoSenha = document.getElementById("colab-senha");
+  const campoSenhaConfirmar = document.getElementById("colab-senha-confirmar");
   const campoCor = document.getElementById("colab-cor");
 
   // Tira espaços do começo/fim antes de validar e de salvar
@@ -236,13 +237,9 @@ function validarNovoColaborador() {
     coletor.falhar(`O cargo deve ter de ${COLAB_CARGO_MIN} a ${COLAB_CARGO_MAX} caracteres.`, "colab-cargo");
   }
 
-  // E-mail: obrigatório, válido e com a primeira letra maiúscula
+  // E-mail: só precisa estar preenchido
   if (!email) {
     coletor.falhar("Preencha o e-mail.", "colab-email");
-  } else if (!emailValido(email) || email.length > COLAB_EMAIL_MAX) {
-    coletor.falhar("Digite um e-mail válido. Exemplo: Fernanda@agendaexpress.com", "colab-email");
-  } else if (!/^\p{Lu}/u.test(email)) {
-    coletor.falhar("A primeira letra do e-mail deve ser maiúscula. Exemplo: Fernanda@agendaexpress.com", "colab-email");
   }
 
   // Senha: obrigatória, até 20 caracteres e com as mesmas regras do cadastro
@@ -255,6 +252,13 @@ function validarNovoColaborador() {
     if (faltando.length > 0) {
       coletor.falhar(`A senha precisa ter pelo menos ${listaEmTexto(faltando)}.`, "colab-senha");
     }
+  }
+
+  // Confirmar senha: precisa ser igual à senha
+  if (!campoSenhaConfirmar.value) {
+    coletor.falhar("Confirme a senha.", "colab-senha-confirmar");
+  } else if (campoSenhaConfirmar.value !== senha) {
+    coletor.falhar("As senhas não coincidem. Digite a mesma senha nos dois campos.", "colab-senha-confirmar");
   }
 
   // Cor: obrigatória
@@ -1217,8 +1221,10 @@ function iniciarDashboard() {
 // =====================================================
 // 2.5 TELA DO COLABORADOR (colaborador.html)
 // Só roda se a página tiver o elemento #layout-colaborador.
-// Mostra só a Agenda + Suporte; o colaborador escolhe, pelos
-// botões com os nomes, de qual colaborador quer ver a agenda.
+// Mostra só a Agenda + Suporte. O colaborador faz a PRÓPRIA agenda
+// ("Minha agenda": criar e apagar agendamentos) e consulta a agenda
+// dos OUTROS colaboradores (somente leitura), usando o filtro
+// "Procurar colaborador" ou os botões com os nomes.
 // =====================================================
 function iniciarColaborador() {
   const layout = document.getElementById("layout-colaborador");
@@ -1248,7 +1254,6 @@ function iniciarColaborador() {
   // --- ESTADO ---
   let colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
   let agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
-  let colaboradorVisto = meuId; // começa na própria agenda
   const horaInicio = 7;
   const horaFim = 15;
   const totalHoras = horaFim - horaInicio;
@@ -1258,8 +1263,7 @@ function iniciarColaborador() {
   const equipeBotoes = document.getElementById("equipe-botoes");
   const avisoLeitura = document.getElementById("aviso-leitura");
   const btnNovo = document.getElementById("btn-abrir-agendamento");
-
-  document.getElementById("texto-nome-colab").textContent = sessao.nome || "";
+  const filtro = document.getElementById("filtro-colaborador");
 
   function paraMinutos(hora) {
     const [h, m] = hora.split(":").map(Number);
@@ -1269,6 +1273,23 @@ function iniciarColaborador() {
   function obterDataHojeISO() {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+  }
+
+  // Colaboradores que o usuário pode consultar: ativos e diferentes dele mesmo
+  function obterOutrosColaboradores() {
+    return colaboradores.filter(c => c.ativo !== false && c.id !== meuId);
+  }
+
+  // O próprio colaborador (dono da agenda que ele pode editar)
+  function obterMeuColaborador() {
+    return colaboradores.find(c => c.id === meuId && c.ativo !== false);
+  }
+
+  // Primeiro nome do colaborador logado (usado no lugar de "Minha agenda")
+  function obterMeuPrimeiroNome() {
+    const meu = colaboradores.find(c => c.id === meuId);
+    const nomeCompleto = String((meu && meu.nome) || sessao.nome || "").trim();
+    return nomeCompleto.split(/\s+/)[0] || "Minha agenda";
   }
 
   // --- NAVEGAÇÃO (Agenda / Suporte / Sair) ---
@@ -1286,29 +1307,74 @@ function iniciarColaborador() {
     window.location.href = "login.html";
   });
 
-  // --- BLOCO COM OS NOMES DOS COLABORADORES ---
+  // --- FILTRO "PROCURAR COLABORADOR" ---
+  // Valores: "todos" = agenda de todos os outros | "minha" = a própria agenda (editável) | id = um outro colaborador
+  function atualizarFiltroColaborador() {
+    const valorAtual = filtro.value;
+    filtro.innerHTML = "";
+
+    const opcaoTodos = document.createElement("option");
+    opcaoTodos.value = "todos";
+    opcaoTodos.textContent = "Procurar colaborador...";
+    filtro.appendChild(opcaoTodos);
+
+    const opcaoMinha = document.createElement("option");
+    opcaoMinha.value = "minha";
+    opcaoMinha.textContent = obterMeuPrimeiroNome();
+    filtro.appendChild(opcaoMinha);
+
+    obterOutrosColaboradores().forEach(c => {
+      const opcao = document.createElement("option");
+      opcao.value = String(c.id);
+      opcao.textContent = c.nome;
+      filtro.appendChild(opcao);
+    });
+
+    // Mantém a escolha anterior, se ela ainda existir
+    const aindaExiste = Array.from(filtro.options).some(o => o.value === valorAtual);
+    filtro.value = aindaExiste ? valorAtual : "todos";
+  }
+
+  filtro.addEventListener("change", function () {
+    renderizarEquipe();
+    renderizarAgenda();
+  });
+
+  // --- BLOCO COM OS NOMES (Minha agenda + os outros colaboradores) ---
+  function criarBotaoColab(valor, texto, cor) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn-colab" + (valor === filtro.value ? " ativo" : "");
+    const bolinha = document.createElement("span");
+    bolinha.className = "bolinha";
+    bolinha.style.background = cor;
+    const nome = document.createElement("span");
+    nome.textContent = texto;
+    btn.appendChild(bolinha);
+    btn.appendChild(nome);
+    btn.addEventListener("click", function () {
+      // Clicar de novo no mesmo botão volta a mostrar todos os outros
+      filtro.value = (valor === filtro.value) ? "todos" : valor;
+      renderizarEquipe();
+      renderizarAgenda();
+    });
+    equipeBotoes.appendChild(btn);
+  }
+
   function renderizarEquipe() {
     equipeBotoes.innerHTML = "";
-    const ativos = colaboradores.filter(c => c.ativo !== false);
+    const outros = obterOutrosColaboradores();
+    const meu = obterMeuColaborador();
 
-    ativos.forEach(c => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "btn-colab" + (c.id === colaboradorVisto ? " ativo" : "");
-      const bolinha = document.createElement("span");
-      bolinha.className = "bolinha";
-      bolinha.style.background = c.cor;
-      const nome = document.createElement("span");
-      nome.textContent = c.id === meuId ? `${c.nome} (você)` : c.nome;
-      btn.appendChild(bolinha);
-      btn.appendChild(nome);
-      btn.addEventListener("click", function () {
-        colaboradorVisto = c.id;
-        renderizarEquipe();
-        renderizarAgenda();
-      });
-      equipeBotoes.appendChild(btn);
-    });
+    if (meu) criarBotaoColab("minha", obterMeuPrimeiroNome(), meu.cor);
+    outros.forEach(c => criarBotaoColab(String(c.id), c.nome, c.cor));
+
+    if (outros.length === 0) {
+      const aviso = document.createElement("p");
+      aviso.style.cssText = "color:#888; font-size:13px; margin:0;";
+      aviso.textContent = "Ainda não há outros colaboradores ativos.";
+      equipeBotoes.appendChild(aviso);
+    }
   }
 
   // --- LAYOUT DE AGENDAMENTOS SOBREPOSTOS ---
@@ -1345,7 +1411,7 @@ function iniciarColaborador() {
     for (let i = inicioSaida; i < saida.length; i++) saida[i].totalColunas = fins.length;
   }
 
-  // --- AGENDA DO COLABORADOR ESCOLHIDO ---
+  // --- AGENDA: a própria (editável) ou a dos outros (somente consulta) ---
   async function removerAgendamento(id, event) {
     if (event) event.stopPropagation();
     // Só pode apagar da própria agenda
@@ -1358,36 +1424,51 @@ function iniciarColaborador() {
 
   function renderizarAgenda() {
     agenda.innerHTML = "";
-    // Se o colaborador que estava sendo visto foi desativado, volta pra própria agenda
-    const visto = colaboradores.find(c => c.id === colaboradorVisto);
-    if (!visto || visto.ativo === false) {
-      colaboradorVisto = meuId;
-      renderizarEquipe();
-    }
-    const colab = colaboradores.find(c => c.id === colaboradorVisto);
-    const editavel = colaboradorVisto === meuId;
 
-    avisoLeitura.hidden = editavel;
-    btnNovo.style.display = editavel ? "" : "none";
+    const outros = obterOutrosColaboradores();
+    const meu = obterMeuColaborador();
 
-    if (!colab) {
-      agenda.innerHTML = `<p style="padding:24px; text-align:center; color:#888;">Colaborador não encontrado.</p>`;
+    // Se quem estava selecionado foi desativado/removido, volta para "todos"
+    const valorValido = filtro.value === "todos"
+      || (filtro.value === "minha" && meu)
+      || outros.some(c => String(c.id) === filtro.value);
+    if (!valorValido) filtro.value = "todos";
+
+    const verMinha = filtro.value === "minha";
+    avisoLeitura.hidden = verMinha;
+    btnNovo.style.display = verMinha ? "" : "none";
+
+    let colunas;
+    if (verMinha) colunas = [meu];
+    else if (filtro.value === "todos") colunas = outros;
+    else colunas = outros.filter(c => String(c.id) === filtro.value);
+
+    const tituloAgenda = document.getElementById("agenda-titulo");
+
+    if (colunas.length === 0) {
+      tituloAgenda.textContent = "Agenda dos colaboradores";
+      agenda.style.setProperty("--n-colab", 1);
+      agenda.innerHTML = `<p style="padding:24px; text-align:center; color:#888;">Não há outros colaboradores ativos para mostrar. Escolha o seu nome no filtro para ver a sua agenda.</p>`;
       return;
     }
 
-    document.getElementById("agenda-titulo").textContent = editavel ? "Minha agenda" : `Agenda de ${colab.nome}`;
+    if (verMinha) tituloAgenda.textContent = `Agenda de ${obterMeuPrimeiroNome()}`;
+    else tituloAgenda.textContent = colunas.length === 1 ? `Agenda de ${colunas[0].nome}` : "Agenda dos colaboradores";
+    agenda.style.setProperty("--n-colab", colunas.length);
     agenda.style.setProperty("--n-horas", totalHoras);
 
     const cab = document.createElement("div");
     cab.className = "agenda-cabecalho";
     cab.innerHTML = `<div class="cab" style="background:transparent;"></div>`;
-    const cabColab = document.createElement("div");
-    cabColab.className = "cab";
-    cabColab.style.background = colab.cor;
-    cabColab.innerHTML = `<div class="cab-avatar"></div><div class="cab-nome"></div><div class="cab-cargo"></div>`;
-    cabColab.querySelector(".cab-nome").textContent = colab.nome;
-    cabColab.querySelector(".cab-cargo").textContent = colab.cargo;
-    cab.appendChild(cabColab);
+    colunas.forEach(colab => {
+      const cabColab = document.createElement("div");
+      cabColab.className = "cab";
+      cabColab.style.background = colab.cor;
+      cabColab.innerHTML = `<div class="cab-avatar"></div><div class="cab-nome"></div><div class="cab-cargo"></div>`;
+      cabColab.querySelector(".cab-nome").textContent = colab.nome;
+      cabColab.querySelector(".cab-cargo").textContent = colab.cargo;
+      cab.appendChild(cabColab);
+    });
     agenda.appendChild(cab);
 
     const corpo = document.createElement("div");
@@ -1400,47 +1481,51 @@ function iniciarColaborador() {
     }
     corpo.appendChild(colHorarios);
 
-    const col = document.createElement("div");
-    col.className = "col-colab";
-    for (let h = horaInicio; h < horaFim; h++) col.insertAdjacentHTML("beforeend", `<div class="linha-hora"></div>`);
+    colunas.forEach(colab => {
+      const editavel = colab.id === meuId;
+      const col = document.createElement("div");
+      col.className = "col-colab";
+      for (let h = horaInicio; h < horaFim; h++) col.insertAdjacentHTML("beforeend", `<div class="linha-hora"></div>`);
 
-    const doDia = agendamentos.filter(a => a.colaboradorId === colab.id && a.data === seletorData.value);
+      const doDia = agendamentos.filter(a => a.colaboradorId === colab.id && a.data === seletorData.value);
 
-    calcularLayoutColuna(doDia).forEach(item => {
-      const ag = item.ag;
-      const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
-      const topPx = (((hIni - horaInicio) * 60 + mIni) / 60) * 48;
-      const heightPx = Math.max((ag.duracaoMin / 60) * 48, 38);
-      const largura = 100 / item.totalColunas;
+      calcularLayoutColuna(doDia).forEach(item => {
+        const ag = item.ag;
+        const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
+        const topPx = (((hIni - horaInicio) * 60 + mIni) / 60) * 48;
+        const heightPx = Math.max((ag.duracaoMin / 60) * 48, 38);
+        const largura = 100 / item.totalColunas;
 
-      const bloco = document.createElement("div");
-      bloco.className = "agendamento";
-      bloco.style.cssText = `top:${topPx}px; height:${heightPx}px; left:calc(${item.coluna * largura}% + 2px); width:calc(${largura}% - 4px); background:${ag.cor};`;
-      bloco.title = `Cliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nHorário: ${ag.horaInicio}`;
+        const bloco = document.createElement("div");
+        bloco.className = "agendamento";
+        bloco.style.cssText = `top:${topPx}px; height:${heightPx}px; left:calc(${item.coluna * largura}% + 2px); width:calc(${largura}% - 4px); background:${ag.cor};`;
+        bloco.title = `Cliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nHorário: ${ag.horaInicio}`;
 
-      if (editavel) {
-        const btnX = document.createElement("button");
-        btnX.type = "button";
-        btnX.className = "remover";
-        btnX.textContent = "✕";
-        btnX.addEventListener("click", e => removerAgendamento(ag.id, e));
-        bloco.appendChild(btnX);
-      }
-      const strong = document.createElement("strong");
-      strong.textContent = ag.cliente;
-      bloco.appendChild(strong);
-      if (ag.servico) {
-        const span = document.createElement("span");
-        span.textContent = ag.servico;
-        bloco.appendChild(span);
-      }
-      bloco.addEventListener("click", () => {
-        alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}`);
+        if (editavel) {
+          const btnX = document.createElement("button");
+          btnX.type = "button";
+          btnX.className = "remover";
+          btnX.textContent = "✕";
+          btnX.addEventListener("click", e => removerAgendamento(ag.id, e));
+          bloco.appendChild(btnX);
+        }
+        const strong = document.createElement("strong");
+        strong.textContent = ag.cliente;
+        bloco.appendChild(strong);
+        if (ag.servico) {
+          const span = document.createElement("span");
+          span.textContent = ag.servico;
+          bloco.appendChild(span);
+        }
+        bloco.addEventListener("click", () => {
+          alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}`);
+        });
+        col.appendChild(bloco);
       });
-      col.appendChild(bloco);
+
+      corpo.appendChild(col);
     });
 
-    corpo.appendChild(col);
     agenda.appendChild(corpo);
   }
 
@@ -1488,7 +1573,7 @@ function iniciarColaborador() {
     agendamentos.push(novo);
     salvarAgendamentosLocal(agendamentos);
     seletorData.value = data;
-    colaboradorVisto = meuId;
+    filtro.value = "minha";
     renderizarEquipe();
     renderizarAgenda();
     fecharModal();
@@ -1536,12 +1621,16 @@ function iniciarColaborador() {
     if (e.key !== CHAVE_AGENDAMENTOS && e.key !== CHAVE_COLABORADORES) return;
     agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
     colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
+    atualizarFiltroColaborador();
     renderizarEquipe();
     renderizarAgenda();
   });
 
   // --- INICIALIZAÇÃO ---
+  // Ao entrar, o colaborador já cai na própria agenda (Minha agenda) aberta no dia de hoje
   seletorData.value = obterDataHojeISO();
+  atualizarFiltroColaborador();
+  filtro.value = "minha";
   renderizarEquipe();
   renderizarAgenda();
 }
