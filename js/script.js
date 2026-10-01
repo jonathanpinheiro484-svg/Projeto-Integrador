@@ -182,8 +182,10 @@ const AGEND_DURACAO_MIN = 15, AGEND_DURACAO_MAX = 240;
 // Nome completo sem abreviar: cada palavra começa com maiúscula e tem 2+ letras
 // (aceita "da", "de", "do", "das", "dos", "e" em minúsculo no meio).
 const NOME_COMPLETO_REGEX = /^\p{Lu}\p{Ll}+(\s(da|de|do|das|dos|e|\p{Lu}\p{Ll}+))*\s\p{Lu}\p{Ll}+$/u;
-// Nome do cliente: letras, espaços, apóstrofo e hífen
-const NOME_CLIENTE_REGEX = /^\p{L}[\p{L}' -]+$/u;
+// Nome do cliente: só letras, com nome e sobrenome separados por espaço
+const NOME_CLIENTE_REGEX = /^\p{L}{2,}(\s+\p{L}{2,})+$/u;
+// Qualquer caractere que não seja letra ou espaço (número, símbolo, hífen, etc.)
+const NOME_CLIENTE_CARACTERE_INVALIDO = /[^\p{L}\s]/u;
 
 function criarColetorErros() {
   const erros = [];
@@ -282,13 +284,15 @@ function validarNovoAgendamento() {
   const cliente = campoCliente.value;
   const servico = campoServico.value;
 
-  // Cliente: obrigatório, só letras, espaços, apóstrofo e hífen
+  // Cliente: obrigatório, só letras e precisa de nome e sobrenome
   if (!cliente) {
     coletor.falhar("Preencha o nome do cliente.", "agend-cliente");
   } else if (cliente.length < AGEND_CLIENTE_MIN || cliente.length > AGEND_CLIENTE_MAX) {
     coletor.falhar(`O nome do cliente deve ter de ${AGEND_CLIENTE_MIN} a ${AGEND_CLIENTE_MAX} caracteres.`, "agend-cliente");
+  } else if (NOME_CLIENTE_CARACTERE_INVALIDO.test(cliente)) {
+    coletor.falhar("O nome do cliente deve ter apenas letras (sem números, símbolos ou pontuação).", "agend-cliente");
   } else if (!NOME_CLIENTE_REGEX.test(cliente)) {
-    coletor.falhar("O nome do cliente deve ter apenas letras, espaços, apóstrofo ou hífen.", "agend-cliente");
+    coletor.falhar("Digite o nome e o sobrenome do cliente. Exemplo: João Pereira", "agend-cliente");
   }
 
   // Serviço: obrigatório
@@ -590,13 +594,34 @@ function iniciarDashboard() {
     }
   }
 
+  // --- DONO NA AGENDA ---
+  // O dono não é um colaborador cadastrado, então ele entra na agenda como uma
+  // coluna "virtual" com id 0 (os colaboradores começam no id 1, não conflita).
+  const ID_DONO = 0;
+
+  function obterDono() {
+    return {
+      id: ID_DONO,
+      nome: localStorage.getItem("nomeUsuarioCadastrado") || "Admin",
+      cargo: "Proprietário",
+      cor: "#6c5ce7",
+      ativo: true
+    };
+  }
+
+  // Quem aparece na agenda: o dono (só no painel do dono) + colaboradores ativos
+  function obterAgendaAtivos() {
+    const ativos = colaboradores.filter(c => c.ativo !== false);
+    return usuarioLogado.perfil === "DONO" ? [obterDono(), ...ativos] : ativos;
+  }
+
   // --- FILTRO DE COLABORADOR NA AGENDA ---
   function atualizarFiltroColaborador() {
     const select = document.getElementById("filtro-colaborador");
 
     select.innerHTML = `<option value="todos">Procurar colaborador...</option>`;
 
-    colaboradores.filter(c => c.ativo !== false).forEach(c => {
+    obterAgendaAtivos().forEach(c => {
       select.insertAdjacentHTML(
         "beforeend",
         `<option value="${c.id}">${c.nome}</option>`
@@ -630,7 +655,7 @@ function iniciarDashboard() {
     }
 
     // Colaborador inativo some da agenda (os agendamentos dele continuam salvos)
-    const colaboradoresAtivos = colaboradores.filter(c => c.ativo !== false);
+    const colaboradoresAtivos = obterAgendaAtivos();
 
     const filtro = document.getElementById("filtro-colaborador");
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
@@ -653,7 +678,7 @@ function iniciarDashboard() {
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
     if (colaboradorSelecionado !== "todos") return 1;
 
-    return Math.ceil(colaboradores.filter(c => c.ativo !== false).length / colunasVisiveis) || 1;
+    return Math.ceil(obterAgendaAtivos().length / colunasVisiveis) || 1;
   }
   function atualizarInfoPaginacao() {
     document.getElementById("pag-info").textContent = `${paginaAtual + 1} de ${obterTotalPaginas()}`;
@@ -888,15 +913,8 @@ function iniciarDashboard() {
   }
 
   btnAbrirAgendamento.addEventListener("click", () => {
-    // Sem colaborador ativo não dá pra agendar
-    if (!colaboradores.some(c => c.ativo !== false)) {
-      alert("Cadastre um colaborador antes de criar um agendamento.");
-      return;
-    }
-
     selectProfissional.innerHTML = "";
-    colaboradores
-      .filter(c => c.ativo !== false)
+    obterAgendaAtivos()
       .filter(c => usuarioLogado.perfil !== "COLABORADOR" || c.id === usuarioLogado.colaboradorId)
       .forEach(c => {
       selectProfissional.insertAdjacentHTML("beforeend", `<option value="${c.id}">${c.nome}</option>`);
@@ -908,7 +926,11 @@ function iniciarDashboard() {
     modalAgendamento.hidden = false;
   });
 
-  function fecharModalAgendamento() { modalAgendamento.hidden = true; limparErroForm(formAgendamento); }
+  function fecharModalAgendamento() {
+    modalAgendamento.hidden = true;
+    limparErroForm(formAgendamento);
+    formAgendamento.reset();
+  }
   btnFecharModal.addEventListener("click", fecharModalAgendamento);
   btnCancelarAgendamento.addEventListener("click", fecharModalAgendamento);
 
@@ -1194,7 +1216,13 @@ function iniciarDashboard() {
     ["btn-plano-premium", "PREMIUM"]
   ].forEach(([idBotao, plano]) => {
     const botao = document.getElementById(idBotao);
-    if (botao) botao.addEventListener("click", () => escolherPlano(plano));
+    if (!botao) return;
+    botao.addEventListener("click", () => {
+      if (plano === planoAtual) return; // já é o plano atual
+      // Planos pagos abrem a tela de compra; o Grátis continua trocando direto
+      if (plano === "FREE") escolherPlano(plano);
+      else window.location.href = `assinatura.html?plano=${plano.toLowerCase()}`;
+    });
   });
 
   // Se o dono e o colaborador estiverem com o site aberto em abas diferentes,
@@ -1542,7 +1570,11 @@ function iniciarColaborador() {
     campoData.value = seletorData.value >= hojeISO ? seletorData.value : hojeISO;
     modal.hidden = false;
   });
-  const fecharModal = () => { modal.hidden = true; limparErroForm(formAgend); };
+  const fecharModal = () => {
+    modal.hidden = true;
+    limparErroForm(formAgend);
+    formAgend.reset();
+  };
   document.getElementById("btn-fechar-modal").addEventListener("click", fecharModal);
   document.getElementById("btn-cancelar-agendamento").addEventListener("click", fecharModal);
 
@@ -1868,4 +1900,8 @@ prevBtn.addEventListener('click', () => {
   track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
 });
 
-
+// Auto-play
+setInterval(() => {
+  index = (index + 1) % cards.length;
+  updateCarousel();
+}, 5000);

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestão Integrada Pro - Assinar plano</title>
+
+<!-- Tela autônoma: não depende do js/script.js (tem o próprio script no final). -->
+
+<style>
+:root {
+  --roxo: #6c5ce7;
+  --roxo-claro: #efeaff;
+  --bg: #f5f6f8;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --texto: #1f2430;
+  --muted: #64748b;
+  --input-bg: #ffffff;
+  --erro: #e11d48;
+  --ok: #059669;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --roxo-claro: #2d264e;
+    --bg: #121319;
+    --card: #1c1e26;
+    --border: #2d313e;
+    --texto: #f1f3f9;
+    --muted: #9aa1b1;
+    --input-bg: #252833;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--texto); background: var(--bg); }
+:focus-visible { outline: 2px solid var(--roxo); outline-offset: 2px; }
+
+.topo { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
+.logo-icone { width: 32px; height: 32px; border-radius: 8px; background: var(--roxo); color: #fff; display: flex; align-items: center; justify-content: center; }
+.link-voltar { color: var(--muted); font-size: 13px; text-decoration: none; }
+.link-voltar:hover { color: var(--roxo); }
+
+.pagina { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
+h1 { font-size: 24px; margin: 0 0 4px; }
+.sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+h2 { font-size: 15px; margin: 0 0 12px; }
+
+.layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.bloco { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+
+
+
+/* formulário */
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.campo.largo { grid-column: 1 / -1; }
+.campo input { border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px; font-size: 14px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
+.campo input:focus { border-color: var(--roxo); outline: none; }
+
+.metodos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.metodo { border: 2px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.metodo input { accent-color: var(--roxo); }
+.metodo.sel { border-color: var(--roxo); background: var(--roxo-claro); }
+.pix-caixa { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; font-size: 13px; color: var(--muted); }
+.pix-codigo { display: flex; gap: 8px; margin-top: 10px; }
+.pix-codigo input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--input-bg); color: var(--texto); }
+
+.btn { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 12px 16px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; font-family: inherit; }
+.btn:disabled { opacity: .6; cursor: wait; }
+.btn-sec { background: none; border: 1px solid var(--border); color: var(--texto); border-radius: 7px; padding: 8px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+
+/* resumo */
+.resumo { position: sticky; top: 16px; margin-bottom: 0; }
+.linha { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+.linha span:first-child { color: var(--muted); }
+.linha.total { font-size: 17px; font-weight: 800; border-bottom: none; padding-top: 12px; }
+.linha.total span:first-child { color: var(--texto); }
+.desconto { color: var(--ok); }
+.aviso { font-size: 11px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+.erro { color: var(--erro); font-size: 12px; margin: 0 0 10px; white-space: pre-line; }
+.erro[hidden] { display: none; }
+
+/* sucesso */
+.sucesso { max-width: 480px; margin: 40px auto; text-align: center; }
+.sucesso .icone { font-size: 44px; }
+.sucesso .bloco { text-align: left; margin-top: 18px; }
+[hidden] { display: none !important; }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .resumo { position: static; }
+  .campos { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="logo"><span class="logo-icone">G</span> Gestão Integrada Pro</div>
+  <a class="link-voltar" id="link-voltar" href="agenda.html">Voltar ao painel</a>
+</header>
+
+<main class="pagina">
+
+  <!-- ETAPA 1: ESCOLHER, PREENCHER E PAGAR -->
+  <div id="etapa-checkout">
+    <h1 id="titulo-pagina">Assine o seu plano</h1>
+    <p class="sub">Informe seus dados e finalize. Você pode trocar de plano depois.</p>
+
+    <form id="form-assinatura" class="layout" novalidate>
+      <div>
+        <div class="bloco">
+          <h2>1. Seus dados</h2>
+          <div class="campos">
+            <div class="campo largo">
+              <label for="ass-nome">Nome completo</label>
+              <input type="text" id="ass-nome" placeholder="Ex: Fernanda Lima" autocomplete="name" maxlength="60">
+            </div>
+            <div class="campo">
+              <label for="ass-email">E-mail</label>
+              <input type="email" id="ass-email" placeholder="voce@email.com" autocomplete="email" maxlength="80">
+            </div>
+            <div class="campo">
+              <label for="ass-cpf">CPF</label>
+              <input type="text" id="ass-cpf" placeholder="000.000.000-00" inputmode="numeric" maxlength="14">
+            </div>
+          </div>
+        </div>
+
+        <div class="bloco" id="bloco-pagamento">
+          <h2>2. Pagamento</h2>
+          <div class="metodos" role="radiogroup" aria-label="Forma de pagamento">
+            <label class="metodo sel"><input type="radio" name="metodo" value="pix" checked> Pix</label>
+            <label class="metodo"><input type="radio" name="metodo" value="cartao"> Cartão de crédito</label>
+          </div>
+
+          <div id="painel-pix" class="pix-caixa">
+            Ao confirmar, o código Pix é gerado para você pagar no app do seu banco. O plano é liberado assim que o pagamento é confirmado.
+            <div class="pix-codigo">
+              <input type="text" id="pix-codigo" readonly aria-label="Código Pix copia e cola">
+              <button type="button" class="btn-sec" id="btn-copiar-pix">Copiar</button>
+            </div>
+          </div>
+
+          <div id="painel-cartao" class="campos" hidden>
+            <div class="campo largo">
+              <label for="cc-numero">Número do cartão</label>
+              <input type="text" id="cc-numero" placeholder="0000 0000 0000 0000" inputmode="numeric" autocomplete="cc-number" maxlength="19">
+            </div>
+            <div class="campo largo">
+              <label for="cc-nome">Nome impresso no cartão</label>
+              <input type="text" id="cc-nome" placeholder="Como está no cartão" autocomplete="cc-name" maxlength="40">
+            </div>
+            <div class="campo">
+              <label for="cc-validade">Validade</label>
+              <input type="text" id="cc-validade" placeholder="MM/AA" inputmode="numeric" autocomplete="cc-exp" maxlength="5">
+            </div>
+            <div class="campo">
+              <label for="cc-cvv">CVV</label>
+              <input type="password" id="cc-cvv" placeholder="123" inputmode="numeric" autocomplete="cc-csc" maxlength="4">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="bloco resumo" aria-live="polite">
+        <h2>Resumo do pedido</h2>
+        <div class="linha"><span>Plano</span><span id="res-plano">-</span></div>
+        <div class="linha"><span>Cobrança</span><span id="res-ciclo">-</span></div>
+        <div class="linha"><span>Subtotal</span><span id="res-subtotal">-</span></div>
+        <div class="linha" id="linha-desconto" hidden><span>Desconto anual</span><span class="desconto" id="res-desconto">-</span></div>
+        <div class="linha"><span>Próxima cobrança</span><span id="res-renovacao">-</span></div>
+        <div class="linha total"><span>Total hoje</span><span id="res-total">-</span></div>
+
+        <p class="erro" id="erro-form" role="alert" hidden></p>
+        <button type="submit" class="btn" id="btn-assinar">Assinar</button>
+        <p class="aviso" id="aviso-cobranca">Você pode cancelar quando quiser.</p>
+      </aside>
+    </form>
+  </div>
+
+  <!-- ETAPA 2: CONFIRMAÇÃO -->
+  <div id="etapa-sucesso" class="sucesso" hidden>
+    <div class="icone">✅</div>
+    <h1 id="suc-titulo">Assinatura confirmada</h1>
+    <p class="sub" id="suc-sub"></p>
+    <div class="bloco">
+      <div class="linha"><span>Plano</span><span id="suc-plano"></span></div>
+      <div class="linha"><span>Cobrança</span><span id="suc-ciclo"></span></div>
+      <div class="linha"><span>Total</span><span id="suc-total"></span></div>
+      <div class="linha" style="border-bottom:none;"><span id="suc-rotulo-data">Válido até</span><span id="suc-data"></span></div>
+    </div>
+    <p style="margin-top:18px;"><a class="btn" id="btn-ir-painel" href="agenda.html" style="display:block; text-decoration:none;">Ir para o painel</a></p>
+  </div>
+
+</main>
+
+<script>
+// =====================================================
+// CONFIGURAÇÃO — ajuste aqui sem mexer no resto
+// =====================================================
+const PAGINA_PAINEL = "agenda.html";   // página do painel (destino do "Ir para o painel")
+const DESCONTO_ANUAL = 0.20;           // 20% de desconto no plano anual
+const CHAVE_ASSINATURA = "assinaturaAtual";
+
+// >>> PREÇOS DE EXEMPLO: troque pelos valores reais dos planos.
+const PLANOS = {
+  FREE: {
+    nome: "Grátis", mensal: 0, duracaoDias: 30,
+    itens: ["30 dias de uso", "Até 15 colaboradores", "Agenda simples"]
+  },
+  BASICO: {
+    nome: "Básico", mensal: 29.90,
+    itens: ["Agendamentos ilimitados", "Até 10 colaboradores", "Suporte por e-mail"]
+  },
+  PREMIUM: {
+    nome: "Premium", mensal: 59.90, destaque: "Mais completo",
+    itens: ["Colaboradores ilimitados", "Relatórios financeiros", "Suporte prioritário"]
+  }
+};
+
+// =====================================================
+// ESTADO
+// =====================================================
+let planoEscolhido = "PREMIUM";
+let ciclo = "mensal";
+
+const $ = (id) => document.getElementById(id);
+const moeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const metodoAtual = () => document.querySelector('input[name="metodo"]:checked').value;
+
+// Preço do plano no ciclo escolhido: { total, porMes, desconto }
+function calcularPreco(chave, cicloEscolhido) {
+  const mensal = PLANOS[chave].mensal;
+  if (cicloEscolhido === "anual") {
+    const cheio = mensal * 12;
+    const desconto = cheio * DESCONTO_ANUAL;
+    return { total: cheio - desconto, porMes: (cheio - desconto) / 12, desconto };
+  }
+  return { total: mensal, porMes: mensal, desconto: 0 };
+}
+
+function dataRenovacao(chave, cicloEscolhido) {
+  const d = new Date();
+  if (chave === "FREE") d.setDate(d.getDate() + PLANOS.FREE.duracaoDias);
+  else if (cicloEscolhido === "anual") d.setFullYear(d.getFullYear() + 1);
+  else d.setMonth(d.getMonth() + 1);
+  return d;
+}
+
+// =====================================================
+// RENDERIZAÇÃO
+// =====================================================
+function atualizarResumo() {
+  const p = PLANOS[planoEscolhido];
+  const gratis = planoEscolhido === "FREE";
+  const preco = calcularPreco(planoEscolhido, ciclo);
+  const subtotal = gratis ? 0 : p.mensal * (ciclo === "anual" ? 12 : 1);
+
+  $("titulo-pagina").textContent = "Assinar plano " + p.nome;
+  $("res-plano").textContent = p.nome;
+  $("res-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
+  $("res-subtotal").textContent = moeda(subtotal);
+  $("linha-desconto").hidden = !(preco.desconto > 0);
+  $("res-desconto").textContent = "- " + moeda(preco.desconto);
+  $("res-renovacao").textContent = gratis ? "Nenhuma" : dataRenovacao(planoEscolhido, ciclo).toLocaleDateString("pt-BR");
+  $("res-total").textContent = moeda(preco.total);
+
+  $("btn-assinar").textContent = gratis ? "Ativar plano grátis" : "Assinar " + p.nome + " · " + moeda(preco.total);
+  $("aviso-cobranca").textContent = gratis
+    ? "Sem cobrança. Ao fim dos 30 dias, escolha um plano pago para continuar."
+    : (ciclo === "anual" ? "Cobrança única por ano. Você pode cancelar quando quiser." : "Cobrança mensal. Você pode cancelar quando quiser.");
+
+  // Plano grátis não precisa de pagamento
+  $("bloco-pagamento").hidden = gratis;
+}
+
+function atualizarTela() {
+  atualizarResumo();
+  limparErro();
+}
+
+// =====================================================
+// MÁSCARAS E VALIDAÇÕES
+// =====================================================
+function soDigitos(v) { return v.replace(/\D/g, ""); }
+
+function mascaraCpf(v) {
+  const d = soDigitos(v).slice(0, 11);
+  return d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+}
+function mascaraCartao(v) { return soDigitos(v).slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 "); }
+function mascaraValidade(v) {
+  const d = soDigitos(v).slice(0, 4);
+  return d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d;
+}
+
+function cpfValido(cpf) {
+  const c = soDigitos(cpf);
+  if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+  for (let t = 9; t < 11; t++) {
+    let soma = 0;
+    for (let i = 0; i < t; i++) soma += Number(c[i]) * (t + 1 - i);
+    if (((soma * 10) % 11) % 10 !== Number(c[t])) return false;
+  }
+  return true;
+}
+
+// Algoritmo de Luhn: confere se o número do cartão é válido
+function cartaoValido(numero) {
+  const n = soDigitos(numero);
+  if (n.length < 13 || n.length > 16) return false;
+  let soma = 0, alternar = false;
+  for (let i = n.length - 1; i >= 0; i--) {
+    let d = Number(n[i]);
+    if (alternar) { d *= 2; if (d > 9) d -= 9; }
+    soma += d;
+    alternar = !alternar;
+  }
+  return soma % 10 === 0;
+}
+
+function validadeValida(v) {
+  const m = v.match(/^(\d{2})\/(\d{2})$/);
+  if (!m) return false;
+  const mes = Number(m[1]), ano = 2000 + Number(m[2]);
+  if (mes < 1 || mes > 12) return false;
+  return new Date(ano, mes, 1) > new Date(); // vale até o fim do mês de validade
+}
+
+const NOME_REGEX = /^\p{L}{2,}(\s+\p{L}{2,})+$/u; // nome no cartão (aceita MAIÚSCULAS)
+// Nome completo sem abreviar: cada palavra começa com maiúscula e tem 2+ letras
+// (aceita "da", "de", "do", "das", "dos", "e" em minúsculo no meio). Mesma regra do cadastro de colaborador.
+const NOME_COMPLETO_REGEX = /^\p{Lu}\p{Ll}+(\s(da|de|do|das|dos|e|\p{Lu}\p{Ll}+))*\s\p{Lu}\p{Ll}+$/u;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function validarFormulario() {
+  const erros = [];
+  let primeiro = null;
+  const falhar = (msg, id) => { erros.push(msg); if (!primeiro) primeiro = $(id); };
+
+  const nome = $("ass-nome").value.trim();
+  $("ass-nome").value = nome;
+  if (!nome) falhar("Preencha o nome completo.", "ass-nome");
+  else if (nome.length < 5 || nome.length > 60) falhar("O nome deve ter de 5 a 60 caracteres.", "ass-nome");
+  else if (/[^\p{L}\s]/u.test(nome)) falhar("O nome deve ter apenas letras (sem números, símbolos ou pontuação).", "ass-nome");
+  else if (!NOME_COMPLETO_REGEX.test(nome)) falhar("Digite o nome completo, sem abreviar: nome e sobrenome, cada um começando com letra maiúscula. Exemplo: Fernanda Lima", "ass-nome");
+
+  const email = $("ass-email").value.trim();
+  if (!email) falhar("Preencha o e-mail.", "ass-email");
+  else if (!EMAIL_REGEX.test(email)) falhar("Digite um e-mail válido. Exemplo: nome@gmail.com", "ass-email");
+
+  if (!$("ass-cpf").value.trim()) falhar("Preencha o CPF.", "ass-cpf");
+  else if (!cpfValido($("ass-cpf").value)) falhar("O CPF informado não é válido.", "ass-cpf");
+
+  if (planoEscolhido !== "FREE" && metodoAtual() === "cartao") {
+    const numeroCartao = $("cc-numero").value.trim();
+    if (!numeroCartao) falhar("Preencha o número do cartão.", "cc-numero");
+    else if (/[^\d\s]/.test(numeroCartao)) falhar("O número do cartão deve ter apenas números.", "cc-numero");
+    else if (soDigitos(numeroCartao).length < 13 || soDigitos(numeroCartao).length > 16) falhar("O número do cartão deve ter de 13 a 16 números.", "cc-numero");
+    else if (!cartaoValido(numeroCartao)) falhar("O número do cartão não é válido. Confira os números digitados.", "cc-numero");
+    const nomeCartao = $("cc-nome").value.trim();
+    if (!nomeCartao) falhar("Preencha o nome impresso no cartão.", "cc-nome");
+    else if (/[^\p{L}\s]/u.test(nomeCartao)) falhar("O nome no cartão deve ter apenas letras (sem números, símbolos ou pontuação).", "cc-nome");
+    else if (!NOME_REGEX.test(nomeCartao)) falhar("Digite o nome como está impresso no cartão, com nome e sobrenome.", "cc-nome");
+    if (!validadeValida($("cc-validade").value)) falhar("Validade inválida ou vencida. Use o formato MM/AA.", "cc-validade");
+    if (!/^\d{3,4}$/.test($("cc-cvv").value)) falhar("O CVV deve ter 3 ou 4 números.", "cc-cvv");
+  }
+  return { erros, primeiro };
+}
+
+function mostrarErro(msg, campo) {
+  const el = $("erro-form");
+  el.textContent = msg;
+  el.hidden = false;
+  if (campo) campo.focus();
+}
+function limparErro() { $("erro-form").hidden = true; }
+
+// =====================================================
+// EVENTOS
+// =====================================================
+document.querySelectorAll('input[name="metodo"]').forEach((radio) => {
+  radio.addEventListener("change", () => {
+    const pix = metodoAtual() === "pix";
+    $("painel-pix").hidden = !pix;
+    $("painel-cartao").hidden = pix;
+    document.querySelectorAll(".metodo").forEach((l) => l.classList.toggle("sel", l.querySelector("input").checked));
+    limparErro();
+  });
+});
+
+// Nome: só aceita letras e espaços (descarta o resto enquanto a pessoa digita)
+$("ass-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, ""); });
+// Nome no cartão: só aceita letras e espaços
+$("cc-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, ""); });
+$("ass-cpf").addEventListener("input", (e) => { e.target.value = mascaraCpf(e.target.value); });
+$("cc-numero").addEventListener("input", (e) => { e.target.value = mascaraCartao(e.target.value); });
+$("cc-validade").addEventListener("input", (e) => { e.target.value = mascaraValidade(e.target.value); });
+$("cc-cvv").addEventListener("input", (e) => { e.target.value = soDigitos(e.target.value); });
+$("form-assinatura").addEventListener("input", limparErro);
+
+$("btn-copiar-pix").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("pix-codigo").value);
+    $("btn-copiar-pix").textContent = "Copiado";
+  } catch (e) {
+    $("pix-codigo").select();
+  }
+  setTimeout(() => { $("btn-copiar-pix").textContent = "Copiar"; }, 2000);
+});
+
+$("form-assinatura").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const { erros, primeiro } = validarFormulario();
+  if (erros.length > 0) { mostrarErro(erros.join("\n"), primeiro); return; }
+  limparErro();
+
+  const gratis = planoEscolhido === "FREE";
+  const preco = calcularPreco(planoEscolhido, ciclo);
+  const metodo = gratis ? null : metodoAtual();
+  const validoAte = dataRenovacao(planoEscolhido, ciclo);
+
+  const btn = $("btn-assinar");
+  const textoOriginal = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Processando...";
+
+  // >>> API: aqui entra o pagamento de verdade. Os dados do cartão NUNCA devem
+  // ser guardados no front nem passar pelo servidor de vocês: use o checkout /
+  // tokenização do gateway escolhido (Mercado Pago, Stripe, Pagar.me, etc.) e
+  // envie só o token + o plano para o backend PHP. Exemplo:
+  // const resp = await fetch("/api/assinaturas", {
+  //   method: "POST",
+  //   headers: { "Content-Type": "application/json" },
+  //   body: JSON.stringify({ plano: planoEscolhido, ciclo, metodo, token })
+  // });
+  await new Promise((r) => setTimeout(r, 1500)); // simulação do processamento
+
+  // Só guarda dados do pedido. Nunca número, validade ou CVV do cartão.
+  localStorage.setItem(CHAVE_ASSINATURA, JSON.stringify({
+    plano: planoEscolhido,
+    ciclo: gratis ? "teste" : ciclo,
+    metodo,
+    total: preco.total,
+    contratadoEm: new Date().toISOString(),
+    validoAte: validoAte.toISOString()
+  }));
+
+  btn.disabled = false;
+  btn.textContent = textoOriginal;
+  mostrarSucesso(gratis, preco.total, metodo, validoAte);
+});
+
+function mostrarSucesso(gratis, total, metodo, validoAte) {
+  const p = PLANOS[planoEscolhido];
+  const pixPendente = metodo === "pix";
+  $("suc-titulo").textContent = gratis ? "Plano grátis ativado" : (pixPendente ? "Pedido criado" : "Assinatura confirmada");
+  $("suc-sub").textContent = gratis
+    ? "Você tem 30 dias para testar o sistema."
+    : (pixPendente ? "Pague o Pix no app do seu banco. O plano é liberado assim que o pagamento for confirmado." : "Pagamento aprovado. Seu plano já está ativo.");
+  $("suc-plano").textContent = p.nome;
+  $("suc-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
+  $("suc-total").textContent = moeda(total);
+  $("suc-rotulo-data").textContent = gratis ? "Teste até" : "Próxima cobrança";
+  $("suc-data").textContent = validoAte.toLocaleDateString("pt-BR");
+  $("etapa-checkout").hidden = true;
+  $("etapa-sucesso").hidden = false;
+  window.scrollTo(0, 0);
+}
+
+// =====================================================
+// INICIALIZAÇÃO
+// =====================================================
+$("link-voltar").href = PAGINA_PAINEL;
+$("btn-ir-painel").href = PAGINA_PAINEL;
+$("pix-codigo").value = "00020126-SIMULACAO-" + Math.random().toString(36).slice(2, 12).toUpperCase();
+
+// O plano vem da tela de Planos do painel: assinatura.html?plano=premium
+const params = new URLSearchParams(window.location.search);
+const planoUrl = (params.get("plano") || "").toUpperCase();
+if (planoUrl === "BASICO" || planoUrl === "PREMIUM") {
+  planoEscolhido = planoUrl;
+} else {
+  // Sem plano escolhido: volta ao painel, onde o plano é escolhido
+  window.location.replace(PAGINA_PAINEL);
+}
+
+atualizarTela();
+</script>
+</body>
+</html>
