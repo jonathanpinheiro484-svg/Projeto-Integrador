@@ -1860,12 +1860,35 @@ const track = document.querySelector('.carousel-track');
 const prevBtn = document.querySelector('.carousel-btn.prev');
 const nextBtn = document.querySelector('.carousel-btn.next');
 
+// Função para atualizar o estado dos botões
+function updateButtons() {
+  const maxScrollLeft = track.scrollWidth - track.clientWidth;
+
+  // Desabilita o botão "voltar" se estiver no início
+  prevBtn.disabled = track.scrollLeft <= 0;
+
+  // Desabilita o botão "próximo" se estiver no fim
+  nextBtn.disabled = track.scrollLeft >= maxScrollLeft - 5;
+
+  // Ajuste visual opcional
+  prevBtn.style.opacity = prevBtn.disabled ? '0.3' : '1';
+  nextBtn.style.opacity = nextBtn.disabled ? '0.3' : '1';
+}
+
+// Movimento para frente
 nextBtn.addEventListener('click', () => {
   track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+  setTimeout(updateButtons, 500); // espera o scroll terminar
 });
 
+// Movimento para trás
 prevBtn.addEventListener('click', () => {
   track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
+  setTimeout(updateButtons, 500);
 });
+
+// Atualiza ao carregar e ao rolar manualmente
+track.addEventListener('scroll', updateButtons);
+updateButtons();
 
 

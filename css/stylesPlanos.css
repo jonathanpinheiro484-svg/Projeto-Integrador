@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #0b0c10, #1f1f2e);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    /* deixa o conteúdo começar do topo */
+    min-height: 100vh;
+    /* permite rolagem se o conteúdo for maior */
+    overflow-x: hidden;
+    /* evita barra horizontal */
+}
+
+/* --- CABEÇALHO --- */
+.topo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.topo .logo a {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #333;
+    text-decoration: none;
+}
+
+.sidebar h2 {
+    font-size: 1rem;
+    display: none;
+}
+
+.sidebar nav a {
+    margin: 0 10px;
+    text-decoration: none;
+    color: #555;
+    font-weight: 500;
+}
+
+.sidebar nav a:hover {
+    color: #512da8;
+}
+
+
+
+
+
+
+/* ===== SEÇÃO PRINCIPAL ===== */
+.planos {
+  text-align: center;
+  padding: 80px 20px;
+  background-color: #e8e8e8; /* fundo neutro para destacar os cards */
+  color: #0d0d0d;
+  font-family: 'Poppins', sans-serif;
+}
+
+.planos h2 {
+  font-size: 36px;
+  color: #3a0078;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.planos p {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 40px;
+}
+
+/* ===== CONTAINER DE PLANOS ===== */
+.planos-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+/* ===== CARD BASE ===== */
+.plano-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 40px 30px;
+  width: 320px;
+  text-align: left;
+  box-shadow: 0 0 0 2px rgba(58, 0, 120, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.plano-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 0 25px rgba(58, 0, 120, 0.3);
+}
+
+/* ===== TÍTULOS E PREÇOS ===== */
+.plano-card h3 {
+  font-size: 24px;
+  color: #3a0078;
+  margin-bottom: 10px;
+}
+
+.plano-card .limite {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.plano-card .preco {
+  font-size: 32px;
+  font-weight: 700;
+  color: #0018ff;
+  margin-bottom: 10px;
+}
+
+.plano-card .preco-antigo {
+  text-decoration: line-through;
+  color: #999;
+  font-size: 16px;
+}
+
+/* ===== LISTA DE RECURSOS ===== */
+.plano-card ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 25px;
+}
+
+.plano-card ul li {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.icon {
+  margin-right: 8px;
+  font-weight: bold;
+}
+
+.icon.check {
+  color: #4caf50;
+}
+
+.icon.cross {
+  color: #f44336;
+}
+
+/* ===== BOTÕES ===== */
+.botao.primario {
+  display: block;
+  text-align: center;
+  background: #00ff88;
+  color: #0d0d0d;
+  font-weight: 600;
+  padding: 12px 0;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.3s ease;
+}
+
+.botao.primario:hover {
+  background: #00cc6a;
+}
+
+/* ===== DESTAQUE DO PLANO INTERMEDIÁRIO ===== */
+.plano-card.basico {
+  background: linear-gradient(180deg, #0018ff 0%, #000066 100%);
+  color: #fff;
+  box-shadow: 0 0 0 3px #00ff88;
+}
+
+.plano-card.basico h3 {
+  color: #fff;
+}
+
+.plano-card.basico .preco {
+  color: #00ff88;
+}
+
+.plano-card.basico ul li {
+  color: #ddd;
+}
+
+.plano-card.basico .botao.primario {
+  background: #00ff88;
+  color: #000;
+}
+
+/* ===== SELO DE DESTAQUE ===== */
+.plano-selo {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #00ff88;
+  color: #000;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 5px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+
+/* POSICIONAMENTO DOS CARD DOS PLANOS */
+
+.plano.destaque {
+  background: linear-gradient(180deg, #1a0033 0%, #2a0055 100%);
+  color: #fff;
+  border: 2px solid #ff00cc;
+}
