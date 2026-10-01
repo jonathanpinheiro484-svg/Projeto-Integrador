@@ -465,81 +465,59 @@
 }
 
 /* CARROSEL DOS DEPOIMENTOS */
-
-.carousel {
-  overflow: hidden;
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
+.carousel-container {
   position: relative;
+  overflow: hidden;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .carousel-track {
   display: flex;
-  transition: transform 0.6s ease;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 20px;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none; /* oculta a barra de rolagem */
 }
 
 .card {
-  min-width: 100%; /* cada card ocupa a tela inteira */
-  box-sizing: border-box;
-  padding: 2rem;
+  flex: 0 0 calc(33.33% - 20px); /* 3 cards por vez */
   background: #111;
   color: #fff;
-  border-radius: 10px;
+  border-radius: 15px;
+  padding: 2rem;
   text-align: center;
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
 }
 
 .card img {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  margin-bottom: 1rem;
+  margin-bottom: 15px;
 }
 
-.card h3 {
-  color: #b28cff;
-  margin-bottom: 0.5rem;
-}
-
-.card .profissao {
-  font-style: italic;
-  margin-bottom: 1rem;
-}
-
-/* Botões */
 .carousel-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: #b28cff;
+  background: #ff5cf0;
   border: none;
   color: #fff;
-  padding: 0.5rem 1rem;
+  font-size: 1.5rem;
+  padding: 10px 15px;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 50%;
+  z-index: 10;
 }
 
-.carousel-btn.prev {
-  left: 10px;
-}
+.carousel-btn.prev { left: 10px; }
+.carousel-btn.next { right: 10px; }
 
-.carousel-btn.next {
-  right: 10px;
-}
-
-
-
-/* =========================
-   RESPONSIVIDADE
-========================= */
 @media (max-width: 768px) {
-  .chamada-conteudo {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .chamada-imagem img {
-    max-width: 90%;
-    margin-top: 30px;
-  }
+  .card { flex: 0 0 80%; }
 }

@@ -1856,29 +1856,16 @@ document.addEventListener("DOMContentLoaded", function () {
 // =======================================================
 // Carrosel - Página Index (NÃO MEXER) - DEPOIMENTOS
 // =======================================================
-
 const track = document.querySelector('.carousel-track');
-const cards = Array.from(track.children);
 const prevBtn = document.querySelector('.carousel-btn.prev');
 const nextBtn = document.querySelector('.carousel-btn.next');
-let index = 0;
-
-function updateCarousel() {
-  track.style.transform = `translateX(-${index * 100}%)`;
-}
 
 nextBtn.addEventListener('click', () => {
-  index = (index + 1) % cards.length;
-  updateCarousel();
+  track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
 });
 
 prevBtn.addEventListener('click', () => {
-  index = (index - 1 + cards.length) % cards.length;
-  updateCarousel();
+  track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
 });
 
-// Auto-play
-setInterval(() => {
-  index = (index + 1) % cards.length;
-  updateCarousel();
-}, 5000);
+
