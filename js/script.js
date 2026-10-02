@@ -81,6 +81,17 @@ const CHAVE_CREDENCIAIS = "credenciaisColaboradores";   // { email: { colaborado
 const CHAVE_SESSAO = "sessaoUsuario";                   // { perfil, colaboradorId?, nome? }
 const CHAVE_AGENDAMENTOS = "agendamentosSalvos";        // lista de agendamentos (dono e colaboradores veem os mesmos)
 
+// --- FLUXO "ESCOLHER PLANO → CADASTRO → COMPRA" ---
+const PAGINA_CADASTRO = "cadastro.html";      // tela de login/cadastro
+const PAGINA_ASSINATURA = "assinatura.html";  // tela de compra do plano
+// Planos aceitos no endereço (?plano=...) e o nome que aparece para o cliente
+const NOMES_PLANOS_ASSINATURA = {
+  basico: "Básico",
+  profissional: "Profissional",
+  completo: "Completo",
+  premium: "Premium"
+};
+
 function lerJsonLocal(chave, padrao) {
   try {
     const valor = JSON.parse(localStorage.getItem(chave));
@@ -182,10 +193,9 @@ const AGEND_DURACAO_MIN = 15, AGEND_DURACAO_MAX = 240;
 // Nome completo sem abreviar: cada palavra começa com maiúscula e tem 2+ letras
 // (aceita "da", "de", "do", "das", "dos", "e" em minúsculo no meio).
 const NOME_COMPLETO_REGEX = /^\p{Lu}\p{Ll}+(\s(da|de|do|das|dos|e|\p{Lu}\p{Ll}+))*\s\p{Lu}\p{Ll}+$/u;
-// Nome do cliente: só letras, com nome e sobrenome separados por espaço
-const NOME_CLIENTE_REGEX = /^\p{L}{2,}(\s+\p{L}{2,})+$/u;
-// Qualquer caractere que não seja letra ou espaço (número, símbolo, hífen, etc.)
-const NOME_CLIENTE_CARACTERE_INVALIDO = /[^\p{L}\s]/u;
+// Nome do cliente: só letras (com acento), espaço, hífen e apóstrofo.
+// Começa e termina com letra, e os símbolos nunca ficam repetidos (ex: João Pereira, Maria-Clara, D'Ávila).
+const NOME_CLIENTE_REGEX = /^\p{L}+(?:[ '-]\p{L}+)*$/u;
 
 function criarColetorErros() {
   const erros = [];
@@ -203,6 +213,56 @@ function criarColetorErros() {
 function dataHojeISO() {
   const hoje = new Date();
   return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+}
+
+// Explica o que está errado no nome do cliente (números, símbolos ou formato)
+function mensagemNomeClienteInvalido(nome) {
+  if (/\p{N}/u.test(nome)) {
+    return "O nome do cliente não pode ter números. Use apenas letras.";
+  }
+  if (/[^\p{L}\s'-]/u.test(nome)) {
+    return "O nome do cliente não pode ter símbolos (como @ # $ % ! . , _). Use apenas letras, espaço, hífen (-) ou apóstrofo (').";
+  }
+  return "Digite o nome do cliente começando e terminando com letra, sem espaços ou símbolos repetidos. Exemplo: João Pereira";
+}
+
+// Validação ao vivo no campo "Cliente" (tela de Agendar Cliente):
+// enquanto a pessoa digita, números e símbolos são barrados e aparece um aviso embaixo do campo.
+function ativarValidacaoNomeCliente() {
+  const campo = document.getElementById("agend-cliente");
+  if (!campo) return; // esta página não tem a tela de agendar cliente
+
+  campo.setAttribute("maxlength", AGEND_CLIENTE_MAX);
+  campo.setAttribute("autocomplete", "off");
+  campo.setAttribute("title", "Use apenas letras, espaço, hífen (-) e apóstrofo ('). Números e símbolos não são aceitos.");
+
+  const dica = document.createElement("small");
+  dica.style.cssText = "color:#e11d48; font-size:11px; display:none;";
+  dica.textContent = "Só são permitidas letras, espaço, hífen (-) e apóstrofo ('). Números e símbolos não são aceitos.";
+  campo.insertAdjacentElement("afterend", dica);
+
+  campo.addEventListener("input", function () {
+    const original = campo.value;
+
+    // Aspas "curvas" viram apóstrofo comum
+    const normalizado = original.replace(/[’‘`´]/g, "'");
+    // Remove tudo que não for letra, espaço, hífen ou apóstrofo (números, @, #, $, %, ., , etc.)
+    const semInvalidos = normalizado.replace(/[^\p{L}\s'-]/gu, "");
+    const removeuInvalido = semInvalidos.length !== normalizado.length;
+
+    // Arruma o formato: sem espaço/símbolo no começo e sem separadores repetidos
+    const limpo = semInvalidos
+      .replace(/\s+/g, " ")
+      .replace(/^[ '-]+/, "")
+      .replace(/([ '-])[ '-]+/g, "$1");
+
+    if (limpo !== original) campo.value = limpo;
+    dica.style.display = removeuInvalido ? "block" : "none";
+  });
+
+  if (campo.form) {
+    campo.form.addEventListener("reset", () => { dica.style.display = "none"; });
+  }
 }
 
 function validarNovoColaborador() {
@@ -284,15 +344,13 @@ function validarNovoAgendamento() {
   const cliente = campoCliente.value;
   const servico = campoServico.value;
 
-  // Cliente: obrigatório, só letras e precisa de nome e sobrenome
+  // Cliente: obrigatório, só letras, espaços, apóstrofo e hífen
   if (!cliente) {
     coletor.falhar("Preencha o nome do cliente.", "agend-cliente");
   } else if (cliente.length < AGEND_CLIENTE_MIN || cliente.length > AGEND_CLIENTE_MAX) {
     coletor.falhar(`O nome do cliente deve ter de ${AGEND_CLIENTE_MIN} a ${AGEND_CLIENTE_MAX} caracteres.`, "agend-cliente");
-  } else if (NOME_CLIENTE_CARACTERE_INVALIDO.test(cliente)) {
-    coletor.falhar("O nome do cliente deve ter apenas letras (sem números, símbolos ou pontuação).", "agend-cliente");
   } else if (!NOME_CLIENTE_REGEX.test(cliente)) {
-    coletor.falhar("Digite o nome e o sobrenome do cliente. Exemplo: João Pereira", "agend-cliente");
+    coletor.falhar(mensagemNomeClienteInvalido(cliente), "agend-cliente");
   }
 
   // Serviço: obrigatório
@@ -594,34 +652,13 @@ function iniciarDashboard() {
     }
   }
 
-  // --- DONO NA AGENDA ---
-  // O dono não é um colaborador cadastrado, então ele entra na agenda como uma
-  // coluna "virtual" com id 0 (os colaboradores começam no id 1, não conflita).
-  const ID_DONO = 0;
-
-  function obterDono() {
-    return {
-      id: ID_DONO,
-      nome: localStorage.getItem("nomeUsuarioCadastrado") || "Admin",
-      cargo: "Proprietário",
-      cor: "#6c5ce7",
-      ativo: true
-    };
-  }
-
-  // Quem aparece na agenda: o dono (só no painel do dono) + colaboradores ativos
-  function obterAgendaAtivos() {
-    const ativos = colaboradores.filter(c => c.ativo !== false);
-    return usuarioLogado.perfil === "DONO" ? [obterDono(), ...ativos] : ativos;
-  }
-
   // --- FILTRO DE COLABORADOR NA AGENDA ---
   function atualizarFiltroColaborador() {
     const select = document.getElementById("filtro-colaborador");
 
     select.innerHTML = `<option value="todos">Procurar colaborador...</option>`;
 
-    obterAgendaAtivos().forEach(c => {
+    colaboradores.filter(c => c.ativo !== false).forEach(c => {
       select.insertAdjacentHTML(
         "beforeend",
         `<option value="${c.id}">${c.nome}</option>`
@@ -655,7 +692,7 @@ function iniciarDashboard() {
     }
 
     // Colaborador inativo some da agenda (os agendamentos dele continuam salvos)
-    const colaboradoresAtivos = obterAgendaAtivos();
+    const colaboradoresAtivos = colaboradores.filter(c => c.ativo !== false);
 
     const filtro = document.getElementById("filtro-colaborador");
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
@@ -678,7 +715,7 @@ function iniciarDashboard() {
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
     if (colaboradorSelecionado !== "todos") return 1;
 
-    return Math.ceil(obterAgendaAtivos().length / colunasVisiveis) || 1;
+    return Math.ceil(colaboradores.filter(c => c.ativo !== false).length / colunasVisiveis) || 1;
   }
   function atualizarInfoPaginacao() {
     document.getElementById("pag-info").textContent = `${paginaAtual + 1} de ${obterTotalPaginas()}`;
@@ -913,8 +950,15 @@ function iniciarDashboard() {
   }
 
   btnAbrirAgendamento.addEventListener("click", () => {
+    // Sem colaborador ativo não dá pra agendar
+    if (!colaboradores.some(c => c.ativo !== false)) {
+      alert("Cadastre um colaborador antes de criar um agendamento.");
+      return;
+    }
+
     selectProfissional.innerHTML = "";
-    obterAgendaAtivos()
+    colaboradores
+      .filter(c => c.ativo !== false)
       .filter(c => usuarioLogado.perfil !== "COLABORADOR" || c.id === usuarioLogado.colaboradorId)
       .forEach(c => {
       selectProfissional.insertAdjacentHTML("beforeend", `<option value="${c.id}">${c.nome}</option>`);
@@ -926,11 +970,7 @@ function iniciarDashboard() {
     modalAgendamento.hidden = false;
   });
 
-  function fecharModalAgendamento() {
-    modalAgendamento.hidden = true;
-    limparErroForm(formAgendamento);
-    formAgendamento.reset();
-  }
+  function fecharModalAgendamento() { modalAgendamento.hidden = true; limparErroForm(formAgendamento); }
   btnFecharModal.addEventListener("click", fecharModalAgendamento);
   btnCancelarAgendamento.addEventListener("click", fecharModalAgendamento);
 
@@ -1216,13 +1256,7 @@ function iniciarDashboard() {
     ["btn-plano-premium", "PREMIUM"]
   ].forEach(([idBotao, plano]) => {
     const botao = document.getElementById(idBotao);
-    if (!botao) return;
-    botao.addEventListener("click", () => {
-      if (plano === planoAtual) return; // já é o plano atual
-      // Planos pagos abrem a tela de compra; o Grátis continua trocando direto
-      if (plano === "FREE") escolherPlano(plano);
-      else window.location.href = `assinatura.html?plano=${plano.toLowerCase()}`;
-    });
+    if (botao) botao.addEventListener("click", () => escolherPlano(plano));
   });
 
   // Se o dono e o colaborador estiverem com o site aberto em abas diferentes,
@@ -1570,11 +1604,7 @@ function iniciarColaborador() {
     campoData.value = seletorData.value >= hojeISO ? seletorData.value : hojeISO;
     modal.hidden = false;
   });
-  const fecharModal = () => {
-    modal.hidden = true;
-    limparErroForm(formAgend);
-    formAgend.reset();
-  };
+  const fecharModal = () => { modal.hidden = true; limparErroForm(formAgend); };
   document.getElementById("btn-fechar-modal").addEventListener("click", fecharModal);
   document.getElementById("btn-cancelar-agendamento").addEventListener("click", fecharModal);
 
@@ -1669,6 +1699,34 @@ function iniciarColaborador() {
 
 
 // =====================================================
+// 2.7 PLANOS (planos.html)
+// Só roda se a página tiver o elemento .planos-grade.
+// Ao escolher um plano:
+//   - sem conta (ou sem login) → vai para a tela de cadastro e, depois de
+//     cadastrar/entrar, é levado para a tela de compra desse plano;
+//   - já logado → vai direto para a tela de compra.
+// =====================================================
+function iniciarPlanos() {
+  const grade = document.querySelector(".planos-grade");
+  if (!grade) return; // esta página não é a de planos
+
+  grade.querySelectorAll("[data-plano]").forEach(botao => {
+    botao.addEventListener("click", function (e) {
+      e.preventDefault();
+      const plano = this.dataset.plano;
+      const sessao = lerJsonLocal(CHAVE_SESSAO, null);
+
+      if (sessao && sessao.perfil === "DONO") {
+        window.location.href = `${PAGINA_ASSINATURA}?plano=${plano}`;
+      } else {
+        window.location.href = `${PAGINA_CADASTRO}?modo=cadastro&plano=${plano}`;
+      }
+    });
+  });
+}
+
+
+// =====================================================
 // 3. LOGIN & CADASTRO (login.html)
 // Só roda se a página tiver o elemento #container (o card com o slider).
 // =====================================================
@@ -1692,6 +1750,12 @@ function iniciarAuth() {
   const urlParams = new URLSearchParams(window.location.search);
   const modo = urlParams.get("modo");
 
+  // Veio da tela de Planos? Depois de cadastrar/entrar, vai para a compra desse plano
+  const planoEscolhido = (urlParams.get("plano") || "").toLowerCase();
+  const destinoCompra = NOMES_PLANOS_ASSINATURA[planoEscolhido]
+    ? `${PAGINA_ASSINATURA}?plano=${planoEscolhido}`
+    : null;
+
   if (modo === "cadastro") {
     container.classList.add("active");
   } else if (modo === "entrar") {
@@ -1700,6 +1764,18 @@ function iniciarAuth() {
 
   const formCadastro = document.getElementById("form-cadastro");
   const formLogin = document.getElementById("form-login");
+
+  // Aviso embaixo do título dos formulários, lembrando o plano escolhido
+  if (destinoCompra) {
+    [[formCadastro, "Crie sua conta para continuar com o plano"], [formLogin, "Entre para continuar com o plano"]].forEach(([form, texto]) => {
+      const titulo = form ? form.querySelector("h1") : null;
+      if (!titulo) return;
+      const aviso = document.createElement("p");
+      aviso.style.cssText = "font-size:12px; color:#512da8; margin:6px 0 0; text-align:center;";
+      aviso.textContent = `${texto} ${NOMES_PLANOS_ASSINATURA[planoEscolhido]}.`;
+      titulo.insertAdjacentElement("afterend", aviso);
+    });
+  }
 
   if (formCadastro) {
     // Dica de como criar a senha (só na tela de cadastro)
@@ -1763,7 +1839,7 @@ function iniciarAuth() {
         localStorage.setItem("nomeUsuarioCadastrado", nome);
       }
       localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "DONO" }));
-      window.location.href = "agenda.html";
+      window.location.href = destinoCompra || "agenda.html";
     });
   }
 
@@ -1824,7 +1900,7 @@ function iniciarAuth() {
       }
 
       localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "DONO" }));
-      window.location.href = "agenda.html";
+      window.location.href = destinoCompra || "agenda.html";
     });
   }
 }
@@ -1878,8 +1954,10 @@ function iniciarLanding() {
 // Cada função já verifica sozinha se deve ou não rodar naquela tela.
 // =====================================================
 document.addEventListener("DOMContentLoaded", function () {
+  ativarValidacaoNomeCliente();
   iniciarDashboard();
   iniciarColaborador();
+  iniciarPlanos();
   iniciarAuth();
   iniciarLanding();
 });
@@ -1888,35 +1966,25 @@ document.addEventListener("DOMContentLoaded", function () {
 // =======================================================
 // Carrosel - Página Index (NÃO MEXER) - DEPOIMENTOS
 // =======================================================
+
 const track = document.querySelector('.carousel-track');
+const cards = Array.from(track.children);
 const prevBtn = document.querySelector('.carousel-btn.prev');
 const nextBtn = document.querySelector('.carousel-btn.next');
+let index = 0;
 
-// Função para atualizar o estado dos botões
-function updateButtons() {
-  const maxScrollLeft = track.scrollWidth - track.clientWidth;
-
-  // Desabilita o botão "voltar" se estiver no início
-  prevBtn.disabled = track.scrollLeft <= 0;
-
-  // Desabilita o botão "próximo" se estiver no fim
-  nextBtn.disabled = track.scrollLeft >= maxScrollLeft - 5;
-
-  // Ajuste visual opcional
-  prevBtn.style.opacity = prevBtn.disabled ? '0.3' : '1';
-  nextBtn.style.opacity = nextBtn.disabled ? '0.3' : '1';
+function updateCarousel() {
+  track.style.transform = `translateX(-${index * 100}%)`;
 }
 
-// Movimento para frente
 nextBtn.addEventListener('click', () => {
-  track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
-  setTimeout(updateButtons, 500); // espera o scroll terminar
+  index = (index + 1) % cards.length;
+  updateCarousel();
 });
 
-// Movimento para trás
 prevBtn.addEventListener('click', () => {
-  track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
-  setTimeout(updateButtons, 500);
+  index = (index - 1 + cards.length) % cards.length;
+  updateCarousel();
 });
 
 // Auto-play

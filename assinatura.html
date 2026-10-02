@@ -201,19 +201,31 @@ h2 { font-size: 15px; margin: 0 0 12px; }
 // =====================================================
 // CONFIGURAÇÃO — ajuste aqui sem mexer no resto
 // =====================================================
-const PAGINA_PAINEL = "agenda.html";   // página do painel (destino do "Ir para o painel")
-const DESCONTO_ANUAL = 0.20;           // 20% de desconto no plano anual
+const PAGINA_PAINEL = "agenda.html";     // página do painel (destino do "Ir para o painel")
+const PAGINA_PLANOS = "planos.html";     // tela de planos (quando entram aqui sem escolher um plano)
+const PAGINA_CADASTRO = "cadastro.html"; // tela de login/cadastro (quando entram aqui sem estar logados)
+const DESCONTO_ANUAL = 0.20;             // 20% de desconto no plano anual
 const CHAVE_ASSINATURA = "assinaturaAtual";
+const CHAVE_SESSAO = "sessaoUsuario";    // a mesma usada pelo js/script.js no login/cadastro
 
-// >>> PREÇOS DE EXEMPLO: troque pelos valores reais dos planos.
+// >>> PREÇOS: Básico, Profissional e Completo seguem os valores da tela de Planos (planos.html).
+// O Premium (usado pelo painel) continua com o valor de exemplo: troque pelo valor real.
 const PLANOS = {
   FREE: {
     nome: "Grátis", mensal: 0, duracaoDias: 30,
     itens: ["30 dias de uso", "Até 15 colaboradores", "Agenda simples"]
   },
   BASICO: {
-    nome: "Básico", mensal: 29.90,
-    itens: ["Agendamentos ilimitados", "Até 10 colaboradores", "Suporte por e-mail"]
+    nome: "Básico", mensal: 39.90,
+    itens: ["Agenda", "Cadastro de clientes", "Cadastro de serviços", "Organização de horários"]
+  },
+  PROFISSIONAL: {
+    nome: "Profissional", mensal: 69.90, destaque: "Mais escolhido",
+    itens: ["Tudo do plano Básico", "Agenda completa", "Controle financeiro", "Histórico de clientes", "Relatórios"]
+  },
+  COMPLETO: {
+    nome: "Completo", mensal: 99.90,
+    itens: ["Tudo do plano Profissional", "Controle de equipe", "Controle de comissões", "Controle de estoque", "Recursos adicionais"]
   },
   PREMIUM: {
     nome: "Premium", mensal: 59.90, destaque: "Mais completo",
@@ -478,17 +490,28 @@ $("link-voltar").href = PAGINA_PAINEL;
 $("btn-ir-painel").href = PAGINA_PAINEL;
 $("pix-codigo").value = "00020126-SIMULACAO-" + Math.random().toString(36).slice(2, 12).toUpperCase();
 
-// O plano vem da tela de Planos do painel: assinatura.html?plano=premium
+// O plano vem da tela de Planos: assinatura.html?plano=profissional
 const params = new URLSearchParams(window.location.search);
 const planoUrl = (params.get("plano") || "").toUpperCase();
-if (planoUrl === "BASICO" || planoUrl === "PREMIUM") {
-  planoEscolhido = planoUrl;
+let podeContinuar = true;
+
+if (!PLANOS[planoUrl] || planoUrl === "FREE") {
+  // Sem plano escolhido: volta para a tela de planos, onde o plano é escolhido
+  podeContinuar = false;
+  window.location.replace(PAGINA_PLANOS);
 } else {
-  // Sem plano escolhido: volta ao painel, onde o plano é escolhido
-  window.location.replace(PAGINA_PAINEL);
+  planoEscolhido = planoUrl;
+
+  // Sem cadastro/login: vai para a tela de cadastro e, depois de cadastrar, volta aqui já com o plano
+  let sessao = null;
+  try { sessao = JSON.parse(localStorage.getItem(CHAVE_SESSAO)); } catch (e) { sessao = null; }
+  if (!sessao || sessao.perfil !== "DONO") {
+    podeContinuar = false;
+    window.location.replace(PAGINA_CADASTRO + "?modo=cadastro&plano=" + planoUrl.toLowerCase());
+  }
 }
 
-atualizarTela();
+if (podeContinuar) atualizarTela();
 </script>
 </body>
 </html>
