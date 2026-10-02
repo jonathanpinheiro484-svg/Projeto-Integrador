@@ -1,17 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planos - Nome da Empresa</title>
-    <!-- <link rel="stylesheet" href="css/styles.css"> -->
+    <title>Planos - GET TIME</title>
+    <link rel="stylesheet" href="css/stylesPlanos.css">
 </head>
+
 <body>
 
     <header class="topo">
         <div class="logo">
-            <a href="index.html">GET<BR>TIME
-            </a>
+            <a href="index.html">Nome da Empresa</a>
         </div>
 
         <nav class="menu">
@@ -22,7 +23,7 @@
             </ul>
         </nav>
 
-         <div class="menu-acoes">
+        <div class="menu-acoes">
             <a href="cadastro.html?modo=entrar" class="botao secundario">Entrar</a>
             <a href="cadastro.html?modo=cadastro" class="botao primario">Cadastrar</a>
         </div>
@@ -46,68 +47,53 @@
 
             <!-- =========================
                  CARDS DE PLANOS
-                 Cada botão tem data-plano. O js/script.js decide:
-                 sem login → cadastro (e depois compra) | com login → compra direto.
-                 O href é só um plano B caso o JavaScript não carregue.
             ========================== -->
             <div class="planos-grade">
+    <!-- Plano Free -->
+    <div class="plano-card free">
+      <h2>Free (Degustação)</h2>
+      <p class="limite">30 dias de uso</p>
+      <ul class="plano-lista">
+        <li><span class="icon check">✔️</span> Agendamentos ilimitados apenas durante o período</li>
+        <li><span class="icon check">✔️</span> 15 colaboradores inclusos</li>
+        <li><span class="icon cross">❌</span> Agenda simples (sem relatórios)</li>
+        <li><span class="icon cross">❌</span> Sem suporte prioritário</li>
+        <li><span class="icon cross">❌</span> Sem integrações externas</li>
+      </ul>
+      <a href="cadastro.html?modo=cadastro" class="botao primario">Experimentar grátis</a>
+    </div>
 
-                <div class="plano">
-                    <h2>Básico</h2>
-                    <p>Para quem está começando a organizar sua rotina.</p>
-                    <div class="plano-preco">
-                        <span class="preco-moeda">R$</span>
-                        39,90
-                        <small class="preco-periodo">/mês</small>
-                    </div>
-                    <ul class="plano-lista">
-                        <li>Agenda</li>
-                        <li>Cadastro de clientes</li>
-                        <li>Cadastro de serviços</li>
-                        <li>Organização de horários</li>
-                    </ul>
-                    <a href="cadastro.html?modo=cadastro&plano=basico" class="botao primario" data-plano="basico">Escolher Básico</a>
-                </div>
+    <!-- Plano Básico -->
+    <div class="plano-card basico">
+      <h2>Básico</h2>
+      <p class="limite">Sem limite de tempo</p>
+      <ul class="plano-lista">
+        <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
+        <li><span class="icon check">✔️</span> Até 10 colaboradores</li>
+        <li><span class="icon cross">❌</span> Sem relatórios (agenda/financeiro)</li>
+        <li><span class="icon check">✔️</span> Suporte somente por e-mail</li>
+        <li><span class="icon check">✔️</span> Notificações por e-mail</li>
+      </ul>
+      <a href="cadastro.html?modo=cadastro" class="botao primario">Assinar Básico</a>
+    </div>
 
-                <div class="plano destaque">
-                    <p class="plano-selo">MAIS ESCOLHIDO</p>
-                    <h2>Profissional</h2>
-                    <p>Para quem precisa de mais recursos para sua rotina.</p>
-                    <div class="plano-preco">
-                        <span class="preco-moeda">R$</span>
-                        69,90
-                        <small class="preco-periodo">/mês</small>
-                    </div>
-                    <ul class="plano-lista">
-                        <li>Tudo do plano Básico</li>
-                        <li>Agenda completa</li>
-                        <li>Controle financeiro</li>
-                        <li>Histórico de clientes</li>
-                        <li>Relatórios</li>
-                    </ul>
-                    <a href="cadastro.html?modo=cadastro&plano=profissional" class="botao primario" data-plano="profissional">Escolher Profissional</a>
-                </div>
-
-                <div class="plano">
-                    <h2>Completo</h2>
-                    <p>Para quem busca uma experiência mais completa.</p>
-                    <div class="plano-preco">
-                        <span class="preco-moeda">R$</span>
-                        99,90
-                        <small class="preco-periodo">/mês</small>
-                    </div>
-                    <ul class="plano-lista">
-                        <li>Tudo do plano Profissional</li>
-                        <li>Controle de equipe</li>
-                        <li>Controle de comissões</li>
-                        <li>Controle de estoque</li>
-                        <li>Recursos adicionais</li>
-                    </ul>
-                    <a href="cadastro.html?modo=cadastro&plano=completo" class="botao primario" data-plano="completo">Escolher Completo</a>
-                </div>
-
-            </div>
-        </section>
+    <!-- Plano Premium -->
+    <div class="plano-card premium destaque">
+      <p class="plano-selo">MAIS COMPLETO</p>
+      <h2>Premium</h2>
+      <p class="limite">Sem limite de tempo</p>
+      <ul class="plano-lista">
+        <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
+        <li><span class="icon check">✔️</span> Colaboradores ilimitados</li>
+        <li><span class="icon check">✔️</span> Relatórios avançados (financeiro)</li>
+        <li><span class="icon check">✔️</span> Suporte prioritário (chat/telefone)</li>
+        <li><span class="icon check">✔️</span> Integração com WhatsApp</li>
+        <li><span class="icon check">✔️</span> Personalização de serviços e horários</li>
+      </ul>
+      <a href="cadastro.html?modo=cadastro" class="botao primario">Assinar Premium</a>
+    </div>
+  </div>
+</section>
 
         <!-- =========================
              CHAMADA FINAL
@@ -133,8 +119,7 @@
         <p class="rodape-texto">&copy; 2026 Nome da Empresa. Todos os direitos reservados.</p>
     </footer>
 
-    <!-- Todo o JavaScript do site está reunido em um único arquivo -->
-    <script src="js/script.js"></script>
 
 </body>
+
 </html>
