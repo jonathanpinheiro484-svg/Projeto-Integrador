@@ -1,17 +1,21 @@
+/* @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap'); */
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* =========================
    PALETA E BASE
 ========================= */
 :root {
-  --fundo: #f6f9f9;
+  --fundo: #f2f6fb;
   --superficie: #ffffff;
-  --verde-suave: #e3f1ee;
-  --tinta: #1c2b33;
-  --tinta-suave: #5a6b74;
-  --linha: #dde6e8;
-  --primaria: #0f766e;
-  --primaria-escura: #0b5c56;
+  --verde-suave: #e6eefa;
+  --tinta: #0b2239;
+  --tinta-suave: #52657a;
+  --linha: #d9e3ef;
+  --primaria: #1f6fd6;
+  --primaria-escura: #1759ad;
   --estrela: #f2b134;
   --raio: 14px;
   --sombra: 0 4px 18px rgba(28, 43, 51, 0.06);
@@ -359,3 +363,62 @@ main { padding-top: 76px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+
+/* =========================================================
+   ESTILO "ESCOLA ONLINE" (inspirado na Alura)
+   Azul marinho no topo e na chamada final, verde só nos botões
+   de ação e seções claras no meio para não pesar.
+========================================================= */
+:root {
+  --marinho: #071e34;
+  --marinho-2: #0d2b47;
+  --ciano: #6cc4ff;
+  --cta: #00c86f;
+  --cta-escuro: #00a95e;
+}
+
+/* Cabeçalho */
+.topo { background: var(--marinho); border-bottom: 1px solid rgba(255,255,255,.08); }
+.topo .logo a { color: #fff; }
+.sidebar nav a { color: #c9d8e8; }
+.sidebar nav a:hover { color: #fff; }
+.topo .botao.secundario { color: #fff; border-color: rgba(255,255,255,.5); }
+.topo .botao.secundario:hover { background: rgba(255,255,255,.1); }
+.topo .botao.primario { background: var(--cta); border-color: var(--cta); color: var(--marinho); }
+.topo .botao.primario:hover { background: var(--cta-escuro); border-color: var(--cta-escuro); }
+
+/* Banner */
+.banner {
+  background: radial-gradient(circle at 80% 20%, var(--marinho-2) 0%, var(--marinho) 60%);
+  padding-top: 90px;
+  padding-bottom: 100px;
+  border-radius: 0 0 28px 28px;
+}
+.banner-texto h1 { color: #fff; font-size: clamp(2.2rem, 5vw, 3.6rem); }
+.banner-texto p { color: #c9d8e8; }
+.banner-texto .subtitulo { color: var(--ciano); }
+.banner .botao.primario { background: var(--cta); border-color: var(--cta); color: var(--marinho); font-weight: 700; }
+.banner .botao.primario:hover { background: var(--cta-escuro); border-color: var(--cta-escuro); }
+.banner .botao.secundario { color: #fff; border-color: rgba(255,255,255,.5); }
+.banner .botao.secundario:hover { background: rgba(255,255,255,.1); }
+
+/* Seções claras */
+.recursos .subtitulo, .destaque .subtitulo, .avaliacoes .subtitulo { color: var(--primaria); }
+.bloco { background: #fff; border: 1px solid var(--linha); border-top: 4px solid var(--primaria); border-radius: 12px; transition: box-shadow .2s; }
+.bloco:hover { box-shadow: 0 10px 28px rgba(7,30,52,.10); }
+.bloco h3 { color: var(--tinta); }
+.recursos { background: #fff; }
+.destaque { background: var(--fundo); }
+.card { background: #fff; border-radius: 12px; }
+.card .profissao { color: var(--primaria); }
+.carousel-btn:hover { background: var(--primaria); }
+
+/* Chamada final */
+.chamada { background: linear-gradient(135deg, var(--marinho) 0%, var(--marinho-2) 100%); }
+.chamada p { color: #c9d8e8; }
+.chamada .botao.primario { background: var(--cta); border-color: var(--cta); color: var(--marinho); font-weight: 700; }
+.chamada .botao.primario:hover { background: var(--cta-escuro); border-color: var(--cta-escuro); }
+
+/* Rodapé */
+.rodape { background: #041423; }

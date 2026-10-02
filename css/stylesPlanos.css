@@ -1,230 +1,319 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Montserrat', sans-serif;
+/* =========================
+   PALETA (igual à página inicial)
+========================= */
+:root {
+  --fundo: #f2f6fb;
+  --superficie: #ffffff;
+  --tinta: #0b2239;
+  --tinta-suave: #52657a;
+  --linha: #d9e3ef;
+  --primaria: #1f6fd6;
+  --primaria-escura: #1759ad;
+  --verde-suave: #e6eefa;
+  --marinho: #071e34;
+  --marinho-2: #0d2b47;
+  --ciano: #6cc4ff;
+  --cta: #00c86f;
+  --cta-escuro: #00a95e;
+  --raio: 14px;
 }
+
+
+/* =====================================================
+   >>> CORES DOS PLANOS: EDITE AQUI <<<
+   Cada plano tem seu próprio bloco. Mude só os valores.
+   fundo     = cor de fundo do card (pode ser gradiente)
+   borda     = contorno do card
+   titulo    = nome do plano
+   sub       = linha "30 dias de uso" / "Sem limite de tempo"
+   linha     = traço que separa o topo da lista
+   texto     = itens da lista
+   ok-fundo / ok-cor     = bolinha do item incluído (✓)
+   nao-fundo / nao-cor   = bolinha do item não incluído (✕)
+   btn-fundo / btn-texto / btn-hover = botão do card
+===================================================== */
+
+/* ----- FREE (card da esquerda) ----- */
+.plano-card.free {
+  --fundo:      #ffffff;
+  --borda:      #d9e3ef;
+  --titulo:     #0b2239;
+  --sub:        #1f6fd6;
+  --linha:      #d9e3ef;
+  --texto:      #52657a;
+  --ok-fundo:   #dff6ea;
+  --ok-cor:     #0a8a4f;
+  --nao-fundo:  #eef1f5;
+  --nao-cor:    #98a5b3;
+  --btn-fundo:  #1f6fd6;
+  --btn-texto:  #ffffff;
+  --btn-hover:  #1759ad;
+}
+
+/* ----- BÁSICO (card do meio) ----- */
+.plano-card.basico {
+  --fundo:      linear-gradient(180deg, #2b7de9 0%, #1759ad 100%);
+  --borda:      #1759ad;
+  --titulo:     #ffffff;
+  --sub:        #cfe3ff;
+  --linha:      rgba(255, 255, 255, 0.25);
+  --texto:      #e8f1ff;
+  --ok-fundo:   rgba(255, 255, 255, 0.22);
+  --ok-cor:     #ffffff;
+  --nao-fundo:  rgba(255, 255, 255, 0.10);
+  --nao-cor:    rgba(255, 255, 255, 0.55);
+  --btn-fundo:  #ffffff;
+  --btn-texto:  #1759ad;
+  --btn-hover:  #e6eefa;
+}
+
+/* ----- PREMIUM (card da direita) ----- */
+.plano-card.premium {
+  --fundo:      linear-gradient(180deg, #0d2b47 0%, #071e34 100%);
+  --borda:      #00c86f;
+  --titulo:     #ffffff;
+  --sub:        #6cc4ff;
+  --linha:      rgba(255, 255, 255, 0.15);
+  --texto:      #c9d8e8;
+  --ok-fundo:   rgba(0, 200, 111, 0.20);
+  --ok-cor:     #00c86f;
+  --nao-fundo:  rgba(255, 255, 255, 0.10);
+  --nao-cor:    rgba(255, 255, 255, 0.5);
+  --btn-fundo:  #00c86f;
+  --btn-texto:  #071e34;
+  --btn-hover:  #00a95e;
+}
+
+/* selo "MAIS COMPLETO" */
+.plano-selo { --selo-fundo: #00c86f; --selo-texto: #071e34; }
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
-    background: linear-gradient(135deg, #0b0c10, #1f1f2e);
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    /* deixa o conteúdo começar do topo */
-    min-height: 100vh;
-    /* permite rolagem se o conteúdo for maior */
-    overflow-x: hidden;
-    /* evita barra horizontal */
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  background: var(--fundo);
+  color: var(--tinta);
+  line-height: 1.65;
+  overflow-x: hidden;
 }
 
-/* --- CABEÇALHO --- */
+a:focus-visible, button:focus-visible {
+  outline: 3px solid var(--cta);
+  outline-offset: 3px;
+}
+
+h1, h2, h3 { line-height: 1.2; letter-spacing: -0.01em; }
+
+/* =========================
+   BOTÕES
+========================= */
+.botao {
+  display: inline-block;
+  padding: 12px 26px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: 2px solid var(--primaria);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.botao.primario { background: var(--primaria); color: #fff; }
+.botao.primario:hover { background: var(--primaria-escura); border-color: var(--primaria-escura); }
+.botao.secundario { background: transparent; color: var(--primaria); }
+
+/* =========================
+   CABEÇALHO
+========================= */
 .topo {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 30px;
-    background-color: #ffffff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-}
-
-.topo .logo a {
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: #333;
-    text-decoration: none;
-}
-
-.sidebar h2 {
-    font-size: 1rem;
-    display: none;
-}
-
-.sidebar nav a {
-    margin: 0 10px;
-    text-decoration: none;
-    color: #555;
-    font-weight: 500;
-}
-
-.sidebar nav a:hover {
-    color: #512da8;
-}
-
-
-
-
-
-
-/* ===== SEÇÃO PRINCIPAL ===== */
-.planos {
-  text-align: center;
-  padding: 80px 20px;
-  background-color: #e8e8e8; /* fundo neutro para destacar os cards */
-  color: #0d0d0d;
-  font-family: 'Poppins', sans-serif;
-}
-
-.planos h2 {
-  font-size: 36px;
-  color: #3a0078;
-  margin-bottom: 10px;
-  font-weight: 700;
-}
-
-.planos p {
-  font-size: 18px;
-  color: #333;
-  margin-bottom: 40px;
-}
-
-/* ===== CONTAINER DE PLANOS ===== */
-.planos-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 30px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 12px 40px;
+  background: var(--marinho);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 1000;
 }
 
-/* ===== CARD BASE ===== */
+.topo .logo a { font-weight: 800; font-size: 1.1rem; color: #fff; text-decoration: none; }
+
+.menu-lista { display: flex; gap: 28px; list-style: none; }
+.menu-lista a { color: #c9d8e8; text-decoration: none; font-weight: 500; font-size: 0.95rem; }
+.menu-lista a:hover { color: #fff; }
+
+.menu-acoes { display: flex; gap: 10px; }
+.menu-acoes .botao { padding: 8px 20px; }
+.topo .botao.secundario { color: #fff; border-color: rgba(255, 255, 255, 0.5); }
+.topo .botao.secundario:hover { background: rgba(255, 255, 255, 0.1); }
+.topo .botao.primario { background: var(--cta); border-color: var(--cta); color: var(--marinho); }
+.topo .botao.primario:hover { background: var(--cta-escuro); border-color: var(--cta-escuro); }
+
+main { padding-top: 76px; }
+
+/* =========================
+   PLANOS
+   Faixa marinho no topo, cards sobrepondo a faixa
+========================= */
+.planos {
+  padding: 70px 8% 90px;
+  background: linear-gradient(180deg, var(--marinho) 0, var(--marinho-2) 400px, var(--fundo) 400px);
+}
+
+.planos-intro { max-width: 720px; margin: 0 auto 50px; text-align: center; }
+
+.planos-intro .subtitulo {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ciano);
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.planos-intro h1 {
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.planos-intro p { color: #c9d8e8; font-size: 1.05rem; }
+
+.planos-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+/* ===== Estrutura dos cards (não precisa mexer; as cores vêm dos blocos lá de cima) ===== */
 .plano-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 40px 30px;
-  width: 320px;
-  text-align: left;
-  box-shadow: 0 0 0 2px rgba(58, 0, 120, 0.15);
-  transition: all 0.3s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 18px;
+  padding: 36px 30px 30px;
+  box-shadow: 0 8px 28px rgba(7, 30, 52, 0.10);
+  transition: box-shadow 0.2s;
 }
+.plano-card:hover { box-shadow: 0 14px 36px rgba(7, 30, 52, 0.18); }
+.plano-card.premium { border-width: 2px; }
 
-.plano-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 0 25px rgba(58, 0, 120, 0.3);
-}
-
-/* ===== TÍTULOS E PREÇOS ===== */
-.plano-card h3 {
-  font-size: 24px;
-  color: #3a0078;
-  margin-bottom: 10px;
-}
+.plano-card h2 { font-size: 1.5rem; font-weight: 800; color: var(--titulo); }
 
 .plano-card .limite {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--sub);
+  margin: 4px 0 22px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--linha);
 }
 
-.plano-card .preco {
-  font-size: 32px;
-  font-weight: 700;
-  color: #0018ff;
-  margin-bottom: 10px;
-}
+.plano-lista { list-style: none; margin-bottom: 28px; }
 
-.plano-card .preco-antigo {
-  text-decoration: line-through;
-  color: #999;
-  font-size: 16px;
-}
-
-/* ===== LISTA DE RECURSOS ===== */
-.plano-card ul {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 25px;
-}
-
-.plano-card ul li {
+.plano-lista li {
   display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-  color: #333;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 0.95rem;
+  color: var(--texto);
 }
 
+/* Troca os emojis por ícones limpos, sem mexer no HTML */
 .icon {
-  margin-right: 8px;
-  font-weight: bold;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border-radius: 50%;
+  font-size: 0;
+  display: grid;
+  place-items: center;
 }
+.icon::before { font-size: 0.8rem; font-weight: 800; line-height: 1; }
+.icon.check { background: var(--ok-fundo); color: var(--ok-cor); }
+.icon.check::before { content: "✓"; }
+.icon.cross { background: var(--nao-fundo); color: var(--nao-cor); }
+.icon.cross::before { content: "✕"; }
 
-.icon.check {
-  color: #4caf50;
-}
-
-.icon.cross {
-  color: #f44336;
-}
-
-/* ===== BOTÕES ===== */
-.botao.primario {
+.plano-card .botao {
   display: block;
   text-align: center;
-  background: #00ff88;
-  color: #0d0d0d;
-  font-weight: 600;
-  padding: 12px 0;
-  border-radius: 8px;
-  text-decoration: none;
-  transition: background 0.3s ease;
+  margin-top: auto;
+  padding: 13px 0;
+  background: var(--btn-fundo);
+  border-color: var(--btn-fundo);
+  color: var(--btn-texto);
+  font-weight: 700;
 }
+.plano-card .botao:hover { background: var(--btn-hover); border-color: var(--btn-hover); }
 
-.botao.primario:hover {
-  background: #00cc6a;
-}
-
-/* ===== DESTAQUE DO PLANO INTERMEDIÁRIO ===== */
-.plano-card.basico {
-  background: linear-gradient(180deg, #0018ff 0%, #000066 100%);
-  color: #fff;
-  box-shadow: 0 0 0 3px #00ff88;
-}
-
-.plano-card.basico h3 {
-  color: #fff;
-}
-
-.plano-card.basico .preco {
-  color: #00ff88;
-}
-
-.plano-card.basico ul li {
-  color: #ddd;
-}
-
-.plano-card.basico .botao.primario {
-  background: #00ff88;
-  color: #000;
-}
-
-/* ===== SELO DE DESTAQUE ===== */
 .plano-selo {
   position: absolute;
-  top: -15px;
+  top: -14px;
   left: 50%;
   transform: translateX(-50%);
-  background: #00ff88;
-  color: #000;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 5px 12px;
-  border-radius: 20px;
-  text-transform: uppercase;
+  background: var(--selo-fundo);
+  color: var(--selo-texto);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 5px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
-
-/* POSICIONAMENTO DOS CARD DOS PLANOS */
-
-.plano.destaque {
-  background: linear-gradient(180deg, #1a0033 0%, #2a0055 100%);
+/* =========================
+   CHAMADA FINAL
+========================= */
+.chamada {
+  background: linear-gradient(135deg, var(--marinho) 0%, var(--marinho-2) 100%);
   color: #fff;
-  border: 2px solid #ff00cc;
+  text-align: center;
+  padding: 80px 10%;
+}
+.chamada h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-bottom: 12px; }
+.chamada p { color: #c9d8e8; margin-bottom: 28px; }
+.chamada .botao.primario { background: var(--cta); border-color: var(--cta); color: var(--marinho); font-weight: 700; }
+.chamada .botao.primario:hover { background: var(--cta-escuro); border-color: var(--cta-escuro); }
+
+/* =========================
+   RODAPÉ
+========================= */
+.rodape { text-align: center; padding: 36px 20px; background: #041423; color: #aebcc2; font-size: 0.9rem; }
+.rodape-logo { color: #fff; font-weight: 800; font-size: 1.1rem; margin-bottom: 10px; }
+.rodape-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; margin-bottom: 14px; }
+.rodape-links a { color: #aebcc2; text-decoration: none; }
+.rodape-links a:hover { color: #fff; }
+
+/* =========================
+   RESPONSIVO
+========================= */
+@media (max-width: 900px) {
+  .topo { padding: 10px 16px; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  main { padding-top: 120px; }
+  .menu-lista { gap: 18px; }
+}
+
+@media (max-width: 700px) {
+  .planos { background: linear-gradient(180deg, var(--marinho) 0, var(--marinho-2) 440px, var(--fundo) 440px); }
+  .plano-card.premium { margin-top: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
 }
