@@ -128,6 +128,28 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .modal-card { background: var(--card); color: var(--texto); border-radius: 12px; width: 100%; max-width: 450px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid var(--border); }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .modal-header h3 { margin: 0; font-size: 16px; }
+/* RESPONSIVO (celular e tablet) */
+.main { min-width: 0; } /* sem isto a coluna principal estica até o tamanho da agenda e a página rola para o lado */
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); padding: 10px 12px; }
+  .logo { margin-bottom: 10px; }
+  .menu { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+  .menu-item { white-space: nowrap; flex-shrink: 0; }
+  .conteudo { padding: 16px 12px; gap: 20px; }
+  .financeiro-grid { grid-template-columns: 1fr 1fr; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .agenda { min-width: 0; }
+  .agenda-cabecalho, .agenda-corpo { grid-template-columns: 44px repeat(var(--n-colab), minmax(0, 1fr)); }
+  .agenda-controles { width: 100%; }
+  .modal-overlay { padding: 12px; }
+  .modal-card { max-height: 92vh; overflow-y: auto; }
+}
+@media (max-width: 480px) {
+  .financeiro-grid { grid-template-columns: 1fr; }
+  .bar-simulacao { padding: 8px 12px; }
+}
+
 </style>
 </head>
 <body>

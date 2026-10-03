@@ -92,6 +92,39 @@ const NOMES_PLANOS_ASSINATURA = {
   premium: "Premium"
 };
 
+// --- ASSINATURA APROVADA → PLANO DO PAINEL ---
+// A tela de compra (assinatura.html) grava a assinatura aqui quando o pagamento é aprovado.
+const CHAVE_ASSINATURA = "assinaturaAtual";
+
+// Plano que a agenda deve usar: o da assinatura aprovada e dentro da validade (senão, Grátis).
+// Profissional/Completo/Premium liberam o financeiro como o Premium.
+function lerPlanoAssinado() {
+  const assinatura = lerJsonLocal(CHAVE_ASSINATURA, null);
+  if (!assinatura || assinatura.status !== "aprovada") return "FREE";
+  if (assinatura.validoAte && new Date(assinatura.validoAte) < new Date()) return "FREE";
+  if (assinatura.plano === "BASICO") return "BASICO";
+  if (assinatura.plano === "FREE") return "FREE";
+  return "PREMIUM";
+}
+
+// --- SEGURANÇA: a seta "voltar" do navegador sai da conta (só no fluxo de compra pelo site) ---
+// Fluxo pelo site (planos → cadastro → compra): ao voltar pela seta do navegador, a sessão é apagada.
+// Dentro da agenda (painel do dono) a seta NÃO desloga: quem está logado e volta da tela de
+// compra continua logado e pode escolher outro plano normalmente.
+function sairDaConta() {
+  localStorage.removeItem(CHAVE_SESSAO);
+}
+function sairAoVoltarNoNavegador(restauradaDoCache) {
+  if (document.getElementById("layout-principal")) return; // painel do dono: não desloga
+  sairDaConta();
+  // A tela do colaborador só abre logada: se veio do cache, recarrega para ela mandar para o login
+  if (restauradaDoCache && document.getElementById("layout-colaborador")) window.location.reload();
+}
+// Página restaurada do cache do navegador (o script não roda de novo nesse caso)
+window.addEventListener("pageshow", function (e) {
+  if (e.persisted) sairAoVoltarNoNavegador(true);
+});
+
 function lerJsonLocal(chave, padrao) {
   try {
     const valor = JSON.parse(localStorage.getItem(chave));
@@ -425,7 +458,7 @@ function iniciarDashboard() {
   }
 
   // --- ESTADO DA APLICAÇÃO ---
-  let planoAtual = "FREE";
+  let planoAtual = lerPlanoAssinado(); // plano da assinatura aprovada (ou Grátis)
   const sessaoSalva = lerJsonLocal(CHAVE_SESSAO, null);
   let usuarioLogado = (sessaoSalva && sessaoSalva.perfil === "COLABORADOR")
     ? { perfil: "COLABORADOR", colaboradorId: sessaoSalva.colaboradorId }
@@ -1256,7 +1289,22 @@ function iniciarDashboard() {
     ["btn-plano-premium", "PREMIUM"]
   ].forEach(([idBotao, plano]) => {
     const botao = document.getElementById(idBotao);
-    if (botao) botao.addEventListener("click", () => escolherPlano(plano));
+    if (!botao) return;
+    botao.addEventListener("click", () => {
+      if (plano === planoAtual) return; // já é o plano atual
+
+      // Voltar para o Grátis: pede confirmação e cancela a assinatura salva
+      if (plano === "FREE") {
+        if (!confirm("Voltar para o plano Grátis? Você perde os recursos do plano atual.")) return;
+        localStorage.removeItem(CHAVE_ASSINATURA);
+        escolherPlano(plano);
+        return;
+      }
+
+      // Planos pagos abrem a tela de compra. Quando o pagamento é aprovado, a tela de compra
+      // volta para a agenda já com o plano ativo (lido por lerPlanoAssinado).
+      window.location.href = `${PAGINA_ASSINATURA}?plano=${plano.toLowerCase()}&origem=painel`;
+    });
   });
 
   // Se o dono e o colaborador estiverem com o site aberto em abas diferentes,
@@ -1701,10 +1749,10 @@ function iniciarColaborador() {
 // =====================================================
 // 2.7 PLANOS (planos.html)
 // Só roda se a página tiver o elemento .planos-grade.
-// Ao escolher um plano:
-//   - sem conta (ou sem login) → vai para a tela de cadastro e, depois de
-//     cadastrar/entrar, é levado para a tela de compra desse plano;
-//   - já logado → vai direto para a tela de compra.
+// Ao escolher um plano a pessoa SEMPRE passa pelo login/cadastro antes da compra:
+//   - já tem conta neste navegador → tela de login (modo=entrar);
+//   - não tem conta → tela de cadastro (modo=cadastro);
+// e, depois de entrar/cadastrar, é levada para a tela de compra desse plano.
 // =====================================================
 function iniciarPlanos() {
   const grade = document.querySelector(".planos-grade");
@@ -1714,13 +1762,13 @@ function iniciarPlanos() {
     botao.addEventListener("click", function (e) {
       e.preventDefault();
       const plano = this.dataset.plano;
-      const sessao = lerJsonLocal(CHAVE_SESSAO, null);
 
-      if (sessao && sessao.perfil === "DONO") {
-        window.location.href = `${PAGINA_ASSINATURA}?plano=${plano}`;
-      } else {
-        window.location.href = `${PAGINA_CADASTRO}?modo=cadastro&plano=${plano}`;
-      }
+      // Nunca vai direto para a compra: a pessoa sempre passa pelo login/cadastro.
+      // Quem já criou conta neste navegador vai para o login; quem não criou, para o cadastro.
+      localStorage.removeItem(CHAVE_SESSAO);
+      const temConta = !!localStorage.getItem("nomeUsuarioCadastrado");
+      const modo = temConta ? "entrar" : "cadastro";
+      window.location.href = `${PAGINA_CADASTRO}?modo=${modo}&plano=${plano}`;
     });
   });
 }
@@ -1954,6 +2002,10 @@ function iniciarLanding() {
 // Cada função já verifica sozinha se deve ou não rodar naquela tela.
 // =====================================================
 document.addEventListener("DOMContentLoaded", function () {
+  // Chegou pela seta voltar/avançar do navegador? (só desloga fora do painel do dono)
+  const navegacao = performance.getEntriesByType("navigation")[0];
+  if (navegacao && navegacao.type === "back_forward") sairAoVoltarNoNavegador(false);
+
   ativarValidacaoNomeCliente();
   iniciarDashboard();
   iniciarColaborador();

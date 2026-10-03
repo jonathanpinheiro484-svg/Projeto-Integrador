@@ -99,7 +99,7 @@ h2 { font-size: 15px; margin: 0 0 12px; }
 
 <header class="topo">
   <div class="logo"><span class="logo-icone">G</span> Gestão Integrada Pro</div>
-  <a class="link-voltar" id="link-voltar" href="agenda.html">Voltar ao painel</a>
+  <a class="link-voltar" id="link-voltar" href="cadastro.html?modo=entrar">Voltar ao login</a>
 </header>
 
 <main class="pagina">
@@ -192,7 +192,8 @@ h2 { font-size: 15px; margin: 0 0 12px; }
       <div class="linha"><span>Total</span><span id="suc-total"></span></div>
       <div class="linha" style="border-bottom:none;"><span id="suc-rotulo-data">Válido até</span><span id="suc-data"></span></div>
     </div>
-    <p style="margin-top:18px;"><a class="btn" id="btn-ir-painel" href="agenda.html" style="display:block; text-decoration:none;">Ir para o painel</a></p>
+    <p class="sub" id="suc-redireciona" style="margin-top:14px; text-align:center;"></p>
+    <p style="margin-top:10px;"><a class="btn" id="btn-ir-painel" href="agenda.html" style="display:block; text-decoration:none;">Ir para a agenda agora</a></p>
   </div>
 
 </main>
@@ -449,11 +450,15 @@ $("form-assinatura").addEventListener("submit", async (e) => {
   //   headers: { "Content-Type": "application/json" },
   //   body: JSON.stringify({ plano: planoEscolhido, ciclo, metodo, token })
   // });
-  await new Promise((r) => setTimeout(r, 1500)); // simulação do processamento
+  // Simulação: o cartão aprova na hora; o Pix leva alguns segundos para "confirmar".
+  // Com o gateway real, o Pix fica "pendente" até o banco confirmar o pagamento (webhook).
+  if (metodo === "pix") btn.textContent = "Aguardando confirmação do Pix...";
+  await new Promise((r) => setTimeout(r, metodo === "pix" ? 3500 : 1500));
 
   // Só guarda dados do pedido. Nunca número, validade ou CVV do cartão.
   localStorage.setItem(CHAVE_ASSINATURA, JSON.stringify({
     plano: planoEscolhido,
+    status: "aprovada", // o painel (agenda) só libera o plano quando está aprovada
     ciclo: gratis ? "teste" : ciclo,
     metodo,
     total: preco.total,
@@ -468,11 +473,10 @@ $("form-assinatura").addEventListener("submit", async (e) => {
 
 function mostrarSucesso(gratis, total, metodo, validoAte) {
   const p = PLANOS[planoEscolhido];
-  const pixPendente = metodo === "pix";
-  $("suc-titulo").textContent = gratis ? "Plano grátis ativado" : (pixPendente ? "Pedido criado" : "Assinatura confirmada");
+  $("suc-titulo").textContent = gratis ? "Plano grátis ativado" : "Pagamento aprovado";
   $("suc-sub").textContent = gratis
     ? "Você tem 30 dias para testar o sistema."
-    : (pixPendente ? "Pague o Pix no app do seu banco. O plano é liberado assim que o pagamento for confirmado." : "Pagamento aprovado. Seu plano já está ativo.");
+    : "Seu plano " + p.nome + " já está ativo.";
   $("suc-plano").textContent = p.nome;
   $("suc-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
   $("suc-total").textContent = moeda(total);
@@ -481,12 +485,30 @@ function mostrarSucesso(gratis, total, metodo, validoAte) {
   $("etapa-checkout").hidden = true;
   $("etapa-sucesso").hidden = false;
   window.scrollTo(0, 0);
+
+  // Aprovado: volta para a agenda sozinho, já com o plano ativo (o botão leva na hora)
+  let segundos = 4;
+  const aviso = $("suc-redireciona");
+  const mostrarContagem = () => { aviso.textContent = "Abrindo a sua agenda em " + segundos + "s..."; };
+  mostrarContagem();
+  const timer = setInterval(() => {
+    segundos--;
+    if (segundos <= 0) { clearInterval(timer); window.location.href = PAGINA_PAINEL; return; }
+    mostrarContagem();
+  }, 1000);
 }
 
 // =====================================================
 // INICIALIZAÇÃO
 // =====================================================
-$("link-voltar").href = PAGINA_PAINEL;
+// Seta "voltar/avançar" do navegador: sai da conta na hora (e a trava abaixo manda para o cadastro/login)
+function sairDaConta() { localStorage.removeItem(CHAVE_SESSAO); }
+const navegacaoAtual = performance.getEntriesByType("navigation")[0];
+if (navegacaoAtual && navegacaoAtual.type === "back_forward") sairDaConta();
+window.addEventListener("pageshow", (e) => {
+  if (e.persisted) { sairDaConta(); window.location.reload(); }
+});
+
 $("btn-ir-painel").href = PAGINA_PAINEL;
 $("pix-codigo").value = "00020126-SIMULACAO-" + Math.random().toString(36).slice(2, 12).toUpperCase();
 
@@ -509,6 +531,18 @@ if (!PLANOS[planoUrl] || planoUrl === "FREE") {
     podeContinuar = false;
     window.location.replace(PAGINA_CADASTRO + "?modo=cadastro&plano=" + planoUrl.toLowerCase());
   }
+}
+
+// Botão "voltar" do topo
+if (params.get("origem") === "painel") {
+  // Veio da agenda: volta para a agenda (continua logado)
+  $("link-voltar").textContent = "Voltar à agenda";
+  $("link-voltar").href = PAGINA_PAINEL;
+} else {
+  // Veio da tela de planos do site: sai da conta e volta para o login, mantendo o plano escolhido
+  $("link-voltar").textContent = "Voltar ao login";
+  $("link-voltar").href = PAGINA_CADASTRO + "?modo=entrar&plano=" + planoUrl.toLowerCase();
+  $("link-voltar").addEventListener("click", sairDaConta);
 }
 
 if (podeContinuar) atualizarTela();

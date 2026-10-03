@@ -53,6 +53,7 @@
     <div class="plano-card free">
       <h2>Free (Degustação)</h2>
       <p class="limite">30 dias de uso</p>
+      <p class="plano-preco" data-preco-plano="FREE" style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
       <ul class="plano-lista">
         <li><span class="icon check">✔️</span> Agendamentos ilimitados apenas durante o período</li>
         <li><span class="icon check">✔️</span> 15 colaboradores inclusos</li>
@@ -67,6 +68,7 @@
     <div class="plano-card basico">
       <h2>Básico</h2>
       <p class="limite">Sem limite de tempo</p>
+      <p class="plano-preco" data-preco-plano="BASICO" style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
       <ul class="plano-lista">
         <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
         <li><span class="icon check">✔️</span> Até 10 colaboradores</li>
@@ -74,7 +76,7 @@
         <li><span class="icon check">✔️</span> Suporte somente por e-mail</li>
         <li><span class="icon check">✔️</span> Notificações por e-mail</li>
       </ul>
-      <a href="cadastro.html?modo=cadastro" class="botao primario">Assinar Básico</a>
+      <a href="cadastro.html?modo=cadastro&plano=basico" data-plano="basico" class="botao primario">Assinar Básico</a>
     </div>
 
     <!-- Plano Premium -->
@@ -82,6 +84,7 @@
       <p class="plano-selo">MAIS COMPLETO</p>
       <h2>Premium</h2>
       <p class="limite">Sem limite de tempo</p>
+      <p class="plano-preco" data-preco-plano="PREMIUM" style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
       <ul class="plano-lista">
         <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
         <li><span class="icon check">✔️</span> Colaboradores ilimitados</li>
@@ -90,7 +93,7 @@
         <li><span class="icon check">✔️</span> Integração com WhatsApp</li>
         <li><span class="icon check">✔️</span> Personalização de serviços e horários</li>
       </ul>
-      <a href="cadastro.html?modo=cadastro" class="botao primario">Assinar Premium</a>
+      <a href="cadastro.html?modo=cadastro&plano=premium" data-plano="premium" class="botao primario">Assinar Premium</a>
     </div>
   </div>
 </section>
@@ -119,6 +122,9 @@
         <p class="rodape-texto">&copy; 2026 Nome da Empresa. Todos os direitos reservados.</p>
     </footer>
 
+
+    <!-- Todo o JavaScript do site está reunido em um único arquivo -->
+    <script src="js/script.js"></script>
 
 </body>
 

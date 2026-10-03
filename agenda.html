@@ -239,6 +239,29 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .card-plano ul li { display: flex; align-items: center; gap: 6px; }
 .btn-selecionar-plano { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; }
 .btn-selecionar-plano.atual { background: var(--border); color: var(--muted); cursor: default; }
+/* RESPONSIVO (celular e tablet) */
+.main { min-width: 0; } /* sem isto a coluna principal estica até o tamanho da agenda e a página rola para o lado */
+@media (max-width: 768px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); padding: 10px 12px; }
+  .logo { margin-bottom: 10px; }
+  .menu { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+  .menu-item { white-space: nowrap; flex-shrink: 0; }
+  .conteudo { padding: 16px 12px; gap: 20px; }
+  .financeiro-grid { grid-template-columns: 1fr 1fr; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .agenda { min-width: 0; }
+  .agenda-cabecalho, .agenda-corpo { grid-template-columns: 44px repeat(var(--n-colab), minmax(0, 1fr)); }
+  .agenda-controles { width: 100%; }
+  .modal-overlay { padding: 12px; }
+  .modal-card { max-height: 92vh; overflow-y: auto; }
+}
+@media (max-width: 480px) {
+  .financeiro-grid { grid-template-columns: 1fr; }
+  .bar-simulacao { padding: 8px 12px; }
+}
+
+.financeiro-periodo { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -279,6 +302,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       <a class="menu-item" data-menu="Planos">
         <span>Planos</span>
       </a>
+      <a class="menu-item" id="btn-sair" role="button" tabindex="0">Sair</a>
     </nav>
   </aside>
 
@@ -298,6 +322,16 @@ h2 { font-size: 17px; margin: 0 0 12px; }
         </div>
 
         <div class="financeiro-grid" id="grid-financeiro-cards">
+
+          <!-- Período dos valores abaixo (antes ficava na agenda, mas só mudava o financeiro) -->
+          <div class="financeiro-periodo">
+            <span>Período dos valores:</span>
+            <div class="toggle-view">
+              <button type="button" id="btn-modo-dia" class="ativo">Dia</button>
+              <button type="button" id="btn-modo-semana">Semana</button>
+              <button type="button" id="btn-modo-mes">Mês</button>
+            </div>
+          </div>
 
           <div class="stat-card" id="card-receitas">
             <div class="overlay-bloqueio" hidden>
@@ -391,11 +425,6 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 
             <button type="button" id="btn-abrir-agendamento" class="btn-novo-agendamento">+ Novo Agendamento</button>
 
-            <div class="toggle-view">
-              <button type="button" id="btn-modo-dia" class="ativo">Dia</button>
-              <button type="button" id="btn-modo-semana">Semana</button>
-              <button type="button" id="btn-modo-mes">Mês</button>
-            </div>
           </div>
         </div>
 
@@ -445,12 +474,12 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 
               <div class="campo">
                 <label for="colab-email">E-mail (Acesso ao Sistema) <span class="obrigatorio">*</span></label>
-                <input type="email" id="colab-email" placeholder="Fernanda@agendaexpress.com" required maxlength="80">
+                <input type="email" id="colab-email" placeholder="Fernanda@agendaexpress.com" required maxlength="80" autocomplete="off">
               </div>
 
               <div class="campo">
                 <label for="colab-senha">Senha de Acesso <span class="obrigatorio">*</span></label>
-                <input type="text" id="colab-senha" placeholder="Digite a senha" required
+                <input type="password" id="colab-senha" placeholder="Digite a senha" required autocomplete="new-password"
                        minlength="8" maxlength="20"
                        pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,20}"
                        title="A senha deve ter de 8 a 20 caracteres, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !).">
@@ -459,7 +488,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 
               <div class="campo">
                 <label for="colab-senha-confirmar">Confirmar Senha <span class="obrigatorio">*</span></label>
-                <input type="text" id="colab-senha-confirmar" placeholder="Digite a senha novamente" required maxlength="20">
+                <input type="password" id="colab-senha-confirmar" placeholder="Digite a senha novamente" required maxlength="20" autocomplete="new-password">
               </div>
 
               <div class="campo">
@@ -543,7 +572,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
           <div class="card-plano" id="card-plano-free">
             <div>
               <h3>Grátis</h3>
-              <div class="preco">30 dias</div>
+              <div class="preco" data-preco-plano="FREE"></div>
               <ul>
                 <li>✓ Agendamentos ilimitados durante o período</li>
                 <li>✓ Até 15 colaboradores</li>
@@ -560,8 +589,9 @@ h2 { font-size: 17px; margin: 0 0 12px; }
           <div class="card-plano" id="card-plano-basico">
             <div>
               <h3>Básico</h3>
-              <div class="preco">Sem limite de tempo</div>
+              <div class="preco" data-preco-plano="BASICO"></div>
               <ul>
+                <li>✓ Sem limite de tempo</li>
                 <li>✓ Agendamentos ilimitados</li>
                 <li>✓ Até 10 colaboradores</li>
                 <li>✕ Sem relatórios de agenda</li>
@@ -577,8 +607,9 @@ h2 { font-size: 17px; margin: 0 0 12px; }
           <div class="card-plano" id="card-plano-premium">
             <div>
               <h3>Premium</h3>
-              <div class="preco">Sem limite de tempo</div>
+              <div class="preco" data-preco-plano="PREMIUM"></div>
               <ul>
+                <li>✓ Sem limite de tempo</li>
                 <li>✓ Agendamentos ilimitados</li>
                 <li>✓ Colaboradores ilimitados</li>
                 <li>✓ Relatórios avançados (financeiro)</li>

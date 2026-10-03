@@ -23,7 +23,7 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            height: 100vh;
+            min-height: 100vh;
         }
 
         /* --- CABEÇALHO --- */
@@ -73,8 +73,9 @@
             overflow: hidden;
             width: 768px;
             max-width: 100%;
-            min-height: 480px;
+            min-height: 580px;
             margin-top: 60px;
+            margin-bottom: 20px;
         }
 
         .container p {
@@ -265,22 +266,22 @@
     <div class="container" id="container">
         <!-- FORMULÁRIO DE CADASTRO -->
         <div class="form-container sign-up">
-            <form id="form-cadastro">
+            <form id="form-cadastro" novalidate>
                 <h1>Criar Conta</h1>
-                <input type="text" placeholder="Nome" required>
-                <input type="email" placeholder="Email" required>
-                <input type="password" placeholder="Senha" required>
+                <input type="text" id="cad-nome" placeholder="Nome e sobrenome" maxlength="60" autocomplete="name">
+                <input type="email" id="cad-email" placeholder="Email" maxlength="80" autocomplete="email">
+                <input type="password" id="cad-senha" placeholder="Senha" autocomplete="new-password">
+                <input type="password" id="cad-senha-confirmar" placeholder="Confirmar senha" autocomplete="new-password">
                 <button type="submit">Cadastrar</button>
             </form>
         </div>
 
         <!-- FORMULÁRIO DE LOGIN -->
         <div class="form-container sign-in">
-            <form id="form-login">
+            <form id="form-login" novalidate>
                 <h1>Entrar</h1>
-                <input type="email" placeholder="Email" required>
-                <input type="password" placeholder="Senha" required>
-                <a href="#">Esqueceu sua senha?</a>
+                <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+                <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password">
                 <button type="submit">Entrar</button>
             </form>
         </div>
