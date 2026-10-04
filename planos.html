@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planos - GET TIME</title>
     <link rel="stylesheet" href="css/stylesPlanos.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
 </head>
 
 <body>
@@ -45,58 +47,65 @@
                 </p>
             </div>
 
+
+
             <!-- =========================
                  CARDS DE PLANOS
             ========================== -->
             <div class="planos-grade">
-    <!-- Plano Free -->
-    <div class="plano-card free">
-      <h2>Free (Degustação)</h2>
-      <p class="limite">30 dias de uso</p>
-      <p class="plano-preco" data-preco-plano="FREE" style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
-      <ul class="plano-lista">
-        <li><span class="icon check">✔️</span> Agendamentos ilimitados apenas durante o período</li>
-        <li><span class="icon check">✔️</span> 15 colaboradores inclusos</li>
-        <li><span class="icon cross">❌</span> Agenda simples (sem relatórios)</li>
-        <li><span class="icon cross">❌</span> Sem suporte prioritário</li>
-        <li><span class="icon cross">❌</span> Sem integrações externas</li>
-      </ul>
-      <a href="cadastro.html?modo=cadastro" class="botao primario">Experimentar grátis</a>
-    </div>
+                <!-- Plano Free -->
+                <div class="plano-card free">
+                    <h2>Free (Degustação)</h2>
+                    <p class="limite">30 dias de uso</p>
+                    <p class="plano-preco" data-preco-plano="FREE"
+                        style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
+                    <ul class="plano-lista">
+                        <li><span class="icon check">✔️</span> Agendamentos ilimitados apenas durante o período</li>
+                        <li><span class="icon check">✔️</span> 15 colaboradores inclusos</li>
+                        <li><span class="icon cross">❌</span> Agenda simples (sem relatórios)</li>
+                        <li><span class="icon cross">❌</span> Sem suporte prioritário</li>
+                        <li><span class="icon cross">❌</span> Sem integrações externas</li>
+                    </ul>
+                    <a href="cadastro.html?modo=cadastro" class="botao primario">Experimentar grátis</a>
+                </div>
 
-    <!-- Plano Básico -->
-    <div class="plano-card basico">
-      <h2>Básico</h2>
-      <p class="limite">Sem limite de tempo</p>
-      <p class="plano-preco" data-preco-plano="BASICO" style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
-      <ul class="plano-lista">
-        <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
-        <li><span class="icon check">✔️</span> Até 10 colaboradores</li>
-        <li><span class="icon cross">❌</span> Sem relatórios (agenda/financeiro)</li>
-        <li><span class="icon check">✔️</span> Suporte somente por e-mail</li>
-        <li><span class="icon check">✔️</span> Notificações por e-mail</li>
-      </ul>
-      <a href="cadastro.html?modo=cadastro&plano=basico" data-plano="basico" class="botao primario">Assinar Básico</a>
-    </div>
+                <!-- Plano Básico -->
+                <div class="plano-card basico">
+                    <h2>Básico</h2>
+                    <p class="limite">Sem limite de tempo</p>
+                    <p class="plano-preco" data-preco-plano="BASICO"
+                        style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
+                    <ul class="plano-lista">
+                        <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
+                        <li><span class="icon check">✔️</span> Até 10 colaboradores</li>
+                        <li><span class="icon cross">❌</span> Sem relatórios (agenda/financeiro)</li>
+                        <li><span class="icon check">✔️</span> Suporte somente por e-mail</li>
+                        <li><span class="icon check">✔️</span> Notificações por e-mail</li>
+                    </ul>
+                    <a href="cadastro.html?modo=cadastro&plano=basico" data-plano="basico"
+                        class="botao primario">Assinar Básico</a>
+                </div>
 
-    <!-- Plano Premium -->
-    <div class="plano-card premium destaque">
-      <p class="plano-selo">MAIS COMPLETO</p>
-      <h2>Premium</h2>
-      <p class="limite">Sem limite de tempo</p>
-      <p class="plano-preco" data-preco-plano="PREMIUM" style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
-      <ul class="plano-lista">
-        <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
-        <li><span class="icon check">✔️</span> Colaboradores ilimitados</li>
-        <li><span class="icon check">✔️</span> Relatórios avançados (financeiro)</li>
-        <li><span class="icon check">✔️</span> Suporte prioritário (chat/telefone)</li>
-        <li><span class="icon check">✔️</span> Integração com WhatsApp</li>
-        <li><span class="icon check">✔️</span> Personalização de serviços e horários</li>
-      </ul>
-      <a href="cadastro.html?modo=cadastro&plano=premium" data-plano="premium" class="botao primario">Assinar Premium</a>
-    </div>
-  </div>
-</section>
+                <!-- Plano Premium -->
+                <div class="plano-card premium destaque">
+                    <p class="plano-selo">MAIS COMPLETO</p>
+                    <h2>Premium</h2>
+                    <p class="limite">Sem limite de tempo</p>
+                    <p class="plano-preco" data-preco-plano="PREMIUM"
+                        style="font-size:28px; font-weight:800; margin:6px 0 12px;"></p>
+                    <ul class="plano-lista">
+                        <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
+                        <li><span class="icon check">✔️</span> Colaboradores ilimitados</li>
+                        <li><span class="icon check">✔️</span> Relatórios avançados (financeiro)</li>
+                        <li><span class="icon check">✔️</span> Suporte prioritário (chat/telefone)</li>
+                        <li><span class="icon check">✔️</span> Integração com WhatsApp</li>
+                        <li><span class="icon check">✔️</span> Personalização de serviços e horários</li>
+                    </ul>
+                    <a href="cadastro.html?modo=cadastro&plano=premium" data-plano="premium"
+                        class="botao primario">Assinar Premium</a>
+                </div>
+            </div>
+        </section>
 
         <!-- =========================
              CHAMADA FINAL
@@ -106,6 +115,92 @@
             <p>Conheça nossa plataforma e descubra como ela pode facilitar sua rotina.</p>
             <a href="agenda.html" class="botao primario">Conhecer a plataforma</a>
         </section>
+
+
+  <!-- =========================
+     PERGUNTAS FREQUENTES
+========================== -->
+<section class="faq" id="faq">
+    <div class="faq-intro">
+       
+        <h2>Perguntas Frequentes</h2>
+        <p>Encontre respostas rápidas antes de escolher o seu plano.</p>
+    </div>
+
+    <div class="accordion" id="accordionPlanos">
+
+        <div class="accordion-item">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#plano-um" aria-expanded="false" aria-controls="plano-um">
+                    O que acontece depois dos 30 dias do plano Free?
+                </button>
+            </h3>
+            <div id="plano-um" class="accordion-collapse collapse" data-bs-parent="#accordionPlanos">
+                <div class="accordion-body">
+                    Ao fim do período de degustação, você escolhe entre o Básico e o Premium para continuar usando. Seus dados ficam guardados na sua conta.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#plano-dois" aria-expanded="false" aria-controls="plano-dois">
+                    Posso mudar de plano depois?
+                </button>
+            </h3>
+            <div id="plano-dois" class="accordion-collapse collapse" data-bs-parent="#accordionPlanos">
+                <div class="accordion-body">
+                    Sim. Você pode fazer upgrade ou downgrade a qualquer momento pela sua conta.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#plano-tres" aria-expanded="false" aria-controls="plano-tres">
+                    Qual a diferença entre o Básico e o Premium?
+                </button>
+            </h3>
+            <div id="plano-tres" class="accordion-collapse collapse" data-bs-parent="#accordionPlanos">
+                <div class="accordion-body">
+                    O Premium inclui colaboradores ilimitados, relatórios financeiros avançados, suporte prioritário por chat e telefone e integração com WhatsApp.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#plano-pagamento" aria-expanded="false" aria-controls="plano-pagamento">
+                    Quais formas de pagamento vocês aceitam?
+                </button>
+            </h3>
+            <div id="plano-pagamento" class="accordion-collapse collapse" data-bs-parent="#accordionPlanos">
+                <div class="accordion-body">
+                    Aceitamos Pix e cartão de crédito. O pagamento é feito mensalmente.
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h3 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#plano-quatro" aria-expanded="false" aria-controls="plano-quatro">
+                    Posso cancelar quando quiser?
+                </button>
+            </h3>
+            <div id="plano-quatro" class="accordion-collapse collapse" data-bs-parent="#accordionPlanos">
+                <div class="accordion-body">
+                    Pode. O cancelamento é feito direto na sua conta, sem burocracia.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
 
     </main>
 
@@ -125,6 +220,11 @@
 
     <!-- Todo o JavaScript do site está reunido em um único arquivo -->
     <script src="js/script.js"></script>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
 
 </body>
 

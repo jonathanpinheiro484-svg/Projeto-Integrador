@@ -2020,27 +2020,21 @@ document.addEventListener("DOMContentLoaded", function () {
 // =======================================================
 
 const track = document.querySelector('.carousel-track');
-const cards = Array.from(track.children);
-const prevBtn = document.querySelector('.carousel-btn.prev');
-const nextBtn = document.querySelector('.carousel-btn.next');
-let index = 0;
+const btnPrev = document.querySelector('.carousel-btn.prev');
+const btnNext = document.querySelector('.carousel-btn.next');
 
-function updateCarousel() {
-  track.style.transform = `translateX(-${index * 100}%)`;
+function passo() {
+  const card = track.querySelector('.card');
+  return card.getBoundingClientRect().width + 20; // 20 = gap
 }
 
-nextBtn.addEventListener('click', () => {
-  index = (index + 1) % cards.length;
-  updateCarousel();
-});
+function atualizarBotoes() {
+  btnPrev.disabled = track.scrollLeft <= 0;
+  btnNext.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 1;
+}
 
-prevBtn.addEventListener('click', () => {
-  index = (index - 1 + cards.length) % cards.length;
-  updateCarousel();
-});
-
-// Auto-play
-setInterval(() => {
-  index = (index + 1) % cards.length;
-  updateCarousel();
-}, 5000);
+btnPrev.addEventListener('click', () => track.scrollBy({ left: -passo() }));
+btnNext.addEventListener('click', () => track.scrollBy({ left: passo() }));
+track.addEventListener('scroll', atualizarBotoes);
+window.addEventListener('resize', atualizarBotoes);
+atualizarBotoes();

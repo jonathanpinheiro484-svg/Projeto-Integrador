@@ -230,7 +230,8 @@ main { padding-top: 76px; }
 .avaliacoes {
   text-align: center;
   background: var(--superficie);
-  padding: 90px 8%;
+ padding: 40px 8% 90px; 
+ 
 }
 
 .avaliacoes h2 { font-size: clamp(1.7rem, 3vw, 2.3rem); margin-bottom: 12px; }
@@ -238,15 +239,22 @@ main { padding-top: 76px; }
 
 .carousel-container { position: relative; width: 86%; margin: 0 auto; }
 
-.carousel-track { display: flex; overflow: hidden; gap: 20px; }
+.carousel-track {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;          /* Firefox */
+  -webkit-overflow-scrolling: touch;
+}
+
+.carousel-track::-webkit-scrollbar { display: none; } /* Chrome/Safari */
 
 .card {
   flex: 0 0 calc((100% - 40px) / 3);
-  background: var(--fundo);
-  border: 1px solid var(--linha);
-  border-radius: var(--raio);
-  padding: 28px 24px;
-  text-align: left;
+  scroll-snap-align: start;
+  /* o resto do seu .card continua igual */
 }
 
 .card img {
@@ -283,6 +291,9 @@ main { padding-top: 76px; }
 .carousel-btn:disabled { cursor: not-allowed; opacity: 0.4; }
 .carousel-btn.prev { left: -56px; }
 .carousel-btn.next { right: -56px; }
+
+
+
 
 /* =========================
    CHAMADA FINAL
