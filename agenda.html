@@ -239,6 +239,19 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .card-plano ul li { display: flex; align-items: center; gap: 6px; }
 .btn-selecionar-plano { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; }
 .btn-selecionar-plano.atual { background: var(--border); color: var(--muted); cursor: default; }
+
+/* BOTÃO CANCELAR ASSINATURA (aparece só no card do plano pago atual) */
+.btn-cancelar-assinatura {
+  display: block; width: 100%; margin-top: 10px; padding: 10px;
+  background: transparent; color: #d32f2f; border: 1px solid #d32f2f;
+  border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; text-align: center;
+  transition: background 0.2s, color 0.2s;
+}
+.btn-cancelar-assinatura[hidden] { display: none; }
+.btn-cancelar-assinatura:hover { background: #d32f2f; color: #fff; }
+.btn-perigo { background: #d32f2f; }
+.btn-perigo:hover { opacity: 0.9; }
+
 /* RESPONSIVO (celular e tablet) */
 .main { min-width: 0; } /* sem isto a coluna principal estica até o tamanho da agenda e a página rola para o lado */
 @media (max-width: 768px) {
@@ -600,7 +613,10 @@ h2 { font-size: 17px; margin: 0 0 12px; }
                 <li>✓ Notificações por e-mail</li>
               </ul>
             </div>
-            <button class="btn-selecionar-plano" id="btn-plano-basico">Escolher Básico</button>
+            <div>
+              <button class="btn-selecionar-plano" id="btn-plano-basico">Escolher Básico</button>
+              <button type="button" class="btn-cancelar-assinatura" data-plano="Básico" hidden>Cancelar assinatura</button>
+            </div>
           </div>
 
           <!-- PLANO PREMIUM -->
@@ -618,7 +634,10 @@ h2 { font-size: 17px; margin: 0 0 12px; }
                 <li>✓ Personalização de serviços e horários</li>
               </ul>
             </div>
-            <button class="btn-selecionar-plano" id="btn-plano-premium">Escolher Premium</button>
+            <div>
+              <button class="btn-selecionar-plano" id="btn-plano-premium">Escolher Premium</button>
+              <button type="button" class="btn-cancelar-assinatura" data-plano="Premium" hidden>Cancelar assinatura</button>
+            </div>
           </div>
 
         </div>
@@ -694,6 +713,20 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   </div>
 </div>
 
+<!-- MODAL DE CONFIRMAÇÃO: CANCELAR ASSINATURA -->
+<div class="modal-overlay" id="modal-cancelar-assinatura" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Cancelar assinatura?</h3>
+      <button type="button" id="btn-fechar-cancelamento" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px;">Você voltará para o plano Grátis e perderá os recursos do plano atual. Tem certeza?</p>
+    <div class="form-botoes">
+      <button type="button" class="btn-cancelar" id="manter-plano">Manter plano</button>
+      <button type="button" class="btn-salvar btn-perigo" id="confirmar-cancelamento">Sim, cancelar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
