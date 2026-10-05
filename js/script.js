@@ -20,10 +20,11 @@
 // Troque BASE_URL pela URL real do backend de vocês.
 // =====================================================
 const API_CONFIG = {
-  BASE_URL: "https://SEU_BACKEND_AQUI.com/api",
+  BASE_URL: "http://localhost:7244/api",
 
   ENDPOINTS: {
-    LOGIN: "/auth/login",
+    LOGIN: "/Login",
+    CADASTRO: "/Cadastro",
     COLABORADORES: "/colaboradores",
     AGENDAMENTOS: "/agendamentos",
     FINANCEIRO: "/financeiro",
@@ -1844,14 +1845,17 @@ function iniciarAuth() {
     formCadastro.addEventListener("submit", async function (e) {
       e.preventDefault();
 
-      const nomeInput = formCadastro.querySelector('input[type="text"]');
-      const emailInput = formCadastro.querySelector('input[type="email"]');
-      const senhaInput = formCadastro.querySelector('input[type="password"]');
+      const nomeInput = document.getElementById("cad-nome");
+      const emailInput = document.getElementById("cad-email");
+      const senhaInput = document.getElementById("cad-senha");
+      const cpfInput = document.getElementById("cad-cpf");
+      const telefoneInput = document.getElementById("cad-telefone");
 
       const nome = nomeInput ? nomeInput.value.trim() : "";
       const email = emailInput ? emailInput.value.trim() : "";
-      const senha = senhaInput ? senhaInput.value : "";
-
+      const senha = senhaInput ? senhaInput.value.trim() : "";
+      const cpf = cpfInput ? cpfInput.value.trim(): "";
+      const tel = telefoneInput ? telefoneInput.value.trim() : "";
       // >>> API: criar conta no backend. Exemplo:
       // try {
       //   const resposta = await apiRequest("COLABORADORES", {
@@ -1899,7 +1903,7 @@ function iniciarAuth() {
       const senhaInput = formLogin.querySelector('input[type="password"]');
 
       const email = emailInput ? emailInput.value.trim() : "";
-      const senha = senhaInput ? senhaInput.value : "";
+      const senha = senhaInput ? senhaInput.value.trim() : "";
 
       // >>> API: autenticar no backend. Exemplo:
       // try {
