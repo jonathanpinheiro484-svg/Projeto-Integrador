@@ -6,6 +6,7 @@
 <title>Gestão Integrada Pro - Painel Central</title>
 <!-- Todo o JavaScript do site está reunido em um único arquivo -->
 <script src="js/comum.js"></script>
+<script src="js/whatsapp.js"></script>
 <script src="js/agenda.js"></script>
 
 <style>
@@ -276,6 +277,13 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 }
 
 .financeiro-periodo { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+
+/* ===== WHATSAPP ===== */
+.form-agendamento .campo[hidden] { display: none; }
+.btn-tema.whatsapp-on { background: #25d366; border-color: #25d366; color: #fff; }
+.btn-tema.whatsapp-on:hover { background: #1ebe5b; }
+.agendamento .btn-whatsapp-card { position: absolute; bottom: 2px; right: 4px; background: #25d366; border: none; color: #fff; cursor: pointer; font-size: 11px; line-height: 1; padding: 3px 5px; border-radius: 6px; z-index: 2; }
+.agendamento .btn-whatsapp-card:hover { background: #1ebe5b; }
 </style>
 </head>
 <body>
@@ -291,6 +299,10 @@ h2 { font-size: 17px; margin: 0 0 12px; }
     <div>
       <label>Perfil do Usuário: </label>
       <strong id="texto-perfil">Admin</strong>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <label>WhatsApp: </label>
+      <button type="button" id="btn-toggle-whatsapp" class="btn-tema" aria-pressed="false">💬 Desligado</button>
     </div>
     <button type="button" id="btn-toggle-tema" class="btn-tema">🌙 Modo Noturno</button>
   </div>
@@ -661,6 +673,12 @@ h2 { font-size: 17px; margin: 0 0 12px; }
         <input type="text" id="agend-cliente" placeholder="Ex: João Pereira" required autocomplete="off">
       </div>
 
+      <div class="campo" id="campo-whatsapp" hidden>
+        <label>WhatsApp do cliente <span class="dica-campo">(opcional)</span></label>
+        <input type="tel" id="agend-whatsapp" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
+        <span class="dica-campo">Com DDD. Serve para enviar o lembrete do horário pelo WhatsApp.</span>
+      </div>
+
       <div class="campo">
         <label>Serviço</label>
         <select id="agend-servico" required>
@@ -727,6 +745,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       <button type="button" class="btn-salvar btn-perigo" id="confirmar-cancelamento">Sim, cancelar</button>
     </div>
   </div>
+  
 </div>
 
 </body>

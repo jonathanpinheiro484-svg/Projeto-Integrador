@@ -243,7 +243,7 @@ function iniciarDashboard() {
     const textoPerfil = document.getElementById("texto-perfil");
     const nomeCadastrado = (usuarioLogado.perfil === "COLABORADOR" && sessaoSalva && sessaoSalva.nome)
       ? sessaoSalva.nome
-      : localStorage.getItem("nomeUsuarioCadastrado");
+      : (localStorage.getItem("nomeUsuarioCadastrado") || localStorage.getItem("emailUsuarioLogado"));
     if (textoPerfil) textoPerfil.textContent = nomeCadastrado || "Admin";
   }
 
@@ -396,8 +396,99 @@ function iniciarDashboard() {
     renderizarAgenda();
   }
 
+  // =====================================================
+  // WHATSAPP
+  // Funciona 100% no front: o botão abre a conversa do WhatsApp (app ou web)
+  // com a mensagem de lembrete já escrita; a pessoa só aperta "Enviar".
+  // Envio automático (sem clicar) exige a API oficial do WhatsApp, feita no back-end.
+  // =====================================================
+  const WHATSAPP_SOMENTE_PREMIUM = false; // true = só quem tem plano Premium pode ligar
+  const CHAVE_WHATSAPP_LIGADO = "whatsappLigado";
+  let whatsappLigado = localStorage.getItem(CHAVE_WHATSAPP_LIGADO) === "1";
+
+  function whatsappLiberadoNoPlano() {
+    return !WHATSAPP_SOMENTE_PREMIUM || planoAtual === "PREMIUM" || planoAtual === "PRO";
+  }
+
+  // Máscara enquanto digita: (11) 91234-5678
+  function formatarTelefone(valor) {
+    const d = valor.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 2) return d.length ? `(${d}` : "";
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+
+  // Devolve só os números com DDD (10 ou 11 dígitos) ou "" se for inválido
+  function telefoneValido(valor) {
+    const d = valor.replace(/\D/g, "");
+    if (d.length < 10 || d.length > 11) return "";
+    if (/^(\d)\1+$/.test(d)) return ""; // 00000000000, 11111111111...
+    if (Number(d.slice(0, 2)) < 11) return ""; // DDD inexistente
+    if (d.length === 11 && d[2] !== "9") return ""; // celular tem 9 depois do DDD
+    return d;
+  }
+
+  function dataBR(iso) {
+    const [a, m, d] = iso.split("-");
+    return `${d}/${m}/${a}`;
+  }
+
+  function abrirWhatsApp(ag) {
+    const numero = telefoneValido(ag.whatsapp || "");
+    if (!numero) {
+      alert("Este agendamento não tem um WhatsApp válido.");
+      return;
+    }
+    const colab = colaboradores.find(c => c.id === ag.colaboradorId);
+    const mensagem =
+      `Olá, ${ag.cliente}! Passando para lembrar do seu horário` +
+      `${ag.servico ? " de " + ag.servico : ""} no dia ${dataBR(ag.data)} às ${ag.horaInicio}` +
+      `${colab ? " com " + colab.nome : ""}. Você confirma?`;
+    const url = `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, "_blank", "noopener");
+  }
+
+  function atualizarWhatsApp() {
+    const btn = document.getElementById("btn-toggle-whatsapp");
+    const campo = document.getElementById("campo-whatsapp");
+    if (!whatsappLiberadoNoPlano()) whatsappLigado = false;
+    if (btn) {
+      btn.textContent = whatsappLigado ? "💬 Ligado" : "💬 Desligado";
+      btn.classList.toggle("whatsapp-on", whatsappLigado);
+      btn.setAttribute("aria-pressed", String(whatsappLigado));
+    }
+    if (campo) campo.hidden = !whatsappLigado;
+    // Botão flutuante verde no canto da tela (js/whatsapp.js)
+    if (window.WhatsAppFlutuante) {
+      WhatsAppFlutuante.iniciar({ permitirConfigurar: true, mensagem: "Olá! Gostaria de falar com o suporte." });
+      WhatsAppFlutuante.mostrar(whatsappLigado);
+    }
+    renderizarAgenda();
+  }
+
+  const btnToggleWhatsapp = document.getElementById("btn-toggle-whatsapp");
+  if (btnToggleWhatsapp) {
+    btnToggleWhatsapp.addEventListener("click", () => {
+      if (!whatsappLiberadoNoPlano()) {
+        alert("A integração com WhatsApp está disponível no plano Premium.");
+        return;
+      }
+      whatsappLigado = !whatsappLigado;
+      localStorage.setItem(CHAVE_WHATSAPP_LIGADO, whatsappLigado ? "1" : "0");
+      atualizarWhatsApp();
+    });
+  }
+
+  const campoWhatsapp = document.getElementById("agend-whatsapp");
+  if (campoWhatsapp) {
+    campoWhatsapp.addEventListener("input", () => {
+      campoWhatsapp.value = formatarTelefone(campoWhatsapp.value);
+    });
+  }
+
   function verDetalhesAgendamento(ag) {
-    alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}`);
+    alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}${ag.whatsapp ? `\nWhatsApp: ${formatarTelefone(ag.whatsapp)}` : ''}`);
   }
 
   function renderizarAgenda() {
@@ -472,6 +563,16 @@ function iniciarDashboard() {
           <strong>${ag.cliente}</strong>
           ${ag.servico ? `<span>${ag.servico}</span>` : ''}
         `;
+        if (whatsappLigado && telefoneValido(ag.whatsapp || "")) {
+          const btnZap = document.createElement("button");
+          btnZap.type = "button";
+          btnZap.className = "btn-whatsapp-card";
+          btnZap.textContent = "💬";
+          btnZap.title = "Enviar lembrete pelo WhatsApp";
+          btnZap.setAttribute("aria-label", `Enviar lembrete pelo WhatsApp para ${ag.cliente}`);
+          btnZap.addEventListener("click", (e) => { e.stopPropagation(); abrirWhatsApp(ag); });
+          bloco.appendChild(btnZap);
+        }
         col.appendChild(bloco);
       });
 
@@ -585,6 +686,16 @@ function iniciarDashboard() {
       mostrarErroForm(formAgendamento, validacaoAgendamento.erros.join("\n"), validacaoAgendamento.campoErro);
       return;
     }
+    // WhatsApp do cliente (opcional; se preencher, precisa ser válido)
+    let whatsappCliente = "";
+    const campoZap = document.getElementById("agend-whatsapp");
+    if (whatsappLigado && campoZap && campoZap.value.trim()) {
+      whatsappCliente = telefoneValido(campoZap.value);
+      if (!whatsappCliente) {
+        mostrarErroForm(formAgendamento, "Digite um WhatsApp válido com DDD. Exemplo: (11) 91234-5678", campoZap);
+        return;
+      }
+    }
     limparErroForm(formAgendamento);
 
     const dataEscolhida = document.getElementById("agend-data").value;
@@ -601,7 +712,8 @@ function iniciarDashboard() {
       data: document.getElementById("agend-data").value,
       horaInicio: document.getElementById("agend-hora-inicio").value,
       duracaoMin: parseInt(document.getElementById("agend-duracao").value),
-      cor: document.getElementById("agend-cor").value
+      cor: document.getElementById("agend-cor").value,
+      whatsapp: whatsappCliente
     };
 
     // >>> API: criar agendamento no backend.
@@ -906,6 +1018,8 @@ function iniciarDashboard() {
   atualizarFinanceiro();
   atualizarPlano();
   aplicarPermissoes();
+  atualizarSelectLoginSimulado(); // mostra o nome já na abertura, sem esperar a API
+  atualizarWhatsApp();
   carregarDadosIniciais();
 }
 
