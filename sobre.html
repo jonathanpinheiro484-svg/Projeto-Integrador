@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quem Somos - Nome da Empresa</title>
-    <!-- <link rel="stylesheet" href="css/styles.css"> -->
+    <title>Quem Somos - GET TIME</title>
+    <link rel="stylesheet" href="css/stylesSobre.css">
 </head>
+
 <body>
 
     <!-- =========================
@@ -13,13 +15,13 @@
     ========================== -->
     <header class="topo">
         <div class="logo">
-            <a href="index.html">Nome da Empresa</a>
+            <a href="index.html">GET TIME</a>
         </div>
 
         <nav class="menu">
             <ul class="menu-lista">
-                <li><a href="index.html">Dashboard</a></li>
-                <li><a href="sobre.html">Quem Somos</a></li>
+                <li><a href="index.html">Início</a></li>
+                <li><a href="sobre.html" class="ativo">Quem Somos</a></li>
                 <li><a href="planos.html">Planos</a></li>
             </ul>
         </nav>
@@ -30,29 +32,28 @@
         </div>
     </header>
 
-    <!-- =========================
-         QUEM SOMOS
-    ========================== -->
     <main>
+
+        <!-- =========================
+             QUEM SOMOS
+        ========================== -->
         <section class="sobre">
             <div class="sobre-texto">
                 <p class="subtitulo">QUEM SOMOS</p>
                 <h1>Uma forma mais simples de organizar sua rotina</h1>
                 <p>
-                    Somos uma empresa que desenvolve soluções
-                    para ajudar profissionais a organizar melhor
-                    seus negócios e suas atividades do dia a dia.
+                    A GET TIME desenvolve soluções para ajudar profissionais
+                    a organizar melhor seus negócios e suas atividades do dia a dia.
                 </p>
                 <p>
-                    Nossa proposta é reunir ferramentas de
-                    organização em um só lugar, tornando a rotina
-                    mais prática e fácil de acompanhar.
+                    Nossa proposta é reunir ferramentas de organização em um só lugar,
+                    tornando a rotina mais prática e fácil de acompanhar, de um jeito
+                    acessível para pequenos empreendedores.
                 </p>
             </div>
 
-            <div class="sobre-img">
-                <!-- imagem -->
-            </div>
+            <!-- Para usar uma foto: <div class="sobre-img"><img src="img/equipe.jpg" alt="Nossa equipe"></div> -->
+            <div class="sobre-img"></div>
         </section>
 
         <!-- =========================
@@ -63,10 +64,8 @@
                 <p class="subtitulo">NOSSA PROPOSTA</p>
                 <h2>Organização que acompanha o seu dia a dia</h2>
                 <p>
-                    Criamos nossa plataforma pensando nas
-                    necessidades de quem precisa administrar
-                    clientes, horários, serviços e outras
-                    informações de forma organizada.
+                    Criamos nossa plataforma pensando em quem precisa administrar clientes,
+                    horários, serviços e outras informações de forma organizada.
                 </p>
             </div>
 
@@ -89,34 +88,189 @@
         </section>
 
         <!-- =========================
+             NOSSA HISTÓRIA
+             (origem, linha do tempo e "antes x depois")
+        ========================== -->
+        <section class="historia">
+            <div class="secao-intro">
+                <p class="subtitulo">NOSSA HISTÓRIA</p>
+                <h2>Uma solução criada a partir de um problema real</h2>
+                <p>A GET TIME nasceu de um projeto acadêmico no Senac Lapa Tito, motivado por uma dificuldade enfrentada por um pequeno empreendedor.</p>
+            </div>
+
+            <!-- Onde e com o quê nasceu -->
+            <ul class="chips-origem" aria-label="Onde e com o que o projeto nasceu">
+                <li>Senac Lapa Tito</li>
+                <li>HTML</li>
+                <li>CSS</li>
+                <li>Bootstrap</li>
+                <li>C#</li>
+                <li>Banco de dados</li>
+            </ul>
+
+            <!-- Linha do tempo -->
+            <ol class="linha-tempo">
+                <li class="marco">
+                    <span class="marco-num">1</span>
+                    <span class="marco-ano">Origem</span>
+                    <h3>Projeto acadêmico</h3>
+                    <p>No Senac Lapa Tito, nosso grupo desenvolvia um sistema com HTML, CSS, Bootstrap, C# e banco de dados.</p>
+                </li>
+                <li class="marco">
+                    <span class="marco-num">2</span>
+                    <span class="marco-ano">O problema</span>
+                    <h3>A perda das informações</h3>
+                    <p>Um integrante do grupo relatou que o cabeleireiro dele organizava os clientes na agenda do próprio celular. Com a quebra do aparelho, perdeu conversas, horários e agendamentos.</p>
+                </li>
+                <li class="marco">
+                    <span class="marco-num">3</span>
+                    <span class="marco-ano">A ideia</span>
+                    <h3>Uma solução centralizada</h3>
+                    <p>Desenvolver um sistema único, simples e acessível para pequenos empreendedores, que reúne agendamentos, comunicação com clientes por e-mail ou WhatsApp e relatórios financeiros.</p>
+                </li>
+                <li class="marco">
+                    <span class="marco-num">4</span>
+                    <span class="marco-ano">Atualmente</span>
+                    <h3>Evolução contínua</h3>
+                    <p>O projeto se tornou uma plataforma com planos para pequenos empreendedores que precisam manter a agenda e os dados dos clientes organizados e seguros.</p>
+                </li>
+            </ol>
+
+            <!-- Antes x depois -->
+            <div class="antes-depois">
+                <div class="ad-bloco perdido">
+                    <h3>O que foi perdido</h3>
+                    <ul>
+                        <li>Conversas com clientes</li>
+                        <li>Horários</li>
+                        <li>Agendamentos</li>
+                    </ul>
+                </div>
+
+                <div class="ad-seta" aria-hidden="true">&rarr;</div>
+
+                <div class="ad-bloco criado">
+                    <h3>O que a plataforma entrega</h3>
+                    <ul>
+                        <li>Criação simples de agendamentos</li>
+                        <li>Integração com e-mail e WhatsApp</li>
+                        <li>Relatórios financeiros</li>
+                        <li>Informações centralizadas em um só lugar</li>
+                        <li>Acessível para pequenos empreendedores</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================
+             MISSÃO, VISÃO E VALORES
+        ========================== -->
+        <section class="mvv">
+            <div class="secao-intro">
+                <p class="subtitulo">O QUE NOS GUIA</p>
+                <h2>Missão, visão e valores</h2>
+            </div>
+
+            <div class="cards-azuis">
+                <div class="card-azul">
+                    <h3>Missão</h3>
+                    <p>Tornar a organização de clientes, horários e serviços acessível a pequenos empreendedores, com uma ferramenta simples de usar.</p>
+                </div>
+                <div class="card-azul">
+                    <h3>Visão</h3>
+                    <p>Ser a plataforma de agenda e gestão que o pequeno empreendedor escolhe sem pensar duas vezes.</p>
+                </div>
+                <div class="card-azul">
+                    <h3>Valores</h3>
+                    <p>Simplicidade, acessibilidade, transparência com o cliente, cuidado com os dados e suporte de verdade.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================
+             EQUIPE: FUNDADORES
+             Para adicionar alguém, copie um bloco <article class="pessoa"> inteiro.
+             Para trocar a foto, mude o src (coloque as fotos na pasta img/).
+        ========================== -->
+        <section class="equipe" id="equipe">
+            <div class="equipe-intro">
+                <p class="subtitulo">NOSSA EQUIPE</p>
+                <h2>As pessoas por trás da plataforma</h2>
+                <p>Conheça quem idealizou e constrói o produto todos os dias.</p>
+            </div>
+
+            <!-- ===== FUNDADORES ===== -->
+            <div class="equipe-grupo fundadores">
+                <div class="equipe-lista">
+
+                    <article class="pessoa">
+                        <div class="pessoa-foto">
+                            <img src="img/fundador-1.jpg" alt="Foto de Nome do Fundador">
+                        </div>
+                        <h4>Patrick Brasileiro</h4>
+                        <p class="cargo">Fundador</p>
+                        <p class="bio">Escreva aqui uma frase curta sobre a trajetória e o papel dessa pessoa na empresa.</p>
+                        <a href="https://www.linkedin.com/in/patrick-brasileiro/?isSelfProfile=true" class="contato" target="_blank" rel="noopener">LinkedIn</a>
+                    </article>
+
+                    <article class="pessoa">
+                        <div class="pessoa-foto">
+                            <img src="img/fundador-2.jpg" alt="Foto de Nome da Fundadora">
+                        </div>
+                        <h4>Nome da Fundadora</h4>
+                        <p class="cargo">Fundador</p>
+                        <p class="bio">Escreva aqui uma frase curta sobre a trajetória e o papel dessa pessoa na empresa.</p>
+                        <a href="https://www.linkedin.com/" class="contato" target="_blank" rel="noopener">LinkedIn</a>
+                    </article>
+
+                    <article class="pessoa">
+                        <div class="pessoa-foto">
+                            <img src="img/fundador-3.jpg" alt="Foto de Nome do Fundador">
+                        </div>
+                        <h4>Nome do Fundador</h4>
+                        <p class="cargo">Fundador</p>
+                        <p class="bio">Escreva aqui uma frase curta sobre a trajetória e o papel dessa pessoa na empresa.</p>
+                        <a href="https://www.linkedin.com/" class="contato" target="_blank" rel="noopener">LinkedIn</a>
+                    </article>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- =========================
              COMO FUNCIONA
         ========================== -->
         <section class="funciona">
             <p class="subtitulo">COMO FUNCIONA</p>
             <h2>Tudo organizado em um só lugar</h2>
             <p>
-                A plataforma permite que cada profissional
-                tenha acesso às ferramentas necessárias para
-                organizar sua rotina de maneira prática.
+                A plataforma permite que cada profissional tenha acesso às ferramentas
+                necessárias para organizar sua rotina de maneira prática.
             </p>
 
             <div class="etapas">
                 <div class="etapa">
-                    <span class="etapa-num">01</span>
+                    <span class="etapa-num">1</span>
                     <h3>Cadastre-se</h3>
                     <p>Crie sua conta e configure suas informações.</p>
                 </div>
 
                 <div class="etapa">
-                    <span class="etapa-num">02</span>
+                    <span class="etapa-num">2</span>
                     <h3>Organize</h3>
                     <p>Cadastre clientes, serviços e horários.</p>
                 </div>
 
                 <div class="etapa">
-                    <span class="etapa-num">03</span>
+                    <span class="etapa-num">3</span>
                     <h3>Acompanhe</h3>
                     <p>Tenha uma visão organizada da sua rotina.</p>
+                </div>
+
+                <div class="etapa">
+                    <span class="etapa-num">4</span>
+                    <h3>Cresça</h3>
+                    <p>Com mais organização e produtividade, você atende melhor, deixa de depender de controles manuais e abre espaço para aumentar sua receita, com mais confiança para o seu negócio e para os seus clientes.</p>
                 </div>
             </div>
         </section>
@@ -135,7 +289,7 @@
          RODAPÉ
     ========================== -->
     <footer class="rodape">
-        <div class="rodape-logo">Nome da Empresa</div>
+        <div class="rodape-logo">GET TIME</div>
 
         <nav class="rodape-links">
             <a href="index.html">Início</a>
@@ -144,8 +298,10 @@
             <a href="agenda.html">Agenda</a>
         </nav>
 
-        <p class="rodape-texto">&copy; 2026 Nome da Empresa. Todos os direitos reservados.</p>
+        <p class="rodape-texto">&copy; 2026 GET TIME. Todos os direitos reservados.</p>
     </footer>
 
+    <script src="js/script.js"></script>
 </body>
+
 </html>
