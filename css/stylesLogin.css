@@ -197,3 +197,33 @@ body {
 .container.active .toggle-right {
     transform: translateX(200%);
 }
+
+   /* <!-- Link "Esqueci minha senha": fixo em todos os estados (normal, visitado, hover, clicado, foco).
+         Fica aqui, depois do styles.css, para nenhuma outra regra conseguir escondê-lo. --> */
+    
+        .container .form-container.sign-in a.link-esqueci,
+        .container .form-container.sign-in a.link-esqueci:link,
+        .container .form-container.sign-in a.link-esqueci:visited,
+        .container .form-container.sign-in a.link-esqueci:active,
+        .container .form-container.sign-in a.link-esqueci:focus {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            width: auto !important;
+            height: auto !important;
+            overflow: visible !important;
+            transform: none !important;
+            align-self: flex-start;
+            margin: 8px 0 12px;
+            color: #1a56db !important;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: underline !important;
+            cursor: pointer;
+        }
+
+        .container .form-container.sign-in a.link-esqueci:hover {
+            color: #0f3ea8 !important;
+        }
+    /* teste */
