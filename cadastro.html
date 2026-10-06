@@ -244,6 +244,34 @@
         .container.active .toggle-right {
             transform: translateX(200%);
         }
+
+        /* --- LINK "ESQUECI MINHA SENHA" ---
+           Fixo em todos os estados (normal, visitado, hover, clicado, foco). */
+        .container .form-container.sign-in a.link-esqueci,
+        .container .form-container.sign-in a.link-esqueci:link,
+        .container .form-container.sign-in a.link-esqueci:visited,
+        .container .form-container.sign-in a.link-esqueci:active,
+        .container .form-container.sign-in a.link-esqueci:focus {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: static !important;
+            width: auto !important;
+            height: auto !important;
+            overflow: visible !important;
+            transform: none !important;
+            align-self: flex-start;
+            margin: 8px 0 12px;
+            color: #1a56db !important;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: underline !important;
+            cursor: pointer;
+        }
+
+        .container .form-container.sign-in a.link-esqueci:hover {
+            color: #0f3ea8 !important;
+        }
     </style>
 </head>
 
@@ -284,6 +312,7 @@
                 <h1>Entrar</h1>
                 <input type="email" id="login-email" placeholder="Email" autocomplete="email">
                 <input type="password" id="login-senha" placeholder="Senha" autocomplete="current-password">
+                <a href="recuperar-senha.html" id="esqueci-senha" class="link-esqueci">Esqueci minha senha</a>
                 <button type="submit">Entrar</button>
             </form>
         </div>
@@ -305,7 +334,10 @@
         </div>
     </div>
 
-    <!-- Todo o JavaScript do site está reunido em um único arquivo -->
+    <!-- ORDEM IMPORTANTE: o comum.js define NOMES_PLANOS_ASSINATURA, emailValido, etc.
+         e precisa carregar ANTES do cadastro.js. Sem ele, o iniciarAuth quebra
+         e a tela ignora o ?modo=cadastro. -->
+    <script src="js/comum.js"></script>
     <script src="js/cadastro.js"></script>
 </body>
 
