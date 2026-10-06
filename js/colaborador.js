@@ -19,7 +19,7 @@ function iniciarColaborador() {
   // Só colaborador logado entra aqui
   const sessao = lerJsonLocal(CHAVE_SESSAO, null);
   if (!sessao || sessao.perfil !== "COLABORADOR") {
-    window.location.href = "login.html";
+    window.location.href = "cadastro.html?modo=entrar";
     return;
   }
   const meuId = sessao.colaboradorId;
@@ -90,7 +90,7 @@ function iniciarColaborador() {
 
   document.getElementById("btn-sair").addEventListener("click", function () {
     localStorage.removeItem(CHAVE_SESSAO);
-    window.location.href = "login.html";
+    window.location.href = "cadastro.html?modo=entrar";
   });
 
   // --- FILTRO "PROCURAR COLABORADOR" ---

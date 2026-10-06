@@ -877,6 +877,18 @@ function iniciarDashboard() {
     });
   });
 
+  // --- SAIR (painel do dono): apaga a sessão e volta para o login ---
+  const btnSair = document.getElementById("btn-sair");
+  if (btnSair) {
+    const sair = () => {
+      sairDaConta();
+      localStorage.removeItem("apiToken");
+      window.location.href = "cadastro.html?modo=entrar";
+    };
+    btnSair.addEventListener("click", sair);
+    btnSair.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sair(); } });
+  }
+
   // Se o dono e o colaborador estiverem com o site aberto em abas diferentes,
   // a agenda atualiza sozinha quando o outro adiciona/remove algo.
   window.addEventListener("storage", function (e) {
