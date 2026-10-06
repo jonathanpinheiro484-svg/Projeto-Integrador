@@ -22,9 +22,9 @@
   const CHAVE_NUMERO = "whatsappNumeroFlutuante";
 
   const config = {
-    numero: "",
+    numero: "11912499740",
     mensagem: "Olá! Gostaria de falar com vocês.",
-    permitirConfigurar: true,
+    permitirConfigurar: false,
   };
 
   let raiz = null;       // elemento principal
