@@ -404,7 +404,7 @@ function iniciarDashboard() {
   // =====================================================
   const WHATSAPP_SOMENTE_PREMIUM = false; // true = só quem tem plano Premium pode ligar
   const CHAVE_WHATSAPP_LIGADO = "whatsappLigado";
-  let whatsappLigado = localStorage.getItem(CHAVE_WHATSAPP_LIGADO) === "1";
+  let whatsappLigado = true; // sempre ligado (o botão de ligar/desligar foi removido)
 
   function whatsappLiberadoNoPlano() {
     return !WHATSAPP_SOMENTE_PREMIUM || planoAtual === "PREMIUM" || planoAtual === "PRO";
@@ -461,7 +461,7 @@ function iniciarDashboard() {
     if (campo) campo.hidden = !whatsappLigado;
     // Botão flutuante verde no canto da tela (js/whatsapp.js)
     if (window.WhatsAppFlutuante) {
-      WhatsAppFlutuante.iniciar({ permitirConfigurar: true, mensagem: "Olá! Gostaria de falar com o suporte." });
+      WhatsAppFlutuante.iniciar({ permitirConfigurar: false, mensagem: "Olá! Gostaria de falar com o suporte." });
       WhatsAppFlutuante.mostrar(whatsappLigado);
     }
     renderizarAgenda();
