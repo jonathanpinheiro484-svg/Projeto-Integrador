@@ -4,6 +4,30 @@
 // Depende do js/comum.js (carregar ANTES deste arquivo).
 // =====================================================
 
+// Transforma o erro do apiRequest numa mensagem amigável para o formulário.
+// O apiRequest lança: "Erro na API (STATUS) em ROTA: texto da resposta".
+function mensagemErroApi(erro, contexto) {
+  const texto = (erro && erro.message) || "";
+  const m = texto.match(/Erro na API \((\d+)\)[^:]*:\s*([\s\S]*)$/);
+
+  if (!m) {
+    // Sem status = a requisição nem chegou na API (offline, porta errada ou CORS)
+    return "Não foi possível conectar à API. Confira se ela está rodando e se o site está aberto em http://127.0.0.1:5501.";
+  }
+
+  const status = Number(m[1]);
+  let corpo = (m[2] || "").trim();
+  try {
+    const json = JSON.parse(corpo);
+    corpo = json.mensagem || json.message || json.erro || json.error || json.title || corpo;
+  } catch (_) { /* a resposta era texto puro */ }
+
+  if (status === 400 && corpo) return corpo;
+  if (status === 401) return "E-mail ou senha inválidos.";
+  if (status === 500 && contexto === "cadastro") return "Não foi possível cadastrar. Confira se o e-mail ou o CPF já foram cadastrados.";
+  return `Erro ${status} ao falar com a API.`;
+}
+
 // =====================================================
 // 3. LOGIN & CADASTRO (login.html)
 // Só roda se a página tiver o elemento #container (o card com o slider).
@@ -85,19 +109,6 @@ function iniciarAuth() {
       const senha = senhaInput ? senhaInput.value.trim() : "";
       const cpf = cpfInput ? cpfInput.value.trim(): "";
       const tel = telefoneInput ? telefoneInput.value.trim() : "";
-      // >>> API: criar conta no backend. Exemplo:
-      // try {
-      //   const resposta = await apiRequest("COLABORADORES", {
-      //     method: "POST",
-      //     body: { nome, email, senha },
-      //   });
-      //   if (resposta && resposta.token) salvarTokenApi(resposta.token);
-      // } catch (erro) {
-      //   alert("Não foi possível criar a conta agora. Tente novamente.");
-      //   console.warn(erro.message);
-      //   return;
-      // }
-
       // Validações da tela de cadastro
       const erros = [];
       let campoErro = null;
@@ -116,6 +127,30 @@ function iniciarAuth() {
       }
       limparErroForm(formCadastro);
 
+      const botaoCadastro = formCadastro.querySelector("button");
+      if (botaoCadastro) botaoCadastro.disabled = true; // evita clique duplo
+
+      try {
+        // 1) Cria a conta. Formato que a API espera:
+        //    { nome, cpf, email, senha, telefone }
+        await apiRequest("CADASTRO", {
+          method: "POST",
+          body: { nome, cpf, email, senha, telefone: tel },
+        });
+
+        // 2) A API não devolve token no cadastro, então entra logo em seguida
+        const resposta = await apiRequest("LOGIN", {
+          method: "POST",
+          body: { email, senha },
+        });
+        if (resposta && resposta.Token) salvarTokenApi(resposta.Token); // Token com T maiúsculo
+      } catch (erro) {
+        console.warn(erro.message);
+        mostrarErroForm(formCadastro, mensagemErroApi(erro, "cadastro"), null);
+        if (botaoCadastro) botaoCadastro.disabled = false;
+        return;
+      }
+
       if (nome) {
         localStorage.setItem("nomeUsuarioCadastrado", nome);
       }
@@ -133,19 +168,6 @@ function iniciarAuth() {
 
       const email = emailInput ? emailInput.value.trim() : "";
       const senha = senhaInput ? senhaInput.value.trim() : "";
-
-      // >>> API: autenticar no backend. Exemplo:
-      // try {
-      //   const resposta = await apiRequest("LOGIN", {
-      //     method: "POST",
-      //     body: { email, senha },
-      //   });
-      //   if (resposta && resposta.token) salvarTokenApi(resposta.token);
-      // } catch (erro) {
-      //   alert("E-mail ou senha inválidos.");
-      //   console.warn(erro.message);
-      //   return;
-      // }
 
       // Validações da tela de entrar
       const erros = [];
@@ -177,6 +199,23 @@ function iniciarAuth() {
         }
         localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "COLABORADOR", colaboradorId: colab.id, nome: colab.nome }));
         window.location.href = "colaborador.html";
+        return;
+      }
+
+      // Dono: confere e-mail e senha na API
+      const botaoLogin = formLogin.querySelector("button");
+      if (botaoLogin) botaoLogin.disabled = true;
+      try {
+        const resposta = await apiRequest("LOGIN", {
+          method: "POST",
+          body: { email, senha },
+        });
+        if (!resposta || !resposta.Token) throw new Error("Erro na API (401) em LOGIN: sem token");
+        salvarTokenApi(resposta.Token);
+      } catch (erro) {
+        console.warn(erro.message);
+        mostrarErroForm(formLogin, mensagemErroApi(erro, "login"), senhaInput);
+        if (botaoLogin) botaoLogin.disabled = false;
         return;
       }
 

@@ -28,6 +28,7 @@ const API_CONFIG = {
   token: localStorage.getItem("apiToken") || null,
 };
 
+
 async function apiRequest(endpointKey, options = {}, sufixoUrl = "") {
   const caminho = API_CONFIG.ENDPOINTS[endpointKey];
   if (!caminho) throw new Error(`Endpoint "${endpointKey}" não configurado em API_CONFIG.`);
