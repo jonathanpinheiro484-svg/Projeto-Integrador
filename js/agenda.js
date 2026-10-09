@@ -12,6 +12,123 @@ function iniciarDashboard() {
   const layoutPrincipal = document.getElementById("layout-principal");
   if (!layoutPrincipal) return; // esta página não é o dashboard
 
+  // =====================================================
+  // DONO NA AGENDA
+  // O dono também atende clientes, então aparece como uma coluna da agenda,
+  // igual a um colaborador. Ele usa o id 0 (os colaboradores começam no 1),
+  // por isso nunca se mistura com a equipe.
+  // =====================================================
+  // Nome do dono: o que foi guardado no cadastro. Se não tiver, usa o nome guardado para o
+  // e-mail e, por último, a primeira parte do e-mail (jonathan@gmail.com -> "Jonathan").
+  function nomeDoUsuario() {
+    const salvo = (localStorage.getItem("nomeUsuarioCadastrado") || "").trim();
+    if (salvo) return salvo;
+    const email = (localStorage.getItem("emailUsuarioLogado") || "").trim().toLowerCase();
+    const porEmail = (lerJsonLocal("nomesPorEmail", {})[email] || "").trim();
+    if (porEmail) return porEmail;
+    const parte = email.split("@")[0].split(/[._\-0-9]+/)[0];
+    return parte ? parte.charAt(0).toUpperCase() + parte.slice(1) : "";
+  }
+
+  function obterDono() {
+    return {
+      id: 0,
+      nome: nomeDoUsuario().split(/\s+/)[0] || "Dono", // só o primeiro nome
+      cargo: "Dono",
+      cor: "#6c5ce7",
+      ativo: true
+    };
+  }
+
+  // Lista de colaboradores com o dono na primeira posição
+  function comDono(listaColaboradores) {
+    return [obterDono()].concat(listaColaboradores);
+  }
+
+  // =====================================================
+  // VÁRIOS SERVIÇOS NO MESMO AGENDAMENTO
+  // Troca o <select id="agend-servico"> (que só aceita 1 opção) por caixinhas de marcar.
+  // As opções continuam vindo do HTML: para incluir um serviço novo, basta
+  // colocar mais um <option> no select.
+  // =====================================================
+  function prepararServicosMultiplos() {
+    const select = document.getElementById("agend-servico");
+    if (!select || select.tagName !== "SELECT") return;
+
+    if (!document.getElementById("estilo-servicos-multiplos")) {
+      const estilo = document.createElement("style");
+      estilo.id = "estilo-servicos-multiplos";
+      estilo.textContent =
+        ".servicos-grupo { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; max-height:170px; overflow-y:auto; padding:10px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); outline:none; }" +
+        ".servicos-grupo label { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--texto); cursor:pointer; }" +
+        ".servicos-grupo input[type=\"checkbox\"] { width:16px; height:16px; padding:0; margin:0; flex-shrink:0; cursor:pointer; accent-color:#6c5ce7; }" +
+        "@media (max-width:480px) { .servicos-grupo { grid-template-columns:1fr; } }";
+      document.head.appendChild(estilo);
+    }
+
+    const grupo = document.createElement("div");
+    grupo.id = "agend-servicos-grupo";
+    grupo.className = "servicos-grupo";
+    grupo.setAttribute("role", "group");
+    grupo.setAttribute("aria-label", "Serviços");
+    grupo.tabIndex = -1; // permite focar o grupo quando falta marcar algum serviço
+
+    Array.from(select.options).filter(opcao => opcao.value).forEach(opcao => {
+      const rotulo = document.createElement("label");
+      const caixa = document.createElement("input");
+      caixa.type = "checkbox";
+      caixa.value = opcao.value;
+      rotulo.appendChild(caixa);
+      rotulo.appendChild(document.createTextNode(opcao.textContent));
+      grupo.appendChild(rotulo);
+    });
+
+    // O id "agend-servico" continua existindo (escondido) porque a validação do
+    // comum.js lê esse campo. Quem guarda os serviços de verdade é o grupo acima.
+    const campoEscondido = document.createElement("input");
+    campoEscondido.type = "hidden";
+    campoEscondido.id = "agend-servico";
+
+    const dica = document.createElement("small");
+    dica.style.cssText = "font-size:11px; color:var(--muted);";
+    dica.textContent = "Marque quantos serviços forem necessários.";
+
+    const campo = select.parentElement;
+    select.replaceWith(grupo);
+    grupo.insertAdjacentElement("afterend", dica);
+    grupo.insertAdjacentElement("afterend", campoEscondido);
+
+    const titulo = campo ? campo.querySelector(":scope > label") : null;
+    if (titulo) titulo.textContent = "Serviços";
+  }
+
+  // Lista dos serviços marcados, ex.: ["Manicure", "Pedicure"]
+  function lerServicosMarcados() {
+    const grupo = document.getElementById("agend-servicos-grupo");
+    if (!grupo) return [];
+    return Array.from(grupo.querySelectorAll('input[type="checkbox"]:checked')).map(caixa => caixa.value);
+  }
+
+  // Mesma validação de sempre (comum.js) + exigir pelo menos um serviço marcado
+  function validarAgendamentoComServicos() {
+    const marcados = lerServicosMarcados();
+    const campoEscondido = document.getElementById("agend-servico");
+    // O comum.js só entende 1 serviço em texto; damos um texto curto só para ele não reclamar
+    if (campoEscondido) campoEscondido.value = marcados.length ? "serviços marcados" : "";
+
+    const resultado = validarNovoAgendamento();
+    const erros = resultado.erros.filter(erro => erro !== "Preencha o serviço.");
+    let campoErro = (resultado.campoErro === campoEscondido) ? null : resultado.campoErro;
+
+    if (marcados.length === 0) {
+      erros.unshift("Escolha pelo menos um serviço.");
+      if (!campoErro) campoErro = document.getElementById("agend-servicos-grupo");
+    }
+    return { erros, campoErro };
+  }
+
+  prepararServicosMultiplos();
+
   // --- CONTROLADOR DE TEMA NOTURNO ---
   const btnToggleTema = document.getElementById("btn-toggle-tema");
   if (btnToggleTema) {
@@ -243,7 +360,7 @@ function iniciarDashboard() {
     const textoPerfil = document.getElementById("texto-perfil");
     const nomeCadastrado = (usuarioLogado.perfil === "COLABORADOR" && sessaoSalva && sessaoSalva.nome)
       ? sessaoSalva.nome
-      : (localStorage.getItem("nomeUsuarioCadastrado") || localStorage.getItem("emailUsuarioLogado"));
+      : nomeDoUsuario();
     if (textoPerfil) textoPerfil.textContent = nomeCadastrado || "Admin";
   }
 
@@ -261,7 +378,7 @@ function iniciarDashboard() {
 
     select.innerHTML = `<option value="todos">Procurar colaborador...</option>`;
 
-    colaboradores.filter(c => c.ativo !== false).forEach(c => {
+    comDono(colaboradores).filter(c => c.ativo !== false).forEach(c => {
       select.insertAdjacentHTML(
         "beforeend",
         `<option value="${c.id}">${c.nome}</option>`
@@ -295,7 +412,7 @@ function iniciarDashboard() {
     }
 
     // Colaborador inativo some da agenda (os agendamentos dele continuam salvos)
-    const colaboradoresAtivos = colaboradores.filter(c => c.ativo !== false);
+    const colaboradoresAtivos = comDono(colaboradores).filter(c => c.ativo !== false);
 
     const filtro = document.getElementById("filtro-colaborador");
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
@@ -318,7 +435,7 @@ function iniciarDashboard() {
     const colaboradorSelecionado = filtro ? filtro.value : "todos";
     if (colaboradorSelecionado !== "todos") return 1;
 
-    return Math.ceil(colaboradores.filter(c => c.ativo !== false).length / colunasVisiveis) || 1;
+    return Math.ceil(comDono(colaboradores).filter(c => c.ativo !== false).length / colunasVisiveis) || 1;
   }
   function atualizarInfoPaginacao() {
     document.getElementById("pag-info").textContent = `${paginaAtual + 1} de ${obterTotalPaginas()}`;
@@ -440,7 +557,7 @@ function iniciarDashboard() {
       alert("Este agendamento não tem um WhatsApp válido.");
       return;
     }
-    const colab = colaboradores.find(c => c.id === ag.colaboradorId);
+    const colab = comDono(colaboradores).find(c => c.id === ag.colaboradorId);
     const mensagem =
       `Olá, ${ag.cliente}! Passando para lembrar do seu horário` +
       `${ag.servico ? " de " + ag.servico : ""} no dia ${dataBR(ag.data)} às ${ag.horaInicio}` +
@@ -654,14 +771,9 @@ function iniciarDashboard() {
   }
 
   btnAbrirAgendamento.addEventListener("click", () => {
-    // Sem colaborador ativo não dá pra agendar
-    if (!colaboradores.some(c => c.ativo !== false)) {
-      alert("Cadastre um colaborador antes de criar um agendamento.");
-      return;
-    }
-
+    // O dono sempre aparece na lista de profissionais, então não exige colaborador cadastrado
     selectProfissional.innerHTML = "";
-    colaboradores
+    comDono(colaboradores)
       .filter(c => c.ativo !== false)
       .filter(c => usuarioLogado.perfil !== "COLABORADOR" || c.id === usuarioLogado.colaboradorId)
       .forEach(c => {
@@ -681,7 +793,7 @@ function iniciarDashboard() {
   formAgendamento.addEventListener("submit", async function(e) {
     e.preventDefault();
 
-    const validacaoAgendamento = validarNovoAgendamento();
+    const validacaoAgendamento = validarAgendamentoComServicos();
     if (validacaoAgendamento.erros.length > 0) {
       mostrarErroForm(formAgendamento, validacaoAgendamento.erros.join("\n"), validacaoAgendamento.campoErro);
       return;
@@ -707,7 +819,8 @@ function iniciarDashboard() {
     const novoAgendamento = {
       id: Date.now(),
       cliente: document.getElementById("agend-cliente").value,
-      servico: document.getElementById("agend-servico").value,
+      servico: listaEmTexto(lerServicosMarcados()), // texto: "Manicure e Pedicure"
+      servicos: lerServicosMarcados(),              // lista: ["Manicure", "Pedicure"]
       colaboradorId: parseInt(selectProfissional.value),
       data: document.getElementById("agend-data").value,
       horaInicio: document.getElementById("agend-hora-inicio").value,

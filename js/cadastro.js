@@ -28,6 +28,42 @@ function mensagemErroApi(erro, contexto) {
   return `Erro ${status} ao falar com a API.`;
 }
 
+// Tenta achar o nome do usuário dentro do token JWT (se a API colocar o nome lá).
+function nomeDoToken(token) {
+  try {
+    const payload = JSON.parse(decodeURIComponent(escape(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")))));
+    const chaves = ["nome", "Nome", "name", "unique_name", "given_name",
+      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"];
+    for (const c of chaves) {
+      const v = payload[c];
+      if (typeof v === "string" && v.trim() && !v.includes("@")) return v.trim();
+    }
+  } catch (_) { /* token sem nome legível */ }
+  return "";
+}
+
+// Dados da agenda ainda ficam no localStorage e não pertencem a nenhuma conta.
+// Quando entra um dono diferente do último, apaga os dados do anterior e guarda o nome dele.
+function prepararContaDono(email, nome, contaNova) {
+  const emailNorm = (email || "").toLowerCase();
+  const nomes = lerJsonLocal("nomesPorEmail", {});
+  if (nome) nomes[emailNorm] = nome;
+  localStorage.setItem("nomesPorEmail", JSON.stringify(nomes));
+
+  const outraConta = contaNova || localStorage.getItem("ultimoEmailDono") !== emailNorm;
+  if (outraConta) {
+    [CHAVE_COLABORADORES, CHAVE_CREDENCIAIS, CHAVE_AGENDAMENTOS, CHAVE_ASSINATURA,
+     "whatsappLigado", "nomeUsuarioCadastrado"].forEach(c => localStorage.removeItem(c));
+  }
+  localStorage.setItem("ultimoEmailDono", emailNorm);
+  localStorage.setItem("emailUsuarioLogado", email);
+
+  const nomeFinal = nomes[emailNorm];
+  if (nomeFinal) localStorage.setItem("nomeUsuarioCadastrado", nomeFinal);
+  else localStorage.removeItem("nomeUsuarioCadastrado");
+}
+
 // =====================================================
 // 3. LOGIN & CADASTRO (login.html)
 // Só roda se a página tiver o elemento #container (o card com o slider).
@@ -151,9 +187,7 @@ function iniciarAuth() {
         return;
       }
 
-      if (nome) {
-        localStorage.setItem("nomeUsuarioCadastrado", nome);
-      }
+      prepararContaDono(email, nome, true);
       localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "DONO" }));
       window.location.href = destinoCompra || "agenda.html";
     });
@@ -205,6 +239,7 @@ function iniciarAuth() {
       // Dono: confere e-mail e senha na API
       const botaoLogin = formLogin.querySelector("button");
       if (botaoLogin) botaoLogin.disabled = true;
+      let nomeApi = "";
       try {
         const resposta = await apiRequest("LOGIN", {
           method: "POST",
@@ -212,6 +247,7 @@ function iniciarAuth() {
         });
         if (!resposta || !resposta.Token) throw new Error("Erro na API (401) em LOGIN: sem token");
         salvarTokenApi(resposta.Token);
+        nomeApi = resposta.Nome || resposta.nome || nomeDoToken(resposta.Token);
       } catch (erro) {
         console.warn(erro.message);
         mostrarErroForm(formLogin, mensagemErroApi(erro, "login"), senhaInput);
@@ -219,6 +255,7 @@ function iniciarAuth() {
         return;
       }
 
+      prepararContaDono(email, nomeApi, false);
       localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "DONO" }));
       window.location.href = destinoCompra || "agenda.html";
     });
