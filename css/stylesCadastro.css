@@ -1,7 +1,62 @@
-/* CADASTRO */
+/* =====================================================================
+   LOGIN / CADASTRO - GET TIME
+   =====================================================================
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+   ÍNDICE
+   1. Variáveis (cores, medidas, animação)  <- mude aqui primeiro
+   2. Reset e página (inclui o cabeçalho .topo)
+   3. Card principal (.container)
+   4. Formulários (.sign-in e .sign-up)
+   5. Campos de texto (input)
+   6. Botões
+   7. Painel lateral "Olá, amigo!" (.toggle)
+   8. Estado "cadastro ativo" (.container.active)
+   9. Link "Esqueci minha senha"
+   10. Responsivo (celular)
 
+   COMO FUNCIONA A TROCA ENTRE ENTRAR E CADASTRAR
+   O JavaScript adiciona/remove a classe "active" no .container.
+   Tudo que muda de posição quando "active" existe está na seção 8.
+   ===================================================================== */
+
+
+/* =====================================================================
+   1. VARIÁVEIS
+   ===================================================================== */
+:root {
+    /* Cores da marca */
+    --cor-fundo:          #0a2036;   /* azul-marinho (fundo do site) */
+    --cor-fundo-2:        #0d2a47;   /* azul-marinho mais claro */
+    --cor-principal:      #00c97b;   /* verde dos botões */
+    --cor-principal-hover:#00b36d;
+    --cor-destaque:       #2b7be4;   /* azul (links, foco, painel) */
+    --cor-destaque-hover: #1f62bd;
+    --cor-foco:           #3fa9f5;   /* azul claro (contorno de teclado) */
+
+    /* Botão do formulário de cadastro (troque aqui se quiser outra cor) */
+    --cor-botao-cadastro:       #2b7be4;
+    --cor-botao-cadastro-hover: #1f62bd;
+
+    /* Cores neutras */
+    --cor-branco:         #ffffff;
+    --cor-texto:          #0a2036;
+    --cor-texto-suave:    #5b6b7f;
+    --cor-campo:          #eaf1fb;   /* fundo dos inputs */
+
+    /* Medidas */
+    --largura-card:       680px;
+    --altura-card:        540px;     /* altura do card (cadastro tem mais campos) */
+    --raio-card:          30px;
+    --raio-campo:         8px;
+
+    /* Animação (duração da troca entre Entrar e Cadastrar) */
+    --tempo-troca:        0.6s;
+}
+
+
+/* =====================================================================
+   2. RESET E PÁGINA
+   ===================================================================== */
 * {
     margin: 0;
     padding: 0;
@@ -10,72 +65,88 @@
 }
 
 body {
-    
-        background: linear-gradient(to right, #e2e2e2, #e37878);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        height: 100vh;
-    }
-
-
-/* --- CABEÇALHO --- */
-.topo {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
+    min-height: 100vh;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;       /* header em cima, card embaixo */
+    background: linear-gradient(135deg, var(--cor-fundo), var(--cor-fundo-2));
+}
+
+
+/* =====================================================================
+   2.1 CABEÇALHO (.topo)
+   Mesmo visual do header do site: barra azul-marinho com links claros.
+   ===================================================================== */
+.topo {
+    display: flex;
     align-items: center;
-    padding: 15px 30px;
-    background-color: #ffffff;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    justify-content: space-between;
+    width: 100%;
+    padding: 20px 40px;
+    background-color: var(--cor-fundo);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .topo .logo a {
+    font-size: 20px;
     font-weight: 700;
-    font-size: 1.2rem;
-    color: #333;
+    color: var(--cor-branco);
     text-decoration: none;
 }
 
-.sidebar h2 {
-    font-size: 1rem;
-    display: none;
+/* O <aside class="sidebar"> vira apenas a área do menu */
+.topo .sidebar {
+    background: none;
+    width: auto;
 }
 
-.sidebar nav a {
-    margin: 0 10px;
-    text-decoration: none;
-    color: #555;
+.topo .sidebar h2 {
+    display: none;                /* título "Gestão Integrada Pro" escondido */
+}
+
+.topo .sidebar nav {
+    display: flex;
+    gap: 28px;
+}
+
+.topo .sidebar nav a {
+    font-size: 15px;
     font-weight: 500;
+    color: var(--cor-branco);
+    text-decoration: none;
+    opacity: 0.85;
+    transition: opacity 0.2s ease, color 0.2s ease;
 }
 
-.sidebar nav a:hover {
-    color: #512da8;
+.topo .sidebar nav a:hover {
+    opacity: 1;
+    color: var(--cor-principal);
 }
 
-/* --- CONTAINER PRINCIPAL --- */
+
+/* =====================================================================
+   3. CARD PRINCIPAL
+   ===================================================================== */
 .container {
-    background-color: #fff;
-    border-radius: 30px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.35);
     position: relative;
     overflow: hidden;
-    width: 768px;
+    width: var(--largura-card);
     max-width: 100%;
-    min-height: 480px;
-    margin-top: 60px;
+    min-height: var(--altura-card);
+    margin: auto;                 /* centraliza abaixo do header */
+    background-color: var(--cor-branco);
+    border-radius: var(--raio-card);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+}
+
+.container h1 {
+    color: var(--cor-texto);
 }
 
 .container p {
+    margin: 20px 0;
     font-size: 14px;
     line-height: 20px;
     letter-spacing: 0.3px;
-    margin: 20px 0;
 }
 
 .container span {
@@ -83,161 +154,319 @@ body {
 }
 
 .container a {
-    color: #333;
-    font-size: 13px;
-    text-decoration: none;
     margin: 15px 0 10px;
-}
-
-.container button {
-    background-color: #512da8;
-    color: #fff;
-    font-size: 12px;
-    padding: 10px 45px;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-top: 10px;
-    cursor: pointer;
-}
-
-.container button.hidden {
-    background-color: transparent;
-    border-color: #fff;
-}
-
-.container form {
-    background-color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    padding: 0 40px;
-    height: 100%;
-}
-
-.container input {
-    background-color: #eee;
-    border: none;
-    margin: 8px 0;
-    padding: 10px 15px;
     font-size: 13px;
-    border-radius: 8px;
-    width: 100%;
-    outline: none;
+    color: var(--cor-texto-suave);
+    text-decoration: none;
 }
 
+
+/* =====================================================================
+   4. FORMULÁRIOS
+   .form-container = caixa que se move (metade esquerda do card)
+   form            = conteúdo dentro da caixa
+   ===================================================================== */
 .form-container {
     position: absolute;
     top: 0;
-    height: 100%;
-    transition: all 0.6s ease-in-out;
-}
-
-.sign-in {
     left: 0;
     width: 50%;
+    height: 100%;
+    transition: transform var(--tempo-troca) ease-in-out,
+                opacity var(--tempo-troca) ease-in-out;
+}
+
+.form-container form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    justify-content: safe center;   /* se o conteúdo for maior, começa do topo em vez de cortar */
+    height: 100%;
+    padding: 16px 36px;
+    overflow-y: auto;               /* rola se a tela for pequena */
+    background-color: var(--cor-branco);
+}
+
+/* ---------- Cadastro: mais campos, então espaçamento mais compacto ---------- */
+.sign-up h1 {
+    margin-bottom: 6px;
+    font-size: 24px;
+}
+
+.container .sign-up input {
+    margin: 4px 0;
+}
+
+/* Texto "A senha deve ter..." */
+.sign-up form p,
+.sign-up form small,
+.sign-up form ul,
+.sign-up .regras-senha {
+    width: 100%;
+    margin: 4px 0 6px;
+    padding: 0;
+    font-size: 11.5px;
+    line-height: 1.45;
+    text-align: left;
+    list-style: none;
+    color: var(--cor-texto-suave);
+}
+
+/* Botão CADASTRAR do formulário */
+.container .sign-up button {
+    margin-top: 10px;
+    color: var(--cor-branco);
+    background-color: var(--cor-botao-cadastro);
+}
+
+.container .sign-up button:hover {
+    background-color: var(--cor-botao-cadastro-hover);
+}
+
+/* Entrar: visível no início */
+.sign-in {
     z-index: 2;
 }
 
-.container.active .sign-in {
-    transform: translateX(100%);
-}
-
+/* Cadastrar: escondido no início */
 .sign-up {
-    left: 0;
-    width: 50%;
-    opacity: 0;
     z-index: 1;
+    opacity: 0;
 }
 
-.container.active .sign-up {
-    transform: translateX(100%);
-    opacity: 1;
-    z-index: 5;
-    animation: move 0.6s;
+
+/* =====================================================================
+   5. CAMPOS DE TEXTO
+   ===================================================================== */
+.container input {
+    width: 100%;
+    margin: 8px 0;
+    padding: 9px 14px;
+    font-size: 12.5px;
+    color: var(--cor-texto);
+    background-color: var(--cor-campo);
+    border: 2px solid transparent;
+    border-radius: var(--raio-campo);
+    outline: none;
+    transition: border-color 0.2s ease;
 }
 
-@keyframes move {
-
-    0%,
-    49.99% {
-        opacity: 0;
-        z-index: 1;
-    }
-
-    50%,
-    100% {
-        opacity: 1;
-        z-index: 5;
-    }
+.container input::placeholder {
+    color: var(--cor-texto-suave);
 }
 
-/* --- PAINEL DESLIZANTE (TOGGLE) --- */
+.container input:focus {
+    border-color: var(--cor-destaque);
+}
+
+
+/* =====================================================================
+   6. BOTÕES
+   ===================================================================== */
+
+/* Botão principal (ENTRAR e CADASTRAR dentro do formulário) */
+.container button {
+    margin-top: 10px;
+    padding: 9px 38px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--cor-fundo);
+    background-color: var(--cor-principal);
+    border: 1px solid transparent;
+    border-radius: var(--raio-campo);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.container button:hover {
+    background-color: var(--cor-principal-hover);
+}
+
+.container button:focus-visible {
+    outline: 3px solid var(--cor-foco);
+    outline-offset: 2px;
+}
+
+/* Botão com contorno (dentro do painel lateral) */
+.container button.hidden {
+    color: var(--cor-branco);
+    background-color: transparent;
+    border-color: var(--cor-branco);
+}
+
+.container button.hidden:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+
+/* =====================================================================
+   7. PAINEL LATERAL "OLÁ, AMIGO!"
+   Estrutura:
+   .toggle-container  = janela que mostra metade do painel
+     .toggle          = faixa com o dobro da largura (contém os 2 textos)
+       .toggle-left   = texto do modo cadastro ("Bem-vindo de volta!")
+       .toggle-right  = texto do modo entrar   ("Olá, amigo!")
+   ===================================================================== */
 .toggle-container {
     position: absolute;
     top: 0;
     left: 50%;
+    z-index: 1000;
     width: 50%;
     height: 100%;
     overflow: hidden;
-    transition: all 0.6s ease-in-out;
     border-radius: 150px 0 0 100px;
-    z-index: 1000;
-}
-
-.container.active .toggle-container {
-    transform: translateX(-100%);
-    border-radius: 0 150px 100px 0;
+    transition: transform var(--tempo-troca) ease-in-out,
+                border-radius var(--tempo-troca) ease-in-out;
 }
 
 .toggle {
-    background: #642da8;
-    height: 100%;
-    background: linear-gradient(to right, #5c6bc0, #a82d2f);
-    color: #fff;
     position: relative;
     left: -100%;
-    height: 100%;
     width: 200%;
-    transform: translateX(0);
-    transition: all 0.6s ease-in-out;
+    height: 100%;
+    color: var(--cor-branco);
+    background: linear-gradient(to right, var(--cor-fundo), var(--cor-destaque));
+    transition: transform var(--tempo-troca) ease-in-out;
+}
+
+.toggle-panel {
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    text-align: center;
+    transition: transform var(--tempo-troca) ease-in-out;
+}
+
+.toggle-panel h1,
+.toggle-panel p {
+    color: var(--cor-branco);
+}
+
+.toggle-panel h1 {
+    font-size: 24px;
+    line-height: 1.2;
+    text-wrap: balance;     /* quebra o título em linhas equilibradas */
+}
+
+.toggle-left {
+    transform: translateX(-200%);   /* escondido no início */
+}
+
+.toggle-right {
+    right: 0;                       /* visível no início */
+}
+
+
+/* =====================================================================
+   8. ESTADO "CADASTRO ATIVO"
+   Tudo que se move quando o JavaScript adiciona .active ao .container
+   ===================================================================== */
+
+/* Formulário de entrar sai para a direita */
+.container.active .sign-in {
+    transform: translateX(100%);
+}
+
+/* Formulário de cadastro aparece na direita */
+.container.active .sign-up {
+    z-index: 5;
+    opacity: 1;
+    transform: translateX(100%);
+    animation: aparecer var(--tempo-troca);
+}
+
+/* Painel lateral vai para a esquerda e inverte o arredondamento */
+.container.active .toggle-container {
+    transform: translateX(-100%);
+    border-radius: 0 150px 100px 0;
 }
 
 .container.active .toggle {
     transform: translateX(50%);
 }
 
-.toggle-panel {
-    position: absolute;
-    width: 50%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    padding: 0 30px;
-    text-align: center;
-    top: 0;
-    transform: translateX(0);
-    transition: all 0.6s ease-in-out;
-}
-
-.toggle-left {
-    transform: translateX(-200%);
-}
-
+/* Troca dos textos do painel */
 .container.active .toggle-left {
-    transform: translateX(0);
-}
-
-.toggle-right {
-    right: 0;
     transform: translateX(0);
 }
 
 .container.active .toggle-right {
     transform: translateX(200%);
+}
+
+/* O formulário de cadastro só aparece na metade da animação,
+   para não ficar por cima do formulário de entrar */
+@keyframes aparecer {
+    0%, 49.99% {
+        opacity: 0;
+        z-index: 1;
+    }
+    50%, 100% {
+        opacity: 1;
+        z-index: 5;
+    }
+}
+
+
+/* =====================================================================
+   9. LINK "ESQUECI MINHA SENHA"
+   ===================================================================== */
+.sign-in .link-esqueci {
+    display: block;
+    align-self: flex-start;
+    margin: 8px 0 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cor-destaque);
+    text-decoration: underline;
+}
+
+.sign-in .link-esqueci:hover {
+    color: var(--cor-destaque-hover);
+}
+
+
+/* =====================================================================
+   10. RESPONSIVO (celular)
+   Em telas pequenas o card ocupa a tela toda e os cantos ficam simples.
+   ===================================================================== */
+@media (max-width: 600px) {
+    .topo {
+        padding: 16px 20px;
+    }
+
+    .topo .sidebar nav {
+        gap: 16px;
+    }
+
+    .container {
+        margin: 16px;
+        max-width: calc(100% - 32px);
+    }
+
+    .form-container form {
+        padding: 0 20px;
+    }
+
+    .toggle-panel {
+        padding: 0 16px;
+    }
+
+    .toggle-container {
+        border-radius: 80px 0 0 60px;
+    }
+
+    .container.active .toggle-container {
+        border-radius: 0 80px 60px 0;
+    }
 }
