@@ -94,19 +94,54 @@ Sobre o token:
 - Guarde só o token (a função `salvarTokenApi` já faz isso). **Nunca guarde a senha.**
 - Nas chamadas que exigem login, envie o cabeçalho `Authorization: Bearer <token>`. A
   `apiRequest` já envia sozinha se houver token salvo.
-- O token ainda não informa se a pessoa é Dono ou Colaborador.
+- O token ainda não informa se a pessoa é Dono ou Colaborador. Por isso o login do
+  colaborador continua simulado no navegador (`CHAVE_CREDENCIAIS`) até a API decidir isso.
 
 ### GET /api/ValidarToken: só para teste (vai sair)
 
 - Cabeçalho `Authorization: Bearer <token>`.
 - 200: o Id do usuário. 401: `Token não autorizado` ou `Token inválido`.
 
+### POST /api/Colaboradores: o Dono cadastra um colaborador
+
+> Por enquanto esta rota só existe na branch `feature/cadastro-colaborador` da API.
+> Rodando a API pela `master`, ela devolve 404.
+
+Exige login: o Dono precisa ter entrado antes. A `apiRequest` manda o cabeçalho
+`Authorization: Bearer <token>` sozinha. **Não mande o Id do Dono no corpo**: a API descobre
+quem é o dono pelo token.
+
+Entrada:
+
+```json
+{ "nome": "", "cargo": "", "telefone": "", "dataAdmissao": "AAAA-MM-DD",
+  "senha": "", "cpf": "", "email": "" }
+```
+
+- `dataAdmissao`: o `<input type="date">` já entrega nesse formato.
+- O nome é enviado em minúsculas (padrão do banco); a tela formata para exibir.
+
+A API valida nome, telefone, email e senha com as mesmas regras do cadastro do Dono e,
+por último, a data de admissão:
+
+| Campo | Regra | Mensagem (400) |
+|---|---|---|
+| dataAdmissao | informada | A data de admissão não foi informada. |
+| dataAdmissao | não pode ser no futuro | A data de admissão não pode ser no futuro. |
+
+Respostas:
+
+- **200**, texto simples: `Colaborador <nome> cadastrado com sucesso.` Não devolve JSON nem `id`.
+- **400**, texto simples: a mensagem do primeiro problema.
+- **401**, texto simples: `Token inválido` (sem login, ou token vencido: ele dura 1 hora).
+- **403**, texto simples: `Usuário não é dono` (quem está logado é um colaborador).
+- **500**, sem corpo: email ou CPF já cadastrados. Ainda não é tratado pela API.
+
 ## Rotas que ainda NÃO existem
 
-`/colaboradores`, `/agendamentos`, `/contratos`, `/financeiro`, `/plano` e
-`/assinaturas` aparecem no `js/script.js`, mas **não existem na API**. Chamar qualquer
-uma delas dá erro 404. As telas que dependem delas continuam usando `localStorage` até
-a API ganhar essas rotas.
+`/agendamentos`, `/contratos`, `/financeiro`, `/plano` e `/assinaturas` aparecem no
+`js/comum.js`, mas **não existem na API**. Chamar qualquer uma delas dá erro 404. As telas
+que dependem delas continuam usando `localStorage` até a API ganhar essas rotas.
 
 ## Senha: mesma regra no cadastro e no login
 

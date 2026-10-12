@@ -831,7 +831,7 @@ function iniciarDashboard() {
 
     // >>> API: criar agendamento no backend.
     // try {
-    //   const criado = await apiRequest("AGENDAMENTOS", { method: "POST", body: novoAgendamento });
+    //   await apiRequest(...) = await apiRequest("AGENDAMENTOS", { method: "POST", body: novoAgendamento });
     //   if (criado && criado.id) novoAgendamento.id = criado.id;
     // } catch (erro) {
     //   console.warn("Não foi possível salvar o agendamento na API.", erro.message);
@@ -913,8 +913,13 @@ function iniciarDashboard() {
       return;
     }
 
+    const nomeNovo = document.getElementById("colab-nome").value.trim().toLowerCase();
+    const cargoNovo = document.getElementById("colab-cargo").value;
     const emailNovo = document.getElementById("colab-email").value.trim().toLowerCase();
     const senhaNova = document.getElementById("colab-senha").value;
+    const telefoneNovo = document.getElementById("colab-telefone").value.trim();
+    const cpfNovo = document.getElementById("colab-cpf").value.trim();
+    const dataAdmissaoNova = document.getElementById("colab-data-admissao").value;
     const credenciais = lerJsonLocal(CHAVE_CREDENCIAIS, {});
     if (credenciais[emailNovo]) {
       alert("Já existe um colaborador cadastrado com esse e-mail.");
@@ -932,15 +937,23 @@ function iniciarDashboard() {
 
     // >>> API: criar colaborador no backend (a senha está em #colab-senha
     // e só deve ser enviada pra API, nunca guardada em texto puro no front).
-    // try {
-    //   const criado = await apiRequest("COLABORADORES", {
-    //     method: "POST",
-    //     body: { ...novoColab, senha: senhaNova },
-    //   });
-    //   if (criado && criado.id) novoColab.id = criado.id;
-    // } catch (erro) {
-    //   console.warn("Não foi possível salvar o colaborador na API.", erro.message);
-    // }
+    try {
+      const criado = await apiRequest("COLABORADORES", 
+      {
+        method: "POST",
+        body: { nome: nomeNovo,
+                cargo: cargoNovo,
+                telefone: telefoneNovo, 
+                dataAdmissao: dataAdmissaoNova,
+                senha: senhaNova,
+                cpf: cpfNovo,
+                email: emailNovo
+              },
+    });
+    } catch (erro) {
+      mostrarErroForm(formColab, erro.message, null);
+      return
+    }
 
     colaboradores.push(novoColab);
     salvarColaboradoresLocal(colaboradores);

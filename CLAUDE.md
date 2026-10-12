@@ -19,20 +19,32 @@ qualquer chamada à API.
 ## Estrutura
 
 - Páginas na raiz: `index.html`, `login.html`, `cadastro.html`, `planos.html`,
-  `assinatura.html`, `agenda.html`, `colaborador.html`, `sobre.html`
+  `assinatura.html`, `agenda.html`, `colaborador.html`, `sobre.html`, `recuperar-senha.html`
 - `css/`, `img/`
-- `js/script.js`: **todo** o JavaScript do site, num arquivo só. Cada bloco só roda na
-  página que tem o elemento "âncora" dele (por exemplo, `#container` para login/cadastro).
+- `js/`: um arquivo por página, mais o `js/comum.js`, que é compartilhado
+  (`API_CONFIG`, `apiRequest`, `salvarTokenApi`, `mostrarErroForm`, sessão e localStorage).
+  **Toda página que fala com a API precisa carregar o `js/comum.js` antes do seu próprio
+  script** (com `defer`, os dois na mesma ordem).
+- `script.js` na raiz: parece ser a versão antiga, de antes da separação em `js/`.
+  Confirmar com o grupo antes de mexer nele ou apagar.
 
 ## Estado atual
 
-- **Cadastro do Dono** (`cadastro.html` + bloco `iniciarAuth` do `js/script.js`): sendo
-  ligado à rota `POST /api/Cadastro`. O formulário ganhou os campos de CPF e telefone.
-- **Login**: ainda simulado com `localStorage`; o próximo a ser ligado à API.
-- **Demais telas** (agenda, colaborador, planos, assinatura): simuladas com
-  `localStorage`, porque a API ainda não tem as rotas delas.
-- No final do `js/script.js` está o carrossel da página inicial ("NÃO MEXER"). Nas
-  páginas sem carrossel, ele gera um erro no console
+- **Cadastro do Dono** (`cadastro.html` + `js/cadastro.js`): ligado a `POST /api/Cadastro`.
+- **Login** (`login.html` + `js/cadastro.js`): o Dono entra pela API e o token fica salvo.
+  O `login.html` passou a carregar o `js/comum.js` (antes não carregava, e o login quebrava).
+- **Cadastro de colaborador** (`agenda.html`, aba Administrativo + `js/agenda.js`): ligado a
+  `POST /api/Colaboradores`. O formulário ganhou telefone (`colab-telefone`), CPF
+  (`colab-cpf`) e data de admissão (`colab-data-admissao`). Se a API recusar, o erro
+  aparece na tela e nada é salvo no navegador. Depois do sucesso, o colaborador continua
+  sendo guardado também no `localStorage`, porque a agenda ainda lê de lá.
+  **Falta testar** (com a API da branch `feature/cadastro-colaborador`).
+- **Login do colaborador**: ainda simulado no navegador, porque o token da API não diz se
+  a pessoa é Dono ou Colaborador.
+- **Demais telas** (agenda, planos, assinatura): simuladas com `localStorage`, porque a API
+  ainda não tem as rotas delas.
+- No final de alguns scripts está o carrossel da página inicial ("NÃO MEXER"). Nas
+  páginas sem carrossel, ele pode gerar um erro no console
   (`Cannot read properties of null`). Esse erro não afeta o resto do site.
 
 ## Regras para não quebrar o trabalho dos outros
