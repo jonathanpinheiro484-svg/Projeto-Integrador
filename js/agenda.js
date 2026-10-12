@@ -831,7 +831,7 @@ function iniciarDashboard() {
 
     // >>> API: criar agendamento no backend.
     // try {
-    //   await apiRequest(...) = await apiRequest("AGENDAMENTOS", { method: "POST", body: novoAgendamento });
+   //   const criado = await apiRequest("AGENDAMENTOS", { method: "POST", body: novoAgendamento });
     //   if (criado && criado.id) novoAgendamento.id = criado.id;
     // } catch (erro) {
     //   console.warn("Não foi possível salvar o agendamento na API.", erro.message);
