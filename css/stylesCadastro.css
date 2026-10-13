@@ -17,6 +17,10 @@
    COMO FUNCIONA A TROCA ENTRE ENTRAR E CADASTRAR
    O JavaScript adiciona/remove a classe "active" no .container.
    Tudo que muda de posição quando "active" existe está na seção 8.
+
+   ★ PROCURE POR "★ ALTERADO" PARA ACHAR O QUE FOI MUDADO
+     (são 3 lugares: variáveis na seção 1, e .toggle-container e
+      .toggle na seção 7)
    ===================================================================== */
 
 
@@ -33,9 +37,17 @@
     --cor-destaque-hover: #1f62bd;
     --cor-foco:           #3fa9f5;   /* azul claro (contorno de teclado) */
 
+    /* ★ ALTERADO (NOVO) ------------------------------------------------
+       Cores do painel lateral (Olá, amigo! / Bem vindo de volta!)
+       Mude só estas duas linhas para trocar o degradê das DUAS telas.
+       ---------------------------------------------------------------- */
+    --painel-cor-esquerda: #1a4d8d;  /* azul mais escuro (lado esquerdo do painel) */
+    --painel-cor-direita:  #2b7be4;  /* azul mais claro (lado direito do painel) */
+    /* ★ FIM DA ALTERAÇÃO ------------------------------------------- */
+
     /* Botão do formulário de cadastro (troque aqui se quiser outra cor) */
-    --cor-botao-cadastro:       #2b7be4;
-    --cor-botao-cadastro-hover: #1f62bd;
+    --cor-botao-cadastro:       #00c97b;
+    --cor-botao-cadastro-hover: #00b36d;
 
     /* Cores neutras */
     --cor-branco:         #ffffff;
@@ -310,6 +322,11 @@ body {
        .toggle-left   = texto do modo cadastro ("Bem-vindo de volta!")
        .toggle-right  = texto do modo entrar   ("Olá, amigo!")
    ===================================================================== */
+
+/* ★ ALTERADO ---------------------------------------------------------
+   O degradê (background) agora fica AQUI, na janela, e não mais no
+   .toggle. Assim as duas telas mostram exatamente a mesma cor.
+   -------------------------------------------------------------------- */
 .toggle-container {
     position: absolute;
     top: 0;
@@ -319,17 +336,21 @@ body {
     height: 100%;
     overflow: hidden;
     border-radius: 150px 0 0 100px;
+    background: linear-gradient(to right, var(--painel-cor-esquerda), var(--painel-cor-direita));  /* ★ ALTERADO (NOVO) */
     transition: transform var(--tempo-troca) ease-in-out,
                 border-radius var(--tempo-troca) ease-in-out;
 }
 
+/* ★ ALTERADO ---------------------------------------------------------
+   O background foi REMOVIDO daqui (agora está no .toggle-container).
+   -------------------------------------------------------------------- */
 .toggle {
     position: relative;
     left: -100%;
     width: 200%;
     height: 100%;
     color: var(--cor-branco);
-    background: linear-gradient(to right, var(--cor-fundo), var(--cor-destaque));
+    /* background removido de propósito: a cor fica no .toggle-container */
     transition: transform var(--tempo-troca) ease-in-out;
 }
 
