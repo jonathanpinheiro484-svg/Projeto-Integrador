@@ -18,6 +18,10 @@ const API_CONFIG = {
   ENDPOINTS: {
     LOGIN: "/Login",
     CADASTRO: "/Cadastro",
+    // Recuperar senha (a API ainda precisa criar estas 3 rotas)
+    RECUPERAR_SENHA: "/RecuperarSenha",       // { email } -> envia o código por e-mail
+    VERIFICAR_CODIGO: "/VerificarCodigo",     // { email, codigo } -> confere o código
+    REDEFINIR_SENHA: "/RedefinirSenha",       // { email, codigo, novaSenha } -> grava a nova senha
     COLABORADORES: "/colaboradores",
     AGENDAMENTOS: "/agendamentos",
     FINANCEIRO: "/financeiro",
