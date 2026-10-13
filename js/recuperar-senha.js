@@ -87,13 +87,30 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // Transforma o erro do apiRequest em mensagem amigável.
+  // O apiRequest lança: "Erro na API (STATUS) em ROTA: texto da resposta".
+  function mensagemErroApi(erro, padrao) {
+    const texto = (erro && erro.message) || "";
+    const m = texto.match(/Erro na API \((\d+)\)[^:]*:\s*([\s\S]*)$/);
+    if (!m) return "Não foi possível conectar à API. Confira se ela está rodando.";
+    const status = Number(m[1]);
+    let corpo = (m[2] || "").trim();
+    try {
+      const json = JSON.parse(corpo);
+      corpo = json.mensagem || json.message || json.erro || json.error || json.title || corpo;
+    } catch (_) { /* a resposta era texto puro */ }
+    if (status === 404 && !corpo) return "A recuperação de senha ainda não está disponível na API.";
+    if (status === 400 && corpo) return corpo;
+    return padrao;
+  }
+
   // A mensagem de erro some assim que a pessoa volta a digitar
   formEmail.addEventListener("input", function () { limparMsg("msg-email"); });
   formCodigo.addEventListener("input", function () { limparMsg("msg-codigo"); });
   formSenha.addEventListener("input", function () { limparMsg("msg-senha"); });
 
   // ---------- Etapa 1: e-mail ----------
-  formEmail.addEventListener("submit", function (e) {
+  formEmail.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     campoEmail.value = campoEmail.value.trim();
@@ -115,15 +132,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     emailRecuperacao = email.toLowerCase();
 
-    // >>> API: pedir ao backend que envie o código para o e-mail.
-    // Se o e-mail não existir, mostrar: mostrarErro("msg-email", "E-mail não cadastrado.", campoEmail);
-    // try {
-    //   const resp = await fetch(API_URL + "/recuperar-senha", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({ email: emailRecuperacao })
-    //   });
-    // } catch (erro) { ... }
+    const botaoEmail = formEmail.querySelector('button[type="submit"]');
+    if (botaoEmail) botaoEmail.disabled = true; // evita clique duplo
+    try {
+      await apiRequest("RECUPERAR_SENHA", { method: "POST", body: { email: emailRecuperacao } });
+    } catch (erro) {
+      console.warn(erro.message);
+      mostrarErro("msg-email", mensagemErroApi(erro, "Não foi possível enviar o código. Tente novamente."), campoEmail);
+      if (botaoEmail) botaoEmail.disabled = false;
+      return;
+    }
+    if (botaoEmail) botaoEmail.disabled = false;
 
     document.getElementById("email-destino").textContent = emailRecuperacao;
     mostrarEtapa(formCodigo);
@@ -137,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
     campoCodigo.value = campoCodigo.value.replace(/\D/g, "").slice(0, CODIGO_TAMANHO);
   });
 
-  formCodigo.addEventListener("submit", function (e) {
+  formCodigo.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const codigo = campoCodigo.value.trim();
@@ -152,10 +171,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     limparMsg("msg-codigo");
 
-    codigoDigitado = codigo;
+    const botaoCodigo = formCodigo.querySelector('button[type="submit"]');
+    if (botaoCodigo) botaoCodigo.disabled = true;
+    try {
+      await apiRequest("VERIFICAR_CODIGO", { method: "POST", body: { email: emailRecuperacao, codigo } });
+    } catch (erro) {
+      console.warn(erro.message);
+      mostrarErro("msg-codigo", mensagemErroApi(erro, "Código incorreto ou expirado."), campoCodigo);
+      if (botaoCodigo) botaoCodigo.disabled = false;
+      return;
+    }
+    if (botaoCodigo) botaoCodigo.disabled = false;
 
-    // >>> API: o backend confere se o código está certo e dentro da validade.
-    // Se estiver errado ou expirado, mostrar: mostrarErro("msg-codigo", "Código incorreto ou expirado.", campoCodigo);
+    codigoDigitado = codigo;
 
     mostrarEtapa(formSenha);
     campoSenha.focus();
@@ -164,17 +192,25 @@ document.addEventListener("DOMContentLoaded", function () {
   // Reenviar código
   const btnReenviar = document.getElementById("reenviar-codigo");
   if (btnReenviar) {
-    btnReenviar.addEventListener("click", function () {
+    btnReenviar.addEventListener("click", async function () {
       campoCodigo.value = "";
-
-      // >>> API: pedir ao backend um novo código para emailRecuperacao.
+      btnReenviar.disabled = true;
+      try {
+        await apiRequest("RECUPERAR_SENHA", { method: "POST", body: { email: emailRecuperacao } });
+      } catch (erro) {
+        console.warn(erro.message);
+        mostrarErro("msg-codigo", mensagemErroApi(erro, "Não foi possível reenviar o código. Tente novamente."), campoCodigo);
+        btnReenviar.disabled = false;
+        return;
+      }
+      btnReenviar.disabled = false;
 
       mostrarMsg("msg-codigo", "Enviamos um novo código para o seu e-mail.", "ok", campoCodigo);
     });
   }
 
   // ---------- Etapa 3: nova senha ----------
-  formSenha.addEventListener("submit", function (e) {
+  formSenha.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const senha = campoSenha.value.trim();
@@ -210,11 +246,20 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     limparMsg("msg-senha");
 
-    // >>> API: enviar ao backend { email: emailRecuperacao, codigo: codigoDigitado, novaSenha: senha }
-    // Se der erro, mostrar: mostrarErro("msg-senha", "Não foi possível alterar a senha.");
-
     const botao = formSenha.querySelector('button[type="submit"]');
     if (botao) botao.disabled = true;
+    try {
+      await apiRequest("REDEFINIR_SENHA", {
+        method: "POST",
+        body: { email: emailRecuperacao, codigo: codigoDigitado, novaSenha: senha },
+      });
+    } catch (erro) {
+      console.warn(erro.message);
+      mostrarErro("msg-senha", mensagemErroApi(erro, "Não foi possível alterar a senha."), null);
+      if (botao) botao.disabled = false;
+      return;
+    }
+
     mostrarMsg("msg-senha", "Senha alterada com sucesso! Voltando para o login...", "ok");
     setTimeout(function () {
       window.location.href = PAGINA_LOGIN;

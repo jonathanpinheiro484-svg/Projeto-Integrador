@@ -28,6 +28,18 @@ function mensagemErroApi(erro, contexto) {
   return `Erro ${status} ao falar com a API.`;
 }
 
+// Validação do CPF (11 números + dígitos verificadores)
+function cpfCadastroValido(valor) {
+  const c = String(valor || "").replace(/\D/g, "");
+  if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+  for (let t = 9; t < 11; t++) {
+    let soma = 0;
+    for (let i = 0; i < t; i++) soma += Number(c[i]) * (t + 1 - i);
+    if (((soma * 10) % 11) % 10 !== Number(c[t])) return false;
+  }
+  return true;
+}
+
 // Tenta achar o nome do usuário dentro do token JWT (se a API colocar o nome lá).
 function nomeDoToken(token) {
   try {
@@ -129,6 +141,29 @@ function iniciarAuth() {
         "• letras minúsculas \n" +
         "• pelo menos 1 símbolo (ex: @ # $ !)";
       senhaCampoCadastro.insertAdjacentElement("afterend", dicaSenha);
+
+      // Olho para mostrar/esconder a senha (só no campo "Senha"; o "Confirmar senha" fica sem)
+      const envolverSenha = document.createElement("div");
+      envolverSenha.style.cssText = "position:relative; width:100%;";
+      senhaCampoCadastro.parentNode.insertBefore(envolverSenha, senhaCampoCadastro);
+      envolverSenha.appendChild(senhaCampoCadastro);
+      senhaCampoCadastro.style.paddingRight = "40px";
+
+      const olhoSenha = document.createElement("button");
+      olhoSenha.type = "button"; // não envia o formulário
+      olhoSenha.setAttribute("aria-label", "Mostrar senha");
+      // Ícones em SVG próprio (não dependem de internet nem do Font Awesome)
+      const ICONE_OLHO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      const ICONE_OLHO_CORTADO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+      olhoSenha.innerHTML = ICONE_OLHO;
+      olhoSenha.style.cssText = "position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; padding:0; margin:0; width:auto; height:auto; color:#777; line-height:0; letter-spacing:0; text-transform:none; cursor:pointer;";
+      olhoSenha.addEventListener("click", () => {
+        const mostrar = senhaCampoCadastro.type === "password";
+        senhaCampoCadastro.type = mostrar ? "text" : "password";
+        olhoSenha.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+        olhoSenha.innerHTML = mostrar ? ICONE_OLHO_CORTADO : ICONE_OLHO;
+      });
+      envolverSenha.appendChild(olhoSenha);
     }
 
     formCadastro.addEventListener("submit", async function (e) {
@@ -148,9 +183,27 @@ function iniciarAuth() {
       // Validações da tela de cadastro
       const erros = [];
       let campoErro = null;
+      if (!nome) {
+        erros.push("Preencha o nome.");
+        campoErro = nomeInput;
+      }
+      if (!cpf) {
+        erros.push("Preencha o CPF.");
+        if (!campoErro) campoErro = cpfInput;
+      } else if (!cpfCadastroValido(cpf)) {
+        erros.push("O CPF informado não é válido. Digite os 11 números.");
+        if (!campoErro) campoErro = cpfInput;
+      }
+      if (!tel) {
+        erros.push("Preencha o telefone.");
+        if (!campoErro) campoErro = telefoneInput;
+      } else if (tel.replace(/\D/g, "").length < 10) {
+        erros.push("Digite um telefone válido com DDD. Exemplo: 11912345678");
+        if (!campoErro) campoErro = telefoneInput;
+      }
       if (!emailValido(email)) {
         erros.push("Digite um e-mail válido. Exemplo: nome@gmail.com");
-        campoErro = emailInput;
+        if (!campoErro) campoErro = emailInput;
       }
       const senhaFalta = senhaFaltando(senha);
       if (senhaFalta.length > 0) {
@@ -169,9 +222,10 @@ function iniciarAuth() {
       try {
         // 1) Cria a conta. Formato que a API espera:
         //    { nome, cpf, email, senha, telefone }
+        const corpoCadastro = { nome, cpf, email, senha, telefone: tel };
         await apiRequest("CADASTRO", {
           method: "POST",
-          body: { nome, cpf, email, senha, telefone: tel },
+          body: corpoCadastro,
         });
 
         // 2) A API não devolve token no cadastro, então entra logo em seguida
@@ -206,11 +260,17 @@ function iniciarAuth() {
       // Validações da tela de entrar
       const erros = [];
       let campoErro = null;
-      if (!emailValido(email)) {
+      if (!email) {
+        erros.push("Preencha o e-mail.");
+        campoErro = emailInput;
+      } else if (!emailValido(email)) {
         erros.push("Digite um e-mail válido. Exemplo: nome@gmail.com");
         campoErro = emailInput;
       }
-      if (!senhaValida(senha)) {
+      if (!senha) {
+        erros.push("Preencha a senha.");
+        if (!campoErro) campoErro = senhaInput;
+      } else if (!senhaValida(senha)) {
         erros.push(`A senha precisa ter pelo menos ${SENHA_TAMANHO_MINIMO} caracteres.`);
         if (!campoErro) campoErro = senhaInput;
       }
