@@ -145,6 +145,7 @@ function iniciarAuth() {
       const senha = senhaInput ? senhaInput.value.trim() : "";
       const cpf = cpfInput ? cpfInput.value.trim(): "";
       const tel = telefoneInput ? telefoneInput.value.trim() : "";
+      
       // Validações da tela de cadastro
       const erros = [];
       let campoErro = null;
