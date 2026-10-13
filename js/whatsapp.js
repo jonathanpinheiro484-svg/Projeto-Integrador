@@ -7,24 +7,20 @@
 //   - botão verde fixo no canto inferior direito;
 //   - ao clicar, abre um cartão com o aviso e o botão "Iniciar conversa";
 //   - "Iniciar conversa" abre o WhatsApp (app ou web) no número configurado;
-//   - "Configurar número" (link vermelho) deixa salvar/trocar o número.
 //
 // Uso:
-//   WhatsAppFlutuante.iniciar({ permitirConfigurar: true });
+//   WhatsAppFlutuante.iniciar();
 //   WhatsAppFlutuante.mostrar(true);   // aparece
 //   WhatsAppFlutuante.mostrar(false);  // some
 //
-// Em outra página, com número fixo (sem "Configurar número"):
-//   WhatsAppFlutuante.iniciar({ numero: "11912345678", permitirConfigurar: false });
+// Em outra página, com número fixo:
+//   WhatsAppFlutuante.iniciar({ numero: "11912345678" });
 //   WhatsAppFlutuante.mostrar(true);
 // =====================================================
 (function () {
-  const CHAVE_NUMERO = "whatsappNumeroFlutuante";
-
   const config = {
     numero: "11912499740",
     mensagem: "Olá! Gostaria de falar com vocês.",
-    permitirConfigurar: false,
   };
 
   let raiz = null;       // elemento principal
@@ -49,11 +45,8 @@
     return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
   }
 
-  function lerNumeroSalvo() {
-    try { return localStorage.getItem(CHAVE_NUMERO) || ""; } catch (e) { return ""; }
-  }
   function numeroAtual() {
-    return telefoneValido(config.numero) || telefoneValido(lerNumeroSalvo());
+    return telefoneValido(config.numero);
   }
 
   // ---------- CSS ----------
@@ -108,17 +101,6 @@
           <p>A conversa será direcionada para o WhatsApp Web ou App.</p>
           <button type="button" class="wa-iniciar" id="wa-iniciar">Iniciar conversa</button>
           <p class="wa-numero-atual" id="wa-numero-atual"></p>
-          <button type="button" class="wa-config-link" id="wa-abrir-config">Configurar número</button>
-        </div>
-        <div class="wa-config" id="wa-vista-config" hidden>
-          <h4>Configurar número</h4>
-          <label for="wa-input-numero">WhatsApp (com DDD)</label>
-          <input type="tel" id="wa-input-numero" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
-          <p class="wa-erro" id="wa-erro" role="alert"></p>
-          <div class="wa-linha">
-            <button type="button" class="wa-salvar" id="wa-salvar">Salvar</button>
-            <button type="button" class="wa-cancelar" id="wa-cancelar">Cancelar</button>
-          </div>
         </div>
       </div>
       <button type="button" class="wa-botao" id="wa-botao" aria-label="Abrir conversa pelo WhatsApp" aria-expanded="false" aria-controls="wa-cartao">${SVG_WHATSAPP}</button>
@@ -128,37 +110,16 @@
     const $ = (id) => document.getElementById(id);
     const cartao = $("wa-cartao");
     const botao = $("wa-botao");
-    const vistaInicio = $("wa-vista-inicio");
-    const vistaConfig = $("wa-vista-config");
-    const campo = $("wa-input-numero");
-    const erro = $("wa-erro");
 
     function atualizarTextoNumero() {
       const n = numeroAtual();
       $("wa-numero-atual").textContent = n ? `Número: ${formatarTelefone(n)}` : "Nenhum número configurado ainda.";
     }
 
-    function mostrarInicio() {
-      vistaConfig.hidden = true;
-      vistaInicio.hidden = false;
-      atualizarTextoNumero();
-      $("wa-abrir-config").hidden = !config.permitirConfigurar;
-    }
-
-    function mostrarConfig() {
-      vistaInicio.hidden = true;
-      vistaConfig.hidden = false;
-      erro.textContent = "";
-      campo.value = formatarTelefone(numeroAtual());
-      campo.focus();
-    }
-
     function abrirCartao() {
       cartao.hidden = false;
       botao.setAttribute("aria-expanded", "true");
-      // Sem número configurado: já abre direto na configuração (se puder configurar)
-      if (!numeroAtual() && config.permitirConfigurar) mostrarConfig();
-      else mostrarInicio();
+      atualizarTextoNumero();
     }
 
     function fecharCartao() {
@@ -170,31 +131,10 @@
 
     $("wa-iniciar").addEventListener("click", () => {
       const n = numeroAtual();
-      if (!n) {
-        if (config.permitirConfigurar) mostrarConfig();
-        return;
-      }
+      if (!n) return;
       const url = `https://wa.me/55${n}?text=${encodeURIComponent(config.mensagem)}`;
       window.open(url, "_blank", "noopener");
       fecharCartao();
-    });
-
-    $("wa-abrir-config").addEventListener("click", mostrarConfig);
-    $("wa-cancelar").addEventListener("click", () => { numeroAtual() ? mostrarInicio() : fecharCartao(); });
-
-    campo.addEventListener("input", () => { campo.value = formatarTelefone(campo.value); erro.textContent = ""; });
-    campo.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("wa-salvar").click(); } });
-
-    $("wa-salvar").addEventListener("click", () => {
-      const n = telefoneValido(campo.value);
-      if (!n) {
-        erro.textContent = "Digite um WhatsApp válido com DDD. Exemplo: (11) 91234-5678";
-        campo.focus();
-        return;
-      }
-      try { localStorage.setItem(CHAVE_NUMERO, n); } catch (e) { /* sem armazenamento: usa só nesta sessão */ }
-      config.numero = n;
-      mostrarInicio();
     });
 
     // Esc fecha; clicar fora fecha

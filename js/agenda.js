@@ -862,6 +862,7 @@ function iniciarDashboard() {
 
       const dadosFormulario = new FormData(formSuporte);
 
+      // email usado pelo suport trocar futura mente
       fetch("https://formsubmit.co/ajax/jonathanpinheiro484@gmail.com", {
         method: "POST",
         headers: { "Accept": "application/json" },
