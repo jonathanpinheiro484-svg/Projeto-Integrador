@@ -744,6 +744,21 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   </div>
 </div>
 
+<!-- MODAL DE CONFIRMAÇÃO: SAIR -->
+<div class="modal-overlay" id="modal-sair" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Sair da conta?</h3>
+      <button type="button" id="btn-fechar-sair" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px;">Tem certeza de que deseja sair? Para entrar de novo, você vai precisar fazer login.</p>
+    <div class="form-botoes">
+      <button type="button" class="btn-cancelar" id="manter-login">Continuar logado</button>
+      <button type="button" class="btn-salvar btn-perigo" id="confirmar-sair">Sim, sair</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL DE CONFIRMAÇÃO: CANCELAR ASSINATURA -->
 <div class="modal-overlay" id="modal-cancelar-assinatura" hidden>
   <div class="modal-card">

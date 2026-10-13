@@ -13,6 +13,25 @@ function iniciarDashboard() {
   if (!layoutPrincipal) return; // esta página não é o dashboard
 
   // =====================================================
+  // PROTEÇÃO DE LOGIN: só entra na agenda quem fez login.
+  // Sem sessão (a pessoa saiu, ou voltou pela seta do navegador depois de sair),
+  // a página some e vai para a tela de login. O "replace" não deixa a agenda no histórico.
+  // =====================================================
+  const PAGINA_LOGIN_DONO = "cadastro.html?modo=entrar";
+  if (!lerJsonLocal(CHAVE_SESSAO, null)) {
+    layoutPrincipal.style.display = "none";
+    window.location.replace(PAGINA_LOGIN_DONO);
+    return;
+  }
+  // Página restaurada do cache pela seta do navegador: confere a sessão de novo
+  window.addEventListener("pageshow", function (e) {
+    if (e.persisted && !lerJsonLocal(CHAVE_SESSAO, null)) {
+      layoutPrincipal.style.display = "none";
+      window.location.replace(PAGINA_LOGIN_DONO);
+    }
+  });
+
+  // =====================================================
   // DONO NA AGENDA
   // O dono também atende clientes, então aparece como uma coluna da agenda,
   // igual a um colaborador. Ele usa o id 0 (os colaboradores começam no 1),
@@ -1116,16 +1135,42 @@ function iniciarDashboard() {
     });
   });
 
-  // --- SAIR (painel do dono): apaga a sessão e volta para o login ---
+  // --- SAIR (painel do dono): pergunta "tem certeza?"; confirmando, apaga a sessão e volta para o login ---
   const btnSair = document.getElementById("btn-sair");
   if (btnSair) {
+    const modalSair = document.getElementById("modal-sair");
+
     const sair = () => {
       sairDaConta();
       localStorage.removeItem("apiToken");
-      window.location.href = "cadastro.html?modo=entrar";
+      API_CONFIG.token = null;
+      // replace: a agenda não fica no histórico, então a seta do navegador não volta para ela
+      window.location.replace(PAGINA_LOGIN_DONO);
     };
-    btnSair.addEventListener("click", sair);
-    btnSair.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sair(); } });
+    const fecharModalSair = () => { if (modalSair) modalSair.hidden = true; };
+    const pedirConfirmacaoSair = () => {
+      if (!modalSair) { // segurança: se o modal não existir no HTML, usa a caixa padrão do navegador
+        if (confirm("Tem certeza que deseja sair?")) sair();
+        return;
+      }
+      modalSair.hidden = false;
+      const botaoManter = document.getElementById("manter-login");
+      if (botaoManter) botaoManter.focus();
+    };
+
+    btnSair.addEventListener("click", pedirConfirmacaoSair);
+    btnSair.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pedirConfirmacaoSair(); } });
+
+    if (modalSair) {
+      const confirmar = document.getElementById("confirmar-sair");
+      const manter = document.getElementById("manter-login");
+      const fechar = document.getElementById("btn-fechar-sair");
+      if (confirmar) confirmar.addEventListener("click", sair);
+      if (manter) manter.addEventListener("click", fecharModalSair);
+      if (fechar) fechar.addEventListener("click", fecharModalSair);
+      modalSair.addEventListener("click", (e) => { if (e.target === modalSair) fecharModalSair(); }); // clicar fora fecha
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalSair.hidden) fecharModalSair(); });
+    }
   }
 
   // Se o dono e o colaborador estiverem com o site aberto em abas diferentes,

@@ -210,6 +210,16 @@ function iniciarAuth() {
         erros.push(`A senha precisa ter pelo menos ${listaEmTexto(senhaFalta)}.`);
         if (!campoErro) campoErro = senhaInput;
       }
+      // Confirmar senha: obrigatória e igual à senha
+      const confirmarInput = document.getElementById("cad-senha-confirmar");
+      const confirmar = confirmarInput ? confirmarInput.value.trim() : "";
+      if (!confirmar) {
+        erros.push("Confirme a senha.");
+        if (!campoErro) campoErro = confirmarInput;
+      } else if (confirmar !== senha) {
+        erros.push("As senhas não coincidem. Digite a mesma senha nos dois campos.");
+        if (!campoErro) campoErro = confirmarInput;
+      }
       if (erros.length > 0) {
         mostrarErroForm(formCadastro, erros.join("\n"), campoErro);
         return;
