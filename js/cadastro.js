@@ -127,107 +127,216 @@ function iniciarAuth() {
     });
   }
 
+ // =====================================================================
+// BLOCO "CRIAR CONTA" (só o cadastro, o login não é tocado)
+//
+// COMO USAR: no seu cadastro.js, dentro de iniciarAuth(), apague tudo
+// que começa em      if (formCadastro) {
+// e termina logo ANTES de      if (formLogin) {
+// e cole o bloco abaixo no lugar.
+// =====================================================================
+
+  // =====================================================================
+  // ★ CRIAR CONTA - COMEÇO DO BLOCO ALTERADO
+  // =====================================================================
   if (formCadastro) {
-    // Dica de como criar a senha (só na tela de cadastro)
-    const senhaCampoCadastro = formCadastro.querySelector('input[type="password"]');
-    if (senhaCampoCadastro) {
-      const dicaSenha = document.createElement("p");
-      dicaSenha.className = "dica-senha";
-      dicaSenha.style.cssText = "color:#777; font-size:11px; line-height:1.5; margin:4px 0 0; text-align:left; white-space:pre-line;";
-      dicaSenha.textContent =
-        "A senha deve ter:\n" +
-        `• pelo menos ${SENHA_TAMANHO_MINIMO} caracteres\n` +
-        "• pelo menos 1 letra maiúscula\n" +
-        "• letras minúsculas \n" +
-        "• pelo menos 1 símbolo (ex: @ # $ !)";
-      senhaCampoCadastro.insertAdjacentElement("afterend", dicaSenha);
+    // ---------- Campos do formulário ----------
+    const nomeInput = document.getElementById("cad-nome");
+    const cpfInput = document.getElementById("cad-cpf");
+    const telefoneInput = document.getElementById("cad-telefone");
+    const emailInput = document.getElementById("cad-email");
+    const senhaInput = document.getElementById("cad-senha");
+    const confirmarInput = document.getElementById("cad-senha-confirmar");
 
-      // Olho para mostrar/esconder a senha (só no campo "Senha"; o "Confirmar senha" fica sem)
-      const envolverSenha = document.createElement("div");
-      envolverSenha.style.cssText = "position:relative; width:100%;";
-      senhaCampoCadastro.parentNode.insertBefore(envolverSenha, senhaCampoCadastro);
-      envolverSenha.appendChild(senhaCampoCadastro);
-      senhaCampoCadastro.style.paddingRight = "40px";
+    // ★ REGRAS DA SENHA (aparecem quando a pessoa clica no campo)
+    // Para mudar ou acrescentar uma regra, edite só esta lista.
+    const REGRAS_SENHA = [
+      { texto: `${SENHA_TAMANHO_MINIMO} caracteres`, ok: v => v.length >= SENHA_TAMANHO_MINIMO },
+      { texto: "1 maiúscula", ok: v => /[A-Z]/.test(v) },
+      { texto: "1 minúscula", ok: v => /[a-z]/.test(v) },
+      { texto: "1 símbolo (@ # $ !)", ok: v => /[^A-Za-z0-9]/.test(v) }
+    ];
 
-      const olhoSenha = document.createElement("button");
-      olhoSenha.type = "button"; // não envia o formulário
-      olhoSenha.setAttribute("aria-label", "Mostrar senha");
-      // Ícones em SVG próprio (não dependem de internet nem do Font Awesome)
-      const ICONE_OLHO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-      const ICONE_OLHO_CORTADO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-      olhoSenha.innerHTML = ICONE_OLHO;
-      olhoSenha.style.cssText = "position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; padding:0; margin:0; width:auto; height:auto; color:#777; line-height:0; letter-spacing:0; text-transform:none; cursor:pointer;";
-      olhoSenha.addEventListener("click", () => {
-        const mostrar = senhaCampoCadastro.type === "password";
-        senhaCampoCadastro.type = mostrar ? "text" : "password";
-        olhoSenha.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
-        olhoSenha.innerHTML = mostrar ? ICONE_OLHO_CORTADO : ICONE_OLHO;
-      });
-      envolverSenha.appendChild(olhoSenha);
+    // ---------- Olho para mostrar/esconder a senha (igual ao seu original) ----------
+    const envolverSenha = document.createElement("div");
+    envolverSenha.style.cssText = "position:relative; width:100%;";
+    senhaInput.parentNode.insertBefore(envolverSenha, senhaInput);
+    envolverSenha.appendChild(senhaInput);
+    senhaInput.style.paddingRight = "40px";
+
+    const olhoSenha = document.createElement("button");
+    olhoSenha.type = "button"; // não envia o formulário
+    olhoSenha.setAttribute("aria-label", "Mostrar senha");
+    // Ícones em SVG próprio (não dependem de internet nem do Font Awesome)
+    const ICONE_OLHO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    const ICONE_OLHO_CORTADO = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+    olhoSenha.innerHTML = ICONE_OLHO;
+    olhoSenha.style.cssText = "position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; padding:0; margin:0; width:auto; height:auto; color:#777; line-height:0; letter-spacing:0; text-transform:none; cursor:pointer;";
+    olhoSenha.addEventListener("click", () => {
+      const mostrar = senhaInput.type === "password";
+      senhaInput.type = mostrar ? "text" : "password";
+      olhoSenha.setAttribute("aria-label", mostrar ? "Ocultar senha" : "Mostrar senha");
+      olhoSenha.innerHTML = mostrar ? ICONE_OLHO_CORTADO : ICONE_OLHO;
+    });
+    envolverSenha.appendChild(olhoSenha);
+
+    // ---------- ★ ERRO CURTO EMBAIXO DE CADA CAMPO ----------
+    // Cria um <span class="erro-campo"> logo depois do campo.
+    function criarErro(input, ancora) {
+      const span = document.createElement("span");
+      span.id = `${input.id}-erro`;
+      span.className = "erro-campo";
+      span.setAttribute("aria-live", "polite");
+      input.setAttribute("aria-describedby", span.id);
+      (ancora || input).insertAdjacentElement("afterend", span);
+      return span;
     }
 
+    // ---------- ★ MENSAGENS DE ERRO (textos curtos) ----------
+    // Cada função recebe o valor do campo e devolve o erro ("" = tudo certo).
+    function validarSenha(v) {
+      if (!v) return "Crie uma senha";
+      if (REGRAS_SENHA.some(r => !r.ok(v))) return "Atenda aos requisitos abaixo";
+      // Garantia extra: usa a regra oficial do comum.js
+      const falta = senhaFaltando(v);
+      if (falta.length > 0) return `A senha precisa ter pelo menos ${listaEmTexto(falta)}`;
+      return "";
+    }
+
+    const campos = [
+      { input: nomeInput, validar: v => v ? "" : "Preencha o nome e sobrenome" },
+      {
+        input: cpfInput, apenasNumeros: true,
+        validar: v => !v ? "Preencha o CPF" : (cpfCadastroValido(v) ? "" : "CPF inválido. Digite os 11 números")
+      },
+      {
+        input: telefoneInput, apenasNumeros: true,
+        validar: v => !v ? "Preencha o telefone" : (v.replace(/\D/g, "").length >= 10 ? "" : "Digite o telefone com DDD. Ex: 11912345678")
+      },
+      { input: emailInput, validar: v => emailValido(v) ? "" : "Digite um e-mail válido. Ex: nome@gmail.com" },
+      { input: senhaInput, ancora: envolverSenha, validar: validarSenha },
+      {
+        input: confirmarInput, confirmacao: true,
+        validar: v => !v ? "Confirme a senha" : (v === senhaInput.value.trim() ? "" : "As senhas não coincidem")
+      }
+    ];
+    const campoConfirmar = campos.find(c => c.confirmacao);
+
+    campos.forEach(c => { c.erro = criarErro(c.input, c.ancora); c.tocado = false; });
+
+    // ---------- ★ AVISO GERAL (erros que vêm da API) ----------
+    // Aparece embaixo do botão CADASTRAR, no mesmo estilo dos erros dos campos.
+    const botaoCadastro = formCadastro.querySelector('button[type="submit"]');
+    const erroGeral = document.createElement("span");
+    erroGeral.className = "erro-campo erro-geral";
+    erroGeral.setAttribute("role", "alert");
+    botaoCadastro.insertAdjacentElement("afterend", erroGeral);
+
+    // Mostra ou limpa o erro de um campo. Devolve a mensagem ("" = válido).
+    function validarCampo(c) {
+      const msg = c.validar(c.input.value.trim());
+      c.erro.classList.remove("ok");
+      c.erro.textContent = msg;
+      if (!msg && c.confirmacao) {
+        c.erro.textContent = "✓ As senhas coincidem";
+        c.erro.classList.add("ok");
+      }
+      c.input.classList.toggle("invalido", !!msg);
+      c.input.setAttribute("aria-invalid", msg ? "true" : "false");
+      return msg;
+    }
+
+    function limparCampo(c) {
+      c.erro.textContent = "";
+      c.erro.classList.remove("ok");
+      c.input.classList.remove("invalido");
+      c.input.removeAttribute("aria-invalid");
+    }
+
+    // ---------- ★ PAINEL DE REQUISITOS DA SENHA ----------
+    // Aparece ao clicar no campo, mostra barra de força + 4 itens em grade.
+    // Quando todos os itens são atendidos, vira só "✓ Senha forte".
+    const painel = document.createElement("div");
+    painel.className = "req-senha";
+    painel.hidden = true;
+    painel.innerHTML =
+      '<div class="req-barra" data-nivel="0"><i></i><i></i><i></i><i></i></div>' +
+      '<ul class="req-lista">' + REGRAS_SENHA.map(r => `<li>${r.texto}</li>`).join("") + "</ul>" +
+      '<div class="req-forte" hidden>✓ Senha forte</div>';
+    const campoSenha = campos.find(c => c.input === senhaInput);
+    campoSenha.erro.insertAdjacentElement("afterend", painel);
+
+    const barra = painel.querySelector(".req-barra");
+    const lista = painel.querySelector(".req-lista");
+    const itens = painel.querySelectorAll("li");
+    const aviso = painel.querySelector(".req-forte");
+
+    function atualizarPainel() {
+      const v = senhaInput.value.trim();
+      const atendidas = REGRAS_SENHA.map(r => r.ok(v));
+      const total = atendidas.filter(Boolean).length;
+      const forte = total === REGRAS_SENHA.length;
+
+      itens.forEach((li, i) => li.classList.toggle("ok", atendidas[i]));
+      barra.dataset.nivel = total;
+      barra.hidden = forte;
+      lista.hidden = forte;
+      aviso.hidden = !forte;
+      // Só some quando o campo está vazio e sem foco
+      painel.hidden = !(v.length > 0 || document.activeElement === senhaInput);
+    }
+
+    // ---------- Eventos de cada campo ----------
+    campos.forEach(c => {
+      // Ao sair do campo: valida (se a pessoa digitou algo)
+      c.input.addEventListener("blur", () => {
+        if (c.input.value.trim() || c.tocado) {
+          c.tocado = true;
+          validarCampo(c);
+        }
+        if (c.input === senhaInput) atualizarPainel();
+      });
+
+      // Ao digitar: CPF/telefone só aceitam números; corrige o erro na hora
+      c.input.addEventListener("input", () => {
+        if (c.apenasNumeros) c.input.value = c.input.value.replace(/\D/g, "");
+
+        if (c.confirmacao && !c.input.value) limparCampo(c);
+        else if (c.tocado || c.confirmacao || c.input.classList.contains("invalido")) validarCampo(c);
+
+        if (c.input === senhaInput) {
+          atualizarPainel();
+          if (confirmarInput.value) validarCampo(campoConfirmar); // reconfere a confirmação
+        }
+      });
+    });
+
+    senhaInput.addEventListener("focus", atualizarPainel);
+
+    // ---------- Envio do formulário ----------
     formCadastro.addEventListener("submit", async function (e) {
       e.preventDefault();
+      erroGeral.textContent = "";
 
-      const nomeInput = document.getElementById("cad-nome");
-      const emailInput = document.getElementById("cad-email");
-      const senhaInput = document.getElementById("cad-senha");
-      const cpfInput = document.getElementById("cad-cpf");
-      const telefoneInput = document.getElementById("cad-telefone");
-
-      const nome = nomeInput ? nomeInput.value.trim() : "";
-      const email = emailInput ? emailInput.value.trim() : "";
-      const senha = senhaInput ? senhaInput.value.trim() : "";
-      const cpf = cpfInput ? cpfInput.value.trim(): "";
-      const tel = telefoneInput ? telefoneInput.value.trim() : "";
-      // Validações da tela de cadastro
-      const erros = [];
-      let campoErro = null;
-      if (!nome) {
-        erros.push("Preencha o nome.");
-        campoErro = nomeInput;
-      }
-      if (!cpf) {
-        erros.push("Preencha o CPF.");
-        if (!campoErro) campoErro = cpfInput;
-      } else if (!cpfCadastroValido(cpf)) {
-        erros.push("O CPF informado não é válido. Digite os 11 números.");
-        if (!campoErro) campoErro = cpfInput;
-      }
-      if (!tel) {
-        erros.push("Preencha o telefone.");
-        if (!campoErro) campoErro = telefoneInput;
-      } else if (tel.replace(/\D/g, "").length < 10) {
-        erros.push("Digite um telefone válido com DDD. Exemplo: 11912345678");
-        if (!campoErro) campoErro = telefoneInput;
-      }
-      if (!emailValido(email)) {
-        erros.push("Digite um e-mail válido. Exemplo: nome@gmail.com");
-        if (!campoErro) campoErro = emailInput;
-      }
-      const senhaFalta = senhaFaltando(senha);
-      if (senhaFalta.length > 0) {
-        erros.push(`A senha precisa ter pelo menos ${listaEmTexto(senhaFalta)}.`);
-        if (!campoErro) campoErro = senhaInput;
-      }
-      // Confirmar senha: obrigatória e igual à senha
-      const confirmarInput = document.getElementById("cad-senha-confirmar");
-      const confirmar = confirmarInput ? confirmarInput.value.trim() : "";
-      if (!confirmar) {
-        erros.push("Confirme a senha.");
-        if (!campoErro) campoErro = confirmarInput;
-      } else if (confirmar !== senha) {
-        erros.push("As senhas não coincidem. Digite a mesma senha nos dois campos.");
-        if (!campoErro) campoErro = confirmarInput;
-      }
-      if (erros.length > 0) {
-        mostrarErroForm(formCadastro, erros.join("\n"), campoErro);
+      // Valida tudo; foca o primeiro campo com erro
+      let primeiroErro = null;
+      campos.forEach(c => {
+        c.tocado = true;
+        if (validarCampo(c) && !primeiroErro) primeiroErro = c;
+      });
+      atualizarPainel();
+      if (primeiroErro) {
+        primeiroErro.input.focus();
         return;
       }
-      limparErroForm(formCadastro);
 
-      const botaoCadastro = formCadastro.querySelector("button");
-      if (botaoCadastro) botaoCadastro.disabled = true; // evita clique duplo
+      const nome = nomeInput.value.trim();
+      const cpf = cpfInput.value.trim();
+      const tel = telefoneInput.value.trim();
+      const email = emailInput.value.trim();
+      const senha = senhaInput.value.trim();
+
+      botaoCadastro.disabled = true; // evita clique duplo
 
       try {
         // 1) Cria a conta. Formato que a API espera:
@@ -246,8 +355,9 @@ function iniciarAuth() {
         if (resposta && resposta.Token) salvarTokenApi(resposta.Token); // Token com T maiúsculo
       } catch (erro) {
         console.warn(erro.message);
-        mostrarErroForm(formCadastro, mensagemErroApi(erro, "cadastro"), null);
-        if (botaoCadastro) botaoCadastro.disabled = false;
+        // Erros que vêm da API (ex: e-mail já cadastrado)
+        erroGeral.textContent = mensagemErroApi(erro, "cadastro");
+        botaoCadastro.disabled = false;
         return;
       }
 
@@ -256,6 +366,11 @@ function iniciarAuth() {
       window.location.href = destinoCompra || "agenda.html";
     });
   }
+  // =====================================================================
+  // ★ CRIAR CONTA - FIM DO BLOCO ALTERADO
+  // =====================================================================
+
+
 
   if (formLogin) {
     formLogin.addEventListener("submit", async function (e) {

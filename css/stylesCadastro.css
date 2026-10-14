@@ -3,8 +3,9 @@
    =====================================================================
 
    ÍNDICE
-   1. Variáveis (cores, medidas, animação)  <- mude aqui primeiro
-   2. Reset e página (inclui o cabeçalho .topo)
+   1. Variáveis (cores, medidas, TEXTO, animação)  <- mude aqui primeiro
+   2. Reset e página
+   2.1 Cabeçalho (.topo)
    3. Card principal (.container)
    4. Formulários (.sign-in e .sign-up)
    5. Campos de texto (input)
@@ -18,9 +19,10 @@
    O JavaScript adiciona/remove a classe "active" no .container.
    Tudo que muda de posição quando "active" existe está na seção 8.
 
-   ★ PROCURE POR "★ ALTERADO" PARA ACHAR O QUE FOI MUDADO
-     (são 3 lugares: variáveis na seção 1, e .toggle-container e
-      .toggle na seção 7)
+   ★ PADRONIZAÇÃO DO TEXTO
+   Procure por "★ TEXTO" para achar tudo que foi mudado para ficar
+   igual ao site. Os valores principais estão na seção 1, no bloco
+   "TIPOGRAFIA". Mudando lá, muda em toda a tela de login.
    ===================================================================== */
 
 
@@ -37,19 +39,16 @@
     --cor-destaque-hover: #1f62bd;
     --cor-foco:           #3fa9f5;   /* azul claro (contorno de teclado) */
 
-    /* ★ ALTERADO (NOVO) ------------------------------------------------
-       Cores do painel lateral (Olá, amigo! / Bem vindo de volta!)
-       Mude só estas duas linhas para trocar o degradê das DUAS telas.
-       ---------------------------------------------------------------- */
+    /* Cores do painel lateral (Olá, amigo! / Bem vindo de volta!) */
     --painel-cor-esquerda: #1a4d8d;  /* azul mais escuro (lado esquerdo do painel) */
     --painel-cor-direita:  #2b7be4;  /* azul mais claro (lado direito do painel) */
-    /* ★ FIM DA ALTERAÇÃO ------------------------------------------- */
 
     /* Botão do formulário de cadastro (troque aqui se quiser outra cor) */
     --cor-botao-cadastro:       #00c97b;
     --cor-botao-cadastro-hover: #00b36d;
 
     /* Cores neutras */
+    --cor-preta:          #000000;
     --cor-branco:         #ffffff;
     --cor-texto:          #0a2036;
     --cor-texto-suave:    #5b6b7f;
@@ -57,29 +56,48 @@
 
     /* Medidas */
     --largura-card:       680px;
-    --altura-card:        540px;     /* altura do card (cadastro tem mais campos) */
+    --altura-card:        540px;     /* altura do card (se o cadastro ficar apertado, aumente: 580px) */
     --raio-card:          30px;
     --raio-campo:         8px;
 
     /* Animação (duração da troca entre Entrar e Cadastrar) */
     --tempo-troca:        0.6s;
+
+    /* ★ TEXTO: TIPOGRAFIA (igual ao site) ------------------------------
+       Mude aqui para ajustar o texto de toda a tela de login.
+       ---------------------------------------------------------------- */
+    --fonte-site:            'Segoe UI', system-ui, sans-serif;
+
+    --titulo-peso:           800;      /* peso dos títulos (Entrar, Criar Conta...) */
+    --titulo-espaco-letras:  -0.01em;  /* letras levemente mais juntas, como no site */
+    --titulo-altura-linha:   1.2;
+
+    --texto-altura-linha:    1.65;     /* espaço entre linhas dos parágrafos */
+    --texto-cor-painel:      #c9d8e8;  /* cor dos parágrafos sobre o painel azul */
+
+    --botao-peso:            700;
+    --botao-tamanho:         14px;
+    /* ★ FIM DO BLOCO TIPOGRAFIA ------------------------------------- */
 }
 
 
 /* =====================================================================
    2. RESET E PÁGINA
    ===================================================================== */
+
+/* ★ TEXTO: usa a variável --fonte-site */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--fonte-site);
 }
 
 body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;       /* header em cima, card embaixo */
+    line-height: var(--texto-altura-linha);   /* ★ TEXTO */
     background: linear-gradient(135deg, var(--cor-fundo), var(--cor-fundo-2));
 }
 
@@ -98,9 +116,11 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* ★ TEXTO: logo igual ao do site (peso 800, 1.1rem, linhas coladas) */
 .topo .logo a {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1.1;
     color: var(--cor-branco);
     text-decoration: none;
 }
@@ -120,18 +140,17 @@ body {
     gap: 28px;
 }
 
+/* ★ TEXTO: links do menu iguais ao do site (0.95rem, peso 500, cor clara) */
 .topo .sidebar nav a {
-    font-size: 15px;
+    font-size: 0.95rem;
     font-weight: 500;
-    color: var(--cor-branco);
+    color: var(--texto-cor-painel);
     text-decoration: none;
-    opacity: 0.85;
-    transition: opacity 0.2s ease, color 0.2s ease;
+    transition: color 0.2s ease;
 }
 
 .topo .sidebar nav a:hover {
-    opacity: 1;
-    color: var(--cor-principal);
+    color: var(--cor-branco);
 }
 
 
@@ -150,15 +169,19 @@ body {
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
 }
 
+/* ★ TEXTO: títulos com o mesmo peso e espaçamento do site */
 .container h1 {
     color: var(--cor-texto);
+    font-weight: var(--titulo-peso);
+    letter-spacing: var(--titulo-espaco-letras);
+    line-height: var(--titulo-altura-linha);
 }
 
+/* ★ TEXTO: parágrafos com linha mais arejada, como no site */
 .container p {
     margin: 20px 0;
-    font-size: 14px;
-    line-height: 20px;
-    letter-spacing: 0.3px;
+    font-size: 15px;
+    line-height: var(--texto-altura-linha);
 }
 
 .container span {
@@ -203,7 +226,7 @@ body {
 /* ---------- Cadastro: mais campos, então espaçamento mais compacto ---------- */
 .sign-up h1 {
     margin-bottom: 6px;
-    font-size: 24px;
+    font-size: 26px;                /* ★ TEXTO: um pouco maior, como os títulos do site */
 }
 
 .container .sign-up input {
@@ -218,8 +241,8 @@ body {
     width: 100%;
     margin: 4px 0 6px;
     padding: 0;
-    font-size: 11.5px;
-    line-height: 1.45;
+    font-size: 12px;                /* ★ TEXTO */
+    line-height: 1.5;
     text-align: left;
     list-style: none;
     color: var(--cor-texto-suave);
@@ -241,6 +264,10 @@ body {
     z-index: 2;
 }
 
+.sign-in h1 {
+    font-size: 26px;                /* ★ TEXTO: mesmo tamanho do "Criar Conta" */
+}
+
 /* Cadastrar: escondido no início */
 .sign-up {
     z-index: 1;
@@ -255,7 +282,7 @@ body {
     width: 100%;
     margin: 8px 0;
     padding: 9px 14px;
-    font-size: 12.5px;
+    font-size: 13.5px;              /* ★ TEXTO: era 12.5px */
     color: var(--cor-texto);
     background-color: var(--cor-campo);
     border: 2px solid transparent;
@@ -277,15 +304,16 @@ body {
    6. BOTÕES
    ===================================================================== */
 
-/* Botão principal (ENTRAR e CADASTRAR dentro do formulário) */
+/* ★ TEXTO: botões como no site ("Começar agora"): sem MAIÚSCULAS,
+   sem espaçamento extra entre letras, peso 700 */
 .container button {
     margin-top: 10px;
-    padding: 9px 38px;
-    font-size: 11.5px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    color: var(--cor-fundo);
+    padding: 10px 38px;
+    font-size: var(--botao-tamanho);
+    font-weight: var(--botao-peso);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--cor-branco);
     background-color: var(--cor-principal);
     border: 1px solid transparent;
     border-radius: var(--raio-campo);
@@ -322,11 +350,6 @@ body {
        .toggle-left   = texto do modo cadastro ("Bem-vindo de volta!")
        .toggle-right  = texto do modo entrar   ("Olá, amigo!")
    ===================================================================== */
-
-/* ★ ALTERADO ---------------------------------------------------------
-   O degradê (background) agora fica AQUI, na janela, e não mais no
-   .toggle. Assim as duas telas mostram exatamente a mesma cor.
-   -------------------------------------------------------------------- */
 .toggle-container {
     position: absolute;
     top: 0;
@@ -336,21 +359,17 @@ body {
     height: 100%;
     overflow: hidden;
     border-radius: 150px 0 0 100px;
-    background: linear-gradient(to right, var(--painel-cor-esquerda), var(--painel-cor-direita));  /* ★ ALTERADO (NOVO) */
+    background: linear-gradient(to right, var(--painel-cor-esquerda), var(--painel-cor-direita));
     transition: transform var(--tempo-troca) ease-in-out,
                 border-radius var(--tempo-troca) ease-in-out;
 }
 
-/* ★ ALTERADO ---------------------------------------------------------
-   O background foi REMOVIDO daqui (agora está no .toggle-container).
-   -------------------------------------------------------------------- */
 .toggle {
     position: relative;
     left: -100%;
     width: 200%;
     height: 100%;
     color: var(--cor-branco);
-    /* background removido de propósito: a cor fica no .toggle-container */
     transition: transform var(--tempo-troca) ease-in-out;
 }
 
@@ -368,15 +387,18 @@ body {
     transition: transform var(--tempo-troca) ease-in-out;
 }
 
-.toggle-panel h1,
-.toggle-panel p {
+/* ★ TEXTO: título branco; parágrafo na cor clara usada no site */
+.toggle-panel h1 {
     color: var(--cor-branco);
 }
 
+.toggle-panel p {
+    color: var(--texto-cor-painel);
+}
+
 .toggle-panel h1 {
-    font-size: 24px;
-    line-height: 1.2;
-    text-wrap: balance;     /* quebra o título em linhas equilibradas */
+    font-size: 28px;                /* ★ TEXTO: era 24px */
+    text-wrap: balance;             /* quebra o título em linhas equilibradas */
 }
 
 .toggle-left {
@@ -447,7 +469,7 @@ body {
     align-self: flex-start;
     margin: 8px 0 12px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;               /* ★ TEXTO: era 500 */
     color: var(--cor-destaque);
     text-decoration: underline;
 }
@@ -490,4 +512,128 @@ body {
     .container.active .toggle-container {
         border-radius: 0 80px 60px 0;
     }
+}
+
+/* =====================================================================
+   CRIAR CONTA: erros curtos e requisitos da senha
+   COMO USAR: cole TUDO isto no FINAL do css/stylesCadastro.css
+   (no final para vencer o estilo geral dos inputs)
+
+   ★ Para mudar as cores, edite só as variáveis logo abaixo.
+   ===================================================================== */
+:root {
+    --cor-erro:         #d93636;   /* vermelho do erro e da borda do campo */
+    --cor-ok:           #0a8f5a;   /* verde dos itens atendidos */
+    --cor-forca-baixa:  #d93636;   /* barra: 1 requisito */
+    --cor-forca-media:  #e08a1e;   /* barra: 2 requisitos */
+    --cor-forca-quase:  #e0b81e;   /* barra: 3 requisitos */
+    --cor-barra-vazia:  #d5dfec;   /* barra: parte ainda vazia */
+}
+
+/* Erro curto embaixo do campo */
+.container .erro-campo {
+    display: block;
+    width: 100%;
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: left;
+    color: var(--cor-erro);
+}
+
+.container .erro-campo:empty {
+    display: none;
+}
+
+.container .erro-campo.ok {
+    color: var(--cor-ok);
+}
+
+/* Campo com erro: borda vermelha (vale mesmo com o campo focado) */
+.container input.invalido {
+    border-color: var(--cor-erro);
+}
+
+/* Painel de requisitos da senha */
+.req-senha {
+    width: 100%;
+    margin: 6px 0 2px;
+    text-align: left;
+}
+
+.req-senha[hidden],
+.req-senha [hidden] {
+    display: none;
+}
+
+/* Barra de força: 4 traços que vão enchendo */
+.req-barra {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
+.req-barra i {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--cor-barra-vazia);
+}
+
+.req-barra[data-nivel="1"] i:nth-child(-n+1) { background: var(--cor-forca-baixa); }
+.req-barra[data-nivel="2"] i:nth-child(-n+2) { background: var(--cor-forca-media); }
+.req-barra[data-nivel="3"] i:nth-child(-n+3) { background: var(--cor-forca-quase); }
+.req-barra[data-nivel="4"] i                 { background: var(--cor-ok); }
+
+/* Requisitos em grade de 2 colunas (ocupa só 2 linhas) */
+.req-lista {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 10px;
+    list-style: none;
+}
+
+.req-lista li {
+    font-size: 12px;
+    color: var(--cor-texto-suave);
+}
+
+.req-lista li::before {
+    content: "○  ";
+}
+
+.req-lista li.ok {
+    color: var(--cor-ok);
+}
+
+.req-lista li.ok::before {
+    content: "✓  ";
+}
+
+/* Quando todos os requisitos são atendidos */
+.req-forte {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cor-ok);
+}
+
+
+/* =====================================================================
+   AVISO GERAL (erros que vêm da API) - embaixo do botão CADASTRAR
+   ===================================================================== */
+.container .erro-geral {
+    text-align: center;
+    margin-top: 8px;
+}
+
+
+/* =====================================================================
+   FONTE: faz o painel e os erros usarem a mesma fonte do site.
+   Se o seu site usa outra fonte (ex: Plus Jakarta Sans), troque o
+   nome que aparece DEPOIS da vírgula, dentro do var(...).
+   ===================================================================== */
+.req-senha,
+.req-senha *,
+.container .erro-campo {
+    font-family: var(--fonte-site, 'Segoe UI', system-ui, sans-serif);
 }
