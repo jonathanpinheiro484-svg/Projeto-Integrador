@@ -27,6 +27,10 @@ const API_CONFIG = {
     FINANCEIRO: "/financeiro",
     CONTRATOS: "/contratos",
     PLANO: "/plano",
+    // Rotas que já existem na API (Azure Functions)
+    CLIENTES: "/Clientes",                    // POST
+    SERVICOS: "/Servicos",                    // POST
+    VALIDAR_TOKEN: "/ValidarToken",           // GET (usa o token do login no cabeçalho Authorization)
   },
 
   token: localStorage.getItem("apiToken") || null,
@@ -65,6 +69,37 @@ async function apiRequest(endpointKey, options = {}, sufixoUrl = "") {
   return null;
 }
 
+// Transforma o erro do apiRequest ("Erro na API (STATUS) em ROTA: texto") numa mensagem para a tela.
+function mensagemErroApiComum(erro, padrao) {
+  const texto = (erro && erro.message) || "";
+  const m = texto.match(/Erro na API \((\d+)\)[^:]*:\s*([\s\S]*)$/);
+  if (!m) return "Não foi possível conectar à API. Confira se ela está rodando.";
+  const status = Number(m[1]);
+  let corpo = (m[2] || "").trim();
+  try {
+    const json = JSON.parse(corpo);
+    corpo = json.mensagem || json.message || json.erro || json.error || json.title || corpo;
+  } catch (_) { /* a resposta era texto puro */ }
+  if (status === 401) return "Sua sessão expirou. Entre novamente.";
+  if (status === 404) return "Esta função ainda não está disponível na API.";
+  if (status === 400 && corpo) return corpo;
+  return padrao || `Erro ${status} ao falar com a API.`;
+}
+
+// Confere se o token do login ainda vale. Devolve true (vale), false (401/403: sessão inválida)
+// ou null (API fora do ar / sem resposta: não dá para saber, então não derruba a sessão).
+async function validarSessaoApi() {
+  if (!API_CONFIG.token) return false;
+  try {
+    await apiRequest("VALIDAR_TOKEN");
+    return true;
+  } catch (erro) {
+    const m = String((erro && erro.message) || "").match(/Erro na API \((\d+)\)/);
+    if (m && (m[1] === "401" || m[1] === "403")) return false;
+    return null;
+  }
+}
+
 function salvarTokenApi(token) {
   API_CONFIG.token = token;
   localStorage.setItem("apiToken", token);
@@ -94,6 +129,21 @@ const NOMES_PLANOS_ASSINATURA = {
 // --- ASSINATURA APROVADA → PLANO DO PAINEL ---
 // A tela de compra (assinatura.html) grava a assinatura aqui quando o pagamento é aprovado.
 const CHAVE_ASSINATURA = "assinaturaAtual";
+
+// --- BOLETO GERADO NA COMPRA ---
+// A tela de compra (assinatura.html) chama salvarBoleto(...) quando o cliente escolhe pagar por boleto.
+// Fica numa chave separada para não apagar a assinatura aprovada que já existe.
+// Campos: plano, valor, vencimento (AAAA-MM-DD), linhaDigitavel, url (link do boleto, se houver), status.
+const CHAVE_BOLETO = "boletoAtual";
+function salvarBoleto(dados) {
+  localStorage.setItem(CHAVE_BOLETO, JSON.stringify(Object.assign({ status: "Aguardando pagamento" }, dados)));
+}
+function lerBoleto() {
+  return lerJsonLocal(CHAVE_BOLETO, null);
+}
+function limparBoleto() {
+  localStorage.removeItem(CHAVE_BOLETO);
+}
 
 // Plano que a agenda deve usar: o da assinatura aprovada e dentro da validade (senão, Grátis).
 // Profissional/Completo/Premium liberam o financeiro como o Premium.

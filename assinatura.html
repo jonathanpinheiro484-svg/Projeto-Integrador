@@ -60,7 +60,7 @@ h2 { font-size: 15px; margin: 0 0 12px; }
 .campo input { border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px; font-size: 14px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
 .campo input:focus { border-color: var(--roxo); outline: none; }
 
-.metodos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.metodos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
 .metodo { border: 2px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
 .metodo input { accent-color: var(--roxo); }
 .metodo.sel { border-color: var(--roxo); background: var(--roxo-claro); }
@@ -83,12 +83,45 @@ h2 { font-size: 15px; margin: 0 0 12px; }
 .erro { color: var(--erro); font-size: 12px; margin: 0 0 10px; white-space: pre-line; }
 .erro[hidden] { display: none; }
 
+/* Boleto */
+.boleto-barras { margin: 14px 0 4px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.boleto-barras svg { display: block; width: 100%; height: 60px; }
+
+/* QR Code do Pix */
+.pix-qr { display: flex; justify-content: center; margin: 14px 0 4px; }
+.pix-qr svg { width: 180px; height: 180px; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
+.pix-qr:empty { display: none; }
+.pix-dica { text-align: center; font-size: 12px; margin: 6px 0 0; }
+
+/* dados da conta (vindos do cadastro, não editáveis) */
+.campo input[readonly] { background: var(--bg); color: var(--muted); cursor: not-allowed; }
+.campo select { border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px; font-size: 14px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
+.campo select:focus { border-color: var(--roxo); outline: none; }
+
+/* cartões salvos */
+.cartoes-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; font-size: 13px; font-weight: 600; }
+.lista-cartoes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.lista-cartoes:empty { display: none; }
+.cartao-item { display: flex; align-items: center; gap: 10px; border: 2px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.cartao-item input { accent-color: var(--roxo); }
+.cartao-item.sel { border-color: var(--roxo); background: var(--roxo-claro); }
+.cartao-info { flex: 1; min-width: 0; }
+.cartao-info small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; margin-top: 2px; }
+.cartao-vazio { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+.form-cartao { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.campo .erro, .form-cartao .erro { grid-column: 1 / -1; margin: 0; }
+.linha-botoes { grid-column: 1 / -1; display: flex; gap: 8px; }
+.btn-mini { background: var(--roxo); color: #fff; border: none; border-radius: 7px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
 /* sucesso */
 .sucesso { max-width: 480px; margin: 40px auto; text-align: center; }
 .sucesso .icone { font-size: 44px; }
 .sucesso .bloco { text-align: left; margin-top: 18px; }
 [hidden] { display: none !important; }
 
+@media (max-width: 520px) {
+  .metodos { grid-template-columns: 1fr; }
+}
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
   .resumo { position: static; }
@@ -114,6 +147,7 @@ h2 { font-size: 15px; margin: 0 0 12px; }
       <div>
         <div class="bloco">
           <h2>1. Seus dados</h2>
+          <p class="aviso" style="margin:0 0 12px;">O e-mail e o CPF são os do seu cadastro e não podem ser alterados. A nota fiscal será enviada para este e-mail.</p>
           <div class="campos">
             <div class="campo largo">
               <label for="ass-nome">Nome completo</label>
@@ -135,32 +169,71 @@ h2 { font-size: 15px; margin: 0 0 12px; }
           <div class="metodos" role="radiogroup" aria-label="Forma de pagamento">
             <label class="metodo sel"><input type="radio" name="metodo" value="pix" checked> Pix</label>
             <label class="metodo"><input type="radio" name="metodo" value="cartao"> Cartão de crédito</label>
+            <label class="metodo"><input type="radio" name="metodo" value="boleto"> Boleto</label>
           </div>
 
           <div id="painel-pix" class="pix-caixa">
             Ao confirmar, o código Pix é gerado para você pagar no app do seu banco. O plano é liberado assim que o pagamento é confirmado.
+            <div class="pix-qr" id="pix-qr"></div>
+            <p class="pix-dica">Escaneie o QR Code no app do seu banco ou use o Pix copia e cola abaixo.</p>
             <div class="pix-codigo">
               <input type="text" id="pix-codigo" readonly aria-label="Código Pix copia e cola">
               <button type="button" class="btn-sec" id="btn-copiar-pix">Copiar</button>
             </div>
           </div>
 
-          <div id="painel-cartao" class="campos" hidden>
-            <div class="campo largo">
-              <label for="cc-numero">Número do cartão</label>
-              <input type="text" id="cc-numero" placeholder="0000 0000 0000 0000" inputmode="numeric" autocomplete="cc-number" maxlength="19">
+          <div id="painel-boleto" class="pix-caixa" hidden>
+            O boleto é gerado aqui na tela, com os seus dados. O plano é liberado depois que o pagamento for confirmado (de 1 a 3 dias úteis).
+            <div style="margin-top:10px;">
+              <button type="button" class="btn-mini" id="btn-gerar-boleto">Gerar boleto</button>
             </div>
-            <div class="campo largo">
-              <label for="cc-nome">Nome impresso no cartão</label>
-              <input type="text" id="cc-nome" placeholder="Como está no cartão" autocomplete="cc-name" maxlength="40">
+            <div id="boleto-resultado" hidden>
+              <div class="linha"><span>Vencimento</span><span id="boleto-venc"></span></div>
+              <div class="linha"><span>Valor</span><span id="boleto-valor"></span></div>
+              <div class="boleto-barras" id="boleto-barras"></div>
+              <p class="pix-dica">Linha digitável (para pagar no app do banco):</p>
+              <div class="pix-codigo">
+                <input type="text" id="boleto-linha" readonly aria-label="Linha digitável do boleto">
+                <button type="button" class="btn-sec" id="btn-copiar-boleto">Copiar</button>
+              </div>
+              <p style="margin:10px 0 0;"><button type="button" class="btn-sec" id="btn-ver-boleto">Ver / imprimir boleto</button></p>
+              <p class="aviso" id="boleto-aviso-teste">MODO TESTE: este boleto é só uma simulação e não pode ser pago.</p>
             </div>
-            <div class="campo">
-              <label for="cc-validade">Validade</label>
-              <input type="text" id="cc-validade" placeholder="MM/AA" inputmode="numeric" autocomplete="cc-exp" maxlength="5">
+          </div>
+
+          <div id="painel-cartao" hidden>
+            <div class="cartoes-topo">
+              <span>Seus cartões</span>
+              <button type="button" class="btn-sec" id="btn-novo-cartao">+ Adicionar cartão</button>
             </div>
-            <div class="campo">
-              <label for="cc-cvv">CVV</label>
-              <input type="password" id="cc-cvv" placeholder="123" inputmode="numeric" autocomplete="cc-csc" maxlength="4">
+            <p class="cartao-vazio" id="cartao-vazio">Você ainda não tem cartão cadastrado. Adicione um para continuar.</p>
+            <div class="lista-cartoes" id="lista-cartoes"></div>
+
+            <div class="form-cartao campos" id="form-novo-cartao" hidden>
+              <div class="campo largo">
+                <label for="cc-numero">Número do cartão</label>
+                <input type="text" id="cc-numero" placeholder="0000 0000 0000 0000" inputmode="numeric" autocomplete="cc-number" maxlength="19">
+              </div>
+              <div class="campo largo">
+                <label for="cc-nome">Nome impresso no cartão</label>
+                <input type="text" id="cc-nome" placeholder="Como está no cartão" autocomplete="cc-name" maxlength="40">
+              </div>
+              <div class="campo">
+                <label for="cc-validade">Validade</label>
+                <input type="text" id="cc-validade" placeholder="MM/AA" inputmode="numeric" autocomplete="cc-exp" maxlength="5">
+              </div>
+              <p class="erro" id="erro-cartao" role="alert" hidden></p>
+              <div class="linha-botoes">
+                <button type="button" class="btn-mini" id="btn-salvar-cartao">Salvar cartão</button>
+                <button type="button" class="btn-sec" id="btn-cancelar-cartao">Cancelar</button>
+              </div>
+            </div>
+
+            <div class="campos" id="area-pagar-cartao" hidden>
+              <div class="campo">
+                <label for="cc-cvv">CVV do cartão selecionado</label>
+                <input type="password" id="cc-cvv" placeholder="123" inputmode="numeric" autocomplete="cc-csc" maxlength="4">
+              </div>
             </div>
           </div>
         </div>
@@ -193,6 +266,8 @@ h2 { font-size: 15px; margin: 0 0 12px; }
       <div class="linha"><span>Total</span><span id="suc-total"></span></div>
       <div class="linha" style="border-bottom:none;"><span id="suc-rotulo-data">Válido até</span><span id="suc-data"></span></div>
     </div>
+    <p class="sub" id="suc-nota" style="margin-top:14px; text-align:center;" hidden></p>
+    <p class="sub" id="suc-boleto" style="margin-top:10px; text-align:center;" hidden><a href="#" id="link-boleto">Ver / imprimir o boleto</a></p>
     <p class="sub" id="suc-redireciona" style="margin-top:14px; text-align:center;"></p>
     <p style="margin-top:10px;"><a class="btn" id="btn-ir-painel" href="agenda.html" style="display:block; text-decoration:none;">Ir para a agenda agora</a></p>
   </div>

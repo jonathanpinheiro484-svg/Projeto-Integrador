@@ -864,6 +864,154 @@ function iniciarDashboard() {
     formAgendamento.reset();
   });
 
+  // =====================================================
+  // CLIENTES (cada dono vê só os seus)
+  // POST /Clientes cadastra { nome, telefone }; GET /Clientes devolve os clientes do dono do token.
+  // O DonoId NÃO é enviado pelo front: a API tira do token. Enquanto o GET não existir na API,
+  // a lista fica guardada no navegador, separada por e-mail do dono (um dono nunca vê os de outro).
+  // =====================================================
+  let clientes = []; // [{ id, nome, telefone (só números) }]
+  const chaveClientes = () => "clientesCadastrados:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
+
+  function normalizarCliente(c) {
+    if (!c) return null;
+    const nome = String(c.nome ?? c.Nome ?? "").trim();
+    if (!nome) return null;
+    return {
+      id: c.id ?? c.Id ?? null,
+      nome,
+      telefone: String(c.telefone ?? c.Telefone ?? "").replace(/\D/g, "")
+    };
+  }
+
+  function salvarClientesLocal() {
+    try { localStorage.setItem(chaveClientes(), JSON.stringify(clientes)); } catch (e) { /* sem armazenamento: vale só nesta visita */ }
+  }
+
+  function atualizarListaClientes() {
+    const lista = document.getElementById("lista-clientes");
+    if (!lista) return;
+    lista.innerHTML = "";
+    clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach(c => {
+      const opcao = document.createElement("option");
+      opcao.value = c.nome;
+      opcao.label = c.telefone ? c.nome + " · " + formatarTelefone(c.telefone) : c.nome;
+      lista.appendChild(opcao);
+    });
+  }
+
+  async function carregarClientes() {
+    clientes = lerJsonLocal(chaveClientes(), []).map(normalizarCliente).filter(Boolean);
+    atualizarListaClientes();
+    try {
+      const dados = await apiRequest("CLIENTES"); // GET: a API devolve só os clientes do dono do token
+      if (Array.isArray(dados)) {
+        clientes = dados.map(normalizarCliente).filter(Boolean);
+        salvarClientesLocal();
+        atualizarListaClientes();
+      }
+    } catch (erro) {
+      console.warn("Não foi possível carregar clientes da API.", erro.message);
+    }
+  }
+
+  // Escolheu (ou digitou) um cliente cadastrado no agendamento: já traz o telefone dele no WhatsApp
+  const campoClienteAgend = document.getElementById("agend-cliente");
+  if (campoClienteAgend) {
+    const preencherTelefoneDoCliente = () => {
+      const nome = campoClienteAgend.value.trim().toLowerCase();
+      const achado = nome ? clientes.find(c => c.nome.toLowerCase() === nome) : null;
+      const zap = document.getElementById("agend-whatsapp");
+      if (achado && achado.telefone && zap) zap.value = formatarTelefone(achado.telefone);
+    };
+    campoClienteAgend.addEventListener("input", preencherTelefoneDoCliente);
+    campoClienteAgend.addEventListener("change", preencherTelefoneDoCliente);
+  }
+
+  // --- Janela "Cadastrar Cliente" ---
+  const modalCliente = document.getElementById("modal-cliente");
+  const formCliente = document.getElementById("form-cliente");
+  const campoNomeCliente = document.getElementById("cli-nome");
+  const campoTelefoneCliente = document.getElementById("cli-telefone");
+  const btnSalvarCliente = document.getElementById("btn-salvar-cliente");
+
+  function abrirModalCliente(nomeSugerido) {
+    formCliente.reset();
+    limparErroForm(formCliente);
+    if (nomeSugerido) campoNomeCliente.value = nomeSugerido;
+    modalCliente.hidden = false;
+    campoNomeCliente.focus();
+  }
+  function fecharModalCliente() { modalCliente.hidden = true; limparErroForm(formCliente); }
+
+  document.getElementById("btn-abrir-cliente").addEventListener("click", () => abrirModalCliente());
+  document.getElementById("btn-novo-cliente-modal").addEventListener("click", () => {
+    const digitado = campoClienteAgend ? campoClienteAgend.value.trim() : "";
+    const jaCadastrado = digitado && clientes.some(c => c.nome.toLowerCase() === digitado.toLowerCase());
+    abrirModalCliente(jaCadastrado ? "" : digitado);
+  });
+  document.getElementById("btn-fechar-cliente").addEventListener("click", fecharModalCliente);
+  document.getElementById("btn-cancelar-cliente").addEventListener("click", fecharModalCliente);
+  modalCliente.addEventListener("click", (e) => { if (e.target === modalCliente) fecharModalCliente(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalCliente.hidden) fecharModalCliente(); });
+
+  // Nome: só letras, espaço, hífen e apóstrofo. Telefone: máscara (11) 91234-5678
+  campoNomeCliente.addEventListener("input", () => {
+    campoNomeCliente.value = campoNomeCliente.value.replace(/[^\p{L}\s'-]/gu, "").replace(/\s{2,}/g, " ");
+  });
+  campoTelefoneCliente.addEventListener("input", () => {
+    campoTelefoneCliente.value = formatarTelefone(campoTelefoneCliente.value);
+  });
+
+  formCliente.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const nome = campoNomeCliente.value.trim();
+    campoNomeCliente.value = nome;
+    const telefone = telefoneValido(campoTelefoneCliente.value); // só números com DDD, ou ""
+
+    if (!nome) { mostrarErroForm(formCliente, "Preencha o nome do cliente.", campoNomeCliente); return; }
+    if (nome.length < AGEND_CLIENTE_MIN || nome.length > AGEND_CLIENTE_MAX) {
+      mostrarErroForm(formCliente, `O nome do cliente deve ter de ${AGEND_CLIENTE_MIN} a ${AGEND_CLIENTE_MAX} caracteres.`, campoNomeCliente);
+      return;
+    }
+    if (!NOME_CLIENTE_REGEX.test(nome)) { mostrarErroForm(formCliente, mensagemNomeClienteInvalido(nome), campoNomeCliente); return; }
+    if (!campoTelefoneCliente.value.trim()) { mostrarErroForm(formCliente, "Preencha o telefone do cliente.", campoTelefoneCliente); return; }
+    if (!telefone) { mostrarErroForm(formCliente, "Digite um telefone válido com DDD. Exemplo: (11) 91234-5678", campoTelefoneCliente); return; }
+    if (clientes.some(c => c.telefone === telefone)) {
+      mostrarErroForm(formCliente, "Já existe um cliente cadastrado com esse telefone.", campoTelefoneCliente);
+      return;
+    }
+    limparErroForm(formCliente);
+
+    btnSalvarCliente.disabled = true;
+    let criado = null;
+    try {
+      // >>> API: POST /Clientes. O DonoId vem do token, por isso não é enviado.
+      criado = await apiRequest("CLIENTES", { method: "POST", body: { nome, telefone } });
+    } catch (erro) {
+      console.warn(erro.message);
+      mostrarErroForm(formCliente, mensagemErroApiComum(erro, "Não foi possível cadastrar o cliente."), null);
+      btnSalvarCliente.disabled = false;
+      return;
+    }
+    btnSalvarCliente.disabled = false;
+
+    const novo = normalizarCliente(criado && typeof criado === "object" ? criado : null) || { id: null, nome, telefone };
+    novo.nome = nome; novo.telefone = telefone; // vale o que foi digitado
+    clientes.push(novo);
+    salvarClientesLocal();
+    atualizarListaClientes();
+
+    // Se o cadastro foi aberto de dentro do agendamento, já deixa o cliente escolhido lá
+    if (!modalAgendamento.hidden && campoClienteAgend) {
+      campoClienteAgend.value = nome;
+      const zap = document.getElementById("agend-whatsapp");
+      if (zap) zap.value = formatarTelefone(telefone);
+    }
+    fecharModalCliente();
+  });
+
   // --- SUPORTE (envio de e-mail sem sair da página) ---
   const formSuporte = document.getElementById("form-suporte");
   const suporteSucesso = document.getElementById("suporte-sucesso");
@@ -915,9 +1063,37 @@ function iniciarDashboard() {
 
   // --- ADMINISTRATIVO ---
   const formColab = document.getElementById("form-colaborador");
+
+  // --- CARGO / ESPECIALIDADE: lista + opção "Outros" ---
+  // Ao escolher "Outros", aparece um campo para digitar o serviço. O texto digitado vira o
+  // valor da própria opção, então o resto do sistema continua lendo #colab-cargo normalmente.
+  const campoCargo = document.getElementById("colab-cargo");
+  const campoOutros = document.getElementById("colab-cargo-outros");
+  const opcaoOutros = campoCargo ? campoCargo.querySelector('option[value="__outros__"]') : null;
+
+  function sincronizarCargoOutros() {
+    if (!campoCargo || !campoOutros || !opcaoOutros) return;
+    const escolheuOutros = campoCargo.selectedOptions[0] === opcaoOutros;
+    campoOutros.hidden = !escolheuOutros;
+    campoOutros.required = escolheuOutros;
+    opcaoOutros.value = campoOutros.value.trim() || "__outros__";
+  }
+  if (campoCargo && campoOutros && opcaoOutros) {
+    campoCargo.addEventListener("change", () => {
+      sincronizarCargoOutros();
+      if (!campoOutros.hidden) campoOutros.focus();
+    });
+    campoOutros.addEventListener("input", sincronizarCargoOutros);
+    document.getElementById("form-colaborador").addEventListener("reset", () => setTimeout(sincronizarCargoOutros, 0));
+  }
   formColab.addEventListener("submit", async function (e) {
     e.preventDefault();
 
+    sincronizarCargoOutros();
+    if (campoCargo.value === "__outros__") {
+      mostrarErroForm(formColab, "Digite o nome do serviço em \"Outros\".", campoOutros);
+      return;
+    }
     const validacaoColab = validarNovoColaborador();
     if (validacaoColab.erros.length > 0) {
       mostrarErroForm(formColab, validacaoColab.erros.join("\n"), validacaoColab.campoErro);
@@ -933,7 +1109,7 @@ function iniciarDashboard() {
       return;
     }
 
-    const nomeNovo = document.getElementById("colab-nome").value.trim().toLowerCase();
+    const nomeNovo = document.getElementById("colab-nome").value.trim();
     const cargoNovo = document.getElementById("colab-cargo").value;
     const emailNovo = document.getElementById("colab-email").value.trim().toLowerCase();
     const senhaNova = document.getElementById("colab-senha").value;
@@ -958,7 +1134,7 @@ function iniciarDashboard() {
     // >>> API: criar colaborador no backend (a senha está em #colab-senha
     // e só deve ser enviada pra API, nunca guardada em texto puro no front).
     try {
-      const criado = await apiRequest("COLABORADORES", 
+      const criado = await apiRequest("COLABORADORES",
       {
         method: "POST",
         body: { nome: nomeNovo,
@@ -970,9 +1146,12 @@ function iniciarDashboard() {
                 email: emailNovo
               },
     });
+      // Se a API devolver o id do colaborador (número), usa o dele em vez do id gerado aqui
+      if (criado && Number.isFinite(Number(criado.id))) novoColab.id = Number(criado.id);
     } catch (erro) {
-      mostrarErroForm(formColab, erro.message, null);
-      return
+      console.warn(erro.message);
+      mostrarErroForm(formColab, mensagemErroApiComum(erro, "Não foi possível cadastrar o colaborador."), null);
+      return;
     }
 
     colaboradores.push(novoColab);
@@ -1106,6 +1285,134 @@ function iniciarDashboard() {
   window.irParaTelaPlanos = irParaTelaPlanos;
   window.escolherPlano = escolherPlano;
 
+  // =====================================================
+  // BOLETO: se a assinatura foi paga por boleto, o card do plano mostra "Ver boleto".
+  // Os dados vêm da assinatura salva (CHAVE_ASSINATURA) pela tela de pagamento.
+  // =====================================================
+  function semAcento(t) { return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase(); }
+
+  let boletoExibido = null; // boleto que está aberto na janela (usado pelo botão Imprimir)
+
+  function normalizarPlanoBoleto(p) {
+    const n = semAcento(p);
+    return (n === "PRO" || n === "PROFISSIONAL" || n === "COMPLETO") ? "PREMIUM" : n;
+  }
+
+  function lerDadosBoleto() {
+    // 1) boleto gravado pela tela de compra (salvarBoleto, em comum.js)
+    const salvo = lerBoleto();
+    if (salvo && typeof salvo === "object") {
+      return {
+        plano: normalizarPlanoBoleto(salvo.plano),
+        valor: salvo.valor,
+        vencimento: salvo.vencimento || "",
+        status: salvo.status || "",
+        linha: salvo.linhaDigitavel || salvo.codigoBarras || "",
+        url: salvo.url || salvo.link || ""
+      };
+    }
+    // 2) compatibilidade: boleto dentro da própria assinatura salva
+    const a = lerJsonLocal(CHAVE_ASSINATURA, null);
+    if (!a || typeof a !== "object") return null;
+    const metodo = String(a.metodo || a.formaPagamento || a.meioPagamento || a.pagamento || "").toLowerCase();
+    const b = (a.boleto && typeof a.boleto === "object") ? a.boleto : {};
+    if (!metodo.includes("boleto") && !a.boleto) return null;
+    return {
+      plano: normalizarPlanoBoleto(a.plano),
+      valor: b.valor != null ? b.valor : a.valor,
+      vencimento: b.vencimento || a.vencimento || "",
+      status: b.status || a.status || "",
+      linha: b.linhaDigitavel || b.codigoBarras || a.linhaDigitavel || a.codigoBarras || "",
+      url: b.url || b.link || a.boletoUrl || a.urlBoleto || a.linkBoleto || ""
+    };
+  }
+
+  function imprimirBoleto() {
+    const d = boletoExibido;
+    if (!d) return;
+    const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    const valorNum = Number(String(d.valor).replace(",", "."));
+    const valor = (d.valor !== undefined && d.valor !== "" && !isNaN(valorNum)) ? formatarMoeda(valorNum) : "—";
+    let venc = d.vencimento || "—";
+    if (/^\d{4}-\d{2}-\d{2}/.test(venc)) venc = dataBR(venc.slice(0, 10));
+    const html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Boleto - Gestão Integrada Pro</title>' +
+      '<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:32px;}h1{font-size:20px;margin:0 0 4px;}' +
+      'p.sub{margin:0 0 20px;color:#555;font-size:13px;}table{width:100%;border-collapse:collapse;font-size:14px;}' +
+      'td{border:1px solid #999;padding:10px 12px;}td.r{width:30%;background:#f3f3f3;font-weight:bold;}' +
+      '.linha{margin-top:20px;border:1px solid #999;padding:14px;font-family:monospace;font-size:15px;word-break:break-all;}' +
+      '.rodape{margin-top:24px;font-size:12px;color:#555;}</style></head><body>' +
+      '<h1>Boleto da assinatura</h1><p class="sub">Gestão Integrada Pro</p>' +
+      '<table><tr><td class="r">Plano</td><td>' + esc(nomesPlanos[d.plano] || d.plano) + '</td></tr>' +
+      '<tr><td class="r">Valor</td><td>' + esc(valor) + '</td></tr>' +
+      '<tr><td class="r">Vencimento</td><td>' + esc(venc) + '</td></tr>' +
+      '<tr><td class="r">Status</td><td>' + esc(d.status || "Aguardando pagamento") + '</td></tr></table>' +
+      (d.linha ? '<div class="linha"><strong>Linha digitável:</strong><br>' + esc(d.linha) + '</div>' : '') +
+      (d.url ? '<p class="rodape">Boleto completo (com código de barras): ' + esc(d.url) + '</p>' : '') +
+      '<p class="rodape">Pague até a data de vencimento. Após o pagamento, a liberação do plano pode levar até 3 dias úteis.</p>' +
+      '</body></html>';
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed; right:0; bottom:0; width:0; height:0; border:0;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open(); doc.write(html); doc.close();
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => iframe.remove(), 1000);
+    }, 250);
+  }
+
+  function atualizarBoleto() { /* o botão "Ver boleto" fica sempre visível nos planos pagos */ }
+
+  function abrirModalBoleto(planoDoCard) {
+    const info = lerDadosBoleto();
+    const modal = document.getElementById("modal-boleto");
+    if (!modal) return;
+    const temBoleto = !!(info && (!planoDoCard || info.plano === semAcento(planoDoCard)));
+    const dados = temBoleto ? info : { plano: semAcento(planoDoCard), valor: "", vencimento: "", status: "", linha: "", url: "" };
+    const valorNum = Number(String(dados.valor).replace(",", "."));
+    document.getElementById("boleto-plano").textContent = nomesPlanos[dados.plano] || planoDoCard || "—";
+    document.getElementById("boleto-valor").textContent = (dados.valor !== undefined && dados.valor !== "" && !isNaN(valorNum)) ? formatarMoeda(valorNum) : "—";
+    let venc = dados.vencimento || "—";
+    if (/^\d{4}-\d{2}-\d{2}/.test(venc)) venc = dataBR(venc.slice(0, 10));
+    document.getElementById("boleto-vencimento").textContent = venc;
+    document.getElementById("boleto-status").textContent = temBoleto ? (dados.status || "Aguardando pagamento") : "—";
+
+    const codigo = document.getElementById("boleto-codigo");
+    const btnCopiar = document.getElementById("btn-copiar-boleto");
+    const btnAbrir = document.getElementById("btn-abrir-boleto");
+    const aviso = document.getElementById("boleto-aviso");
+    codigo.hidden = !dados.linha; codigo.textContent = dados.linha;
+    btnCopiar.hidden = !dados.linha;
+    const btnImprimir = document.getElementById("btn-imprimir-boleto");
+    boletoExibido = temBoleto ? dados : null;
+    if (btnImprimir) btnImprimir.hidden = !temBoleto;
+    btnAbrir.hidden = !dados.url; if (dados.url) btnAbrir.href = dados.url;
+    aviso.hidden = !!(dados.linha || dados.url);
+    aviso.textContent = temBoleto
+      ? "Não encontramos o código nem o link deste boleto. Gere-o novamente na tela de pagamento ou fale com o suporte."
+      : "Nenhum boleto encontrado para este plano. O boleto aparece aqui quando a assinatura é paga por boleto.";
+    modal.hidden = false;
+  }
+
+  document.querySelectorAll(".btn-ver-boleto").forEach(btn => btn.addEventListener("click", () => abrirModalBoleto(btn.dataset.plano)));
+  const modalBoleto = document.getElementById("modal-boleto");
+  if (modalBoleto) {
+    const fecharBoleto = () => { modalBoleto.hidden = true; };
+    document.getElementById("btn-fechar-boleto").addEventListener("click", fecharBoleto);
+    modalBoleto.addEventListener("click", (e) => { if (e.target === modalBoleto) fecharBoleto(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalBoleto.hidden) fecharBoleto(); });
+    const btnImprimirBoleto = document.getElementById("btn-imprimir-boleto");
+    if (btnImprimirBoleto) btnImprimirBoleto.addEventListener("click", imprimirBoleto);
+    document.getElementById("btn-copiar-boleto").addEventListener("click", function () {
+      const texto = document.getElementById("boleto-codigo").textContent;
+      const btn = this;
+      (navigator.clipboard ? navigator.clipboard.writeText(texto) : Promise.reject())
+        .then(() => { btn.textContent = "Copiado!"; setTimeout(() => { btn.textContent = "Copiar código"; }, 1500); })
+        .catch(() => alert("Não foi possível copiar. Selecione o código e copie manualmente."));
+    });
+  }
+
   // --- BOTÕES DE PLANOS (antes eram onclick="..." dentro do index.html) ---
   const btnUpgradeFinanceiro = document.getElementById("btn-upgrade-financeiro");
   if (btnUpgradeFinanceiro) {
@@ -1125,6 +1432,7 @@ function iniciarDashboard() {
       if (plano === "FREE") {
         if (!confirm("Voltar para o plano Grátis? Você perde os recursos do plano atual.")) return;
         localStorage.removeItem(CHAVE_ASSINATURA);
+        limparBoleto();
         escolherPlano(plano);
         return;
       }
@@ -1192,6 +1500,21 @@ function iniciarDashboard() {
   aplicarPermissoes();
   atualizarSelectLoginSimulado(); // mostra o nome já na abertura, sem esperar a API
   atualizarWhatsApp();
+  atualizarBoleto();
+
+  // Confere o token na API: se ela disser que o token não vale (401/403), volta para o login.
+  // Se a API estiver fora do ar, não derruba a sessão. (Só o dono usa o token; colaborador entra pelo login local.)
+  if (usuarioLogado.perfil === "DONO" && API_CONFIG.token) {
+    validarSessaoApi().then(function (ok) {
+      if (ok !== false) return;
+      sairDaConta();
+      localStorage.removeItem("apiToken");
+      API_CONFIG.token = null;
+      window.location.replace(PAGINA_LOGIN_DONO);
+    });
+  }
+
+  carregarClientes();
   carregarDadosIniciais();
 }
 

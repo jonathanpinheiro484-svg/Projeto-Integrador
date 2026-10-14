@@ -284,6 +284,21 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .btn-tema.whatsapp-on:hover { background: #1ebe5b; }
 .agendamento .btn-whatsapp-card { position: absolute; bottom: 2px; right: 4px; background: #25d366; border: none; color: #fff; cursor: pointer; font-size: 11px; line-height: 1; padding: 3px 5px; border-radius: 6px; z-index: 2; }
 .agendamento .btn-whatsapp-card:hover { background: #1ebe5b; }
+
+/* Serviços em caixinhas (cadastro de colaborador) e botão de boleto */
+.servicos-grupo { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; max-height:190px; overflow-y:auto; padding:10px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); outline:none; }
+.servicos-grupo label { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--texto); cursor:pointer; }
+.servicos-grupo input[type="checkbox"] { width:16px; height:16px; padding:0; margin:0; flex-shrink:0; cursor:pointer; accent-color:#6c5ce7; }
+.form-agendamento input[hidden] { display:none; }
+@media (max-width:480px) { .servicos-grupo { grid-template-columns:1fr; } }
+.btn-ver-boleto { display:block; width:100%; margin-top:10px; padding:10px; background:transparent; color:var(--roxo); border:1px solid var(--roxo); border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; text-align:center; transition:background .2s,color .2s; }
+.btn-ver-boleto[hidden] { display:none; }
+.btn-ver-boleto:hover { background:var(--roxo); color:#fff; }
+.boleto-linha { display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border); }
+.boleto-linha span:first-child { color:var(--muted); }
+.boleto-codigo { font-family:monospace; font-size:12px; word-break:break-all; background:var(--input-bg); border:1px solid var(--border); border-radius:7px; padding:8px 10px; margin-top:10px; }
+.btn-link { align-self:flex-start; background:none; border:none; padding:0; color:var(--roxo); font-size:12px; font-weight:600; cursor:pointer; }
+.btn-link:hover { text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -445,6 +460,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
               </select>
             </div>
 
+            <button type="button" id="btn-abrir-cliente">👤 Cadastrar Cliente</button>
             <button type="button" id="btn-abrir-agendamento" class="btn-novo-agendamento">+ Novo Agendamento</button>
 
           </div>
@@ -491,7 +507,9 @@ h2 { font-size: 17px; margin: 0 0 12px; }
                   <option value="Maquiador">Maquiador</option>
                   <option value="Depilador">Depilador</option>
                   <option value="Designer de Sobrancelhas">Designer de Sobrancelhas</option>
+                  <option value="__outros__">Outros</option>
                 </select>
+                <input type="text" id="colab-cargo-outros" placeholder="Digite o serviço do colaborador" maxlength="60" hidden>
               </div>
 
               <div class="campo">
@@ -640,6 +658,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
             </div>
             <div>
               <button class="btn-selecionar-plano" id="btn-plano-basico">Escolher Básico</button>
+              <button type="button" class="btn-ver-boleto" data-plano="Básico">📄 Ver boleto</button>
               <button type="button" class="btn-cancelar-assinatura" data-plano="Básico" hidden>Cancelar assinatura</button>
             </div>
           </div>
@@ -661,6 +680,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
             </div>
             <div>
               <button class="btn-selecionar-plano" id="btn-plano-premium">Escolher Premium</button>
+              <button type="button" class="btn-ver-boleto" data-plano="Premium">📄 Ver boleto</button>
               <button type="button" class="btn-cancelar-assinatura" data-plano="Premium" hidden>Cancelar assinatura</button>
             </div>
           </div>
@@ -682,7 +702,9 @@ h2 { font-size: 17px; margin: 0 0 12px; }
     <form id="form-novo-agendamento" class="form-agendamento">
       <div class="campo">
         <label>Cliente</label>
-        <input type="text" id="agend-cliente" placeholder="Ex: João Pereira" required autocomplete="off">
+        <input type="text" id="agend-cliente" placeholder="Digite ou escolha um cliente cadastrado" required autocomplete="off" list="lista-clientes">
+        <datalist id="lista-clientes"></datalist>
+        <button type="button" id="btn-novo-cliente-modal" class="btn-link">+ Cadastrar novo cliente</button>
       </div>
 
       <div class="campo" id="campo-whatsapp" hidden>
@@ -741,6 +763,52 @@ h2 { font-size: 17px; margin: 0 0 12px; }
         <button type="button" id="btn-cancelar-agendamento" class="btn-cancelar">Cancelar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- MODAL: CADASTRAR CLIENTE -->
+<div class="modal-overlay" id="modal-cliente" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Cadastrar Cliente</h3>
+      <button type="button" id="btn-fechar-cliente" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <form id="form-cliente" class="form-agendamento" novalidate>
+      <div class="campo">
+        <label for="cli-nome">Nome do cliente <span class="obrigatorio">*</span></label>
+        <input type="text" id="cli-nome" placeholder="Ex: João Pereira" maxlength="60" autocomplete="off">
+      </div>
+      <div class="campo">
+        <label for="cli-telefone">Telefone / WhatsApp <span class="obrigatorio">*</span></label>
+        <input type="tel" id="cli-telefone" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
+        <span class="dica-campo">Com DDD. Também é usado para o lembrete pelo WhatsApp.</span>
+      </div>
+      <div class="form-botoes">
+        <button type="submit" class="btn-salvar" id="btn-salvar-cliente">Salvar Cliente</button>
+        <button type="button" class="btn-cancelar" id="btn-cancelar-cliente">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL: VER BOLETO -->
+<div class="modal-overlay" id="modal-boleto" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Boleto da assinatura</h3>
+      <button type="button" id="btn-fechar-boleto" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <div class="boleto-linha"><span>Plano</span><strong id="boleto-plano">—</strong></div>
+    <div class="boleto-linha"><span>Valor</span><strong id="boleto-valor">—</strong></div>
+    <div class="boleto-linha"><span>Vencimento</span><strong id="boleto-vencimento">—</strong></div>
+    <div class="boleto-linha"><span>Status</span><strong id="boleto-status">—</strong></div>
+    <div class="boleto-codigo" id="boleto-codigo" hidden></div>
+    <p id="boleto-aviso" style="font-size:12px; color:var(--muted); margin:10px 0 0;" hidden></p>
+    <div class="form-botoes">
+      <button type="button" class="btn-cancelar" id="btn-copiar-boleto" hidden>Copiar código</button>
+      <button type="button" class="btn-salvar" id="btn-imprimir-boleto" hidden>🖨️ Imprimir boleto</button>
+      <a class="btn-salvar" id="btn-abrir-boleto" href="#" target="_blank" rel="noopener" style="text-decoration:none;" hidden>Abrir boleto</a>
+    </div>
   </div>
 </div>
 
