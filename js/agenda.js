@@ -70,6 +70,108 @@ function iniciarDashboard() {
   // As opções continuam vindo do HTML: para incluir um serviço novo, basta
   // colocar mais um <option> no select.
   // =====================================================
+  // =====================================================
+  // SERVIÇOS CADASTRADOS
+  // Só o dono cria, edita e remove (valor e duração fixos). O colaborador só escolhe
+  // na hora de agendar. Guardado no navegador até existir o endpoint na API.
+  // =====================================================
+  const CHAVE_SERVICOS = "servicosCadastrados";
+  const TEXTO_DICA_SERVICOS = "Marque quantos serviços forem necessários.";
+  // Lista de serviços usada no cadastro de serviços e no cargo do colaborador.
+  // Mantenha igual às opções de #colab-cargo no agenda.html.
+  const SERVICOS_PADRAO = ["Manicure", "Pedicure", "Cabeleireiro", "Barbeiro", "Spa", "Esteticista", "Massagista", "Maquiador", "Depilador", "Designer de Sobrancelhas"];
+  let servicos = lerJsonLocal(CHAVE_SERVICOS, []).filter(s => s && s.nome);
+
+  function guardarServicos() {
+    try { localStorage.setItem(CHAVE_SERVICOS, JSON.stringify(servicos)); } catch (e) { /* sem armazenamento */ }
+    atualizarCargosColaborador(); // serviços novos também entram na lista do colaborador
+  }
+
+  // Cada linha do agendamento é uma LISTA (select) com os serviços cadastrados.
+  // Valor e duração vêm do cadastro do serviço (e o cadastro vem do banco, via API).
+  function selectsServicos() {
+    const grupo = document.getElementById("agend-servicos-grupo");
+    return grupo ? Array.from(grupo.querySelectorAll("select.servico-select")) : [];
+  }
+  function opcoesSelecionadas() {
+    return selectsServicos().map(sel => sel.selectedOptions[0]).filter(op => op && op.value);
+  }
+
+  function calcularTotalServicos() {
+    return opcoesSelecionadas().reduce((soma, op) => soma + (Number(op.dataset.valor) || 0), 0);
+  }
+
+  // Soma a duração e o valor dos serviços escolhidos e preenche os campos (somente leitura)
+  function atualizarResumoServicos() {
+    const resumo = document.getElementById("agend-servicos-resumo");
+    const campoDuracao = document.getElementById("agend-duracao");
+    const campoValor = document.getElementById("agend-valor");
+    const escolhidas = opcoesSelecionadas();
+    const minutos = escolhidas.reduce((soma, op) => soma + (Number(op.dataset.duracao) || 0), 0);
+    if (escolhidas.length) {
+      if (campoDuracao) campoDuracao.value = minutos > 0 ? minutos : "";
+      if (campoValor) campoValor.value = formatarMoeda(calcularTotalServicos());
+      if (resumo) resumo.textContent = "Total: " + formatarMoeda(calcularTotalServicos()) + " · " + minutos + " min";
+    } else {
+      // Sem serviço escolhido, duração e valor ficam vazios: sempre vêm do cadastro do serviço
+      if (campoDuracao) campoDuracao.value = "";
+      if (campoValor) campoValor.value = "";
+      if (resumo) resumo.textContent = TEXTO_DICA_SERVICOS;
+    }
+  }
+
+  function criarLinhaServico(nomeEscolhido, podeRemover) {
+    const linha = document.createElement("div");
+    linha.className = "servico-linha";
+    const sel = document.createElement("select");
+    sel.className = "servico-select";
+    sel.setAttribute("aria-label", "Serviço");
+    sel.innerHTML = '<option value="">Selecione o serviço...</option>';
+    servicos.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach(s => {
+      const op = document.createElement("option");
+      op.value = s.nome;
+      op.dataset.valor = s.valor;
+      op.dataset.duracao = s.duracaoMin;
+      op.textContent = `${s.nome} · ${formatarMoeda(Number(s.valor) || 0)} · ${s.duracaoMin} min`;
+      sel.appendChild(op);
+    });
+    if (nomeEscolhido && servicos.some(s => s.nome === nomeEscolhido)) sel.value = nomeEscolhido;
+    sel.addEventListener("change", atualizarResumoServicos);
+    linha.appendChild(sel);
+    if (podeRemover) {
+      const remover = document.createElement("button");
+      remover.type = "button";
+      remover.className = "btn-link";
+      remover.style.color = "#e11d48";
+      remover.textContent = "Remover";
+      remover.addEventListener("click", () => { linha.remove(); atualizarResumoServicos(); });
+      linha.appendChild(remover);
+    }
+    return linha;
+  }
+
+  // Refaz as listas do agendamento com os serviços cadastrados (mantém o que já estava escolhido)
+  function atualizarServicosAgendamento(marcadosIniciais) {
+    const grupo = document.getElementById("agend-servicos-grupo");
+    if (!grupo) return;
+    const jaMarcados = Array.isArray(marcadosIniciais) ? marcadosIniciais : lerServicosMarcados();
+    grupo.innerHTML = "";
+    const btnMais = document.getElementById("btn-mais-servico");
+    if (!servicos.length) {
+      const aviso = document.createElement("small");
+      aviso.style.cssText = "color:var(--muted);";
+      aviso.textContent = "Nenhum serviço cadastrado. O dono cadastra em Administração > Serviços.";
+      grupo.appendChild(aviso);
+      if (btnMais) btnMais.hidden = true;
+      atualizarResumoServicos();
+      return;
+    }
+    if (btnMais) btnMais.hidden = false;
+    const nomes = jaMarcados.length ? jaMarcados : [""];
+    nomes.forEach((nome, i) => grupo.appendChild(criarLinhaServico(nome, i > 0)));
+    atualizarResumoServicos();
+  }
+
   function prepararServicosMultiplos() {
     const select = document.getElementById("agend-servico");
     if (!select || select.tagName !== "SELECT") return;
@@ -78,54 +180,56 @@ function iniciarDashboard() {
       const estilo = document.createElement("style");
       estilo.id = "estilo-servicos-multiplos";
       estilo.textContent =
-        ".servicos-grupo { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; max-height:170px; overflow-y:auto; padding:10px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); outline:none; }" +
-        ".servicos-grupo label { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--texto); cursor:pointer; }" +
-        ".servicos-grupo input[type=\"checkbox\"] { width:16px; height:16px; padding:0; margin:0; flex-shrink:0; cursor:pointer; accent-color:#6c5ce7; }" +
-        "@media (max-width:480px) { .servicos-grupo { grid-template-columns:1fr; } }";
+        ".servicos-lista { display:flex; flex-direction:column; gap:8px; outline:none; }" +
+        ".servico-linha { display:flex; align-items:center; gap:10px; }" +
+        ".servico-linha select { flex:1; min-width:0; }";
       document.head.appendChild(estilo);
     }
 
     const grupo = document.createElement("div");
     grupo.id = "agend-servicos-grupo";
-    grupo.className = "servicos-grupo";
+    grupo.className = "servicos-lista";
     grupo.setAttribute("role", "group");
     grupo.setAttribute("aria-label", "Serviços");
-    grupo.tabIndex = -1; // permite focar o grupo quando falta marcar algum serviço
-
-    Array.from(select.options).filter(opcao => opcao.value).forEach(opcao => {
-      const rotulo = document.createElement("label");
-      const caixa = document.createElement("input");
-      caixa.type = "checkbox";
-      caixa.value = opcao.value;
-      rotulo.appendChild(caixa);
-      rotulo.appendChild(document.createTextNode(opcao.textContent));
-      grupo.appendChild(rotulo);
-    });
+    grupo.tabIndex = -1; // permite focar o grupo quando falta escolher o serviço
 
     // O id "agend-servico" continua existindo (escondido) porque a validação do
-    // comum.js lê esse campo. Quem guarda os serviços de verdade é o grupo acima.
+    // comum.js lê esse campo. Quem guarda os serviços de verdade são as listas acima.
     const campoEscondido = document.createElement("input");
     campoEscondido.type = "hidden";
     campoEscondido.id = "agend-servico";
 
+    const btnMais = document.createElement("button");
+    btnMais.type = "button";
+    btnMais.id = "btn-mais-servico";
+    btnMais.className = "btn-link";
+    btnMais.textContent = "+ Adicionar outro serviço";
+    btnMais.addEventListener("click", () => {
+      const g = document.getElementById("agend-servicos-grupo");
+      const linha = criarLinhaServico("", true);
+      g.appendChild(linha);
+      linha.querySelector("select").focus();
+    });
+
     const dica = document.createElement("small");
+    dica.id = "agend-servicos-resumo";
     dica.style.cssText = "font-size:11px; color:var(--muted);";
-    dica.textContent = "Marque quantos serviços forem necessários.";
+    dica.textContent = TEXTO_DICA_SERVICOS;
 
     const campo = select.parentElement;
     select.replaceWith(grupo);
-    grupo.insertAdjacentElement("afterend", dica);
-    grupo.insertAdjacentElement("afterend", campoEscondido);
+    grupo.insertAdjacentElement("afterend", btnMais);
+    btnMais.insertAdjacentElement("afterend", campoEscondido);
+    campoEscondido.insertAdjacentElement("afterend", dica);
 
     const titulo = campo ? campo.querySelector(":scope > label") : null;
-    if (titulo) titulo.textContent = "Serviços";
+    if (titulo) titulo.textContent = "Serviço";
   }
 
   // Lista dos serviços marcados, ex.: ["Manicure", "Pedicure"]
   function lerServicosMarcados() {
-    const grupo = document.getElementById("agend-servicos-grupo");
-    if (!grupo) return [];
-    return Array.from(grupo.querySelectorAll('input[type="checkbox"]:checked')).map(caixa => caixa.value);
+    const nomes = selectsServicos().map(sel => sel.value).filter(Boolean);
+    return nomes.filter((nome, i) => nomes.indexOf(nome) === i); // sem repetir o mesmo serviço
   }
 
   // Mesma validação de sempre (comum.js) + exigir pelo menos um serviço marcado
@@ -136,17 +240,20 @@ function iniciarDashboard() {
     if (campoEscondido) campoEscondido.value = marcados.length ? "serviços marcados" : "";
 
     const resultado = validarNovoAgendamento();
-    const erros = resultado.erros.filter(erro => erro !== "Preencha o serviço.");
-    let campoErro = (resultado.campoErro === campoEscondido) ? null : resultado.campoErro;
+    // Sem serviço marcado a duração fica vazia de propósito: só o aviso do serviço aparece
+    const erros = resultado.erros.filter(erro => erro !== "Preencha o serviço." && (marcados.length > 0 || !/dura[cç][aã]o/i.test(erro)));
+    const erroNaDuracao = marcados.length === 0 && resultado.campoErro && resultado.campoErro.id === "agend-duracao";
+    let campoErro = (resultado.campoErro === campoEscondido || erroNaDuracao) ? null : resultado.campoErro;
 
     if (marcados.length === 0) {
       erros.unshift("Escolha pelo menos um serviço.");
-      if (!campoErro) campoErro = document.getElementById("agend-servicos-grupo");
+      if (!campoErro) campoErro = selectsServicos()[0] || document.getElementById("agend-servicos-grupo");
     }
     return { erros, campoErro };
   }
 
   prepararServicosMultiplos();
+  atualizarServicosAgendamento();
 
   // --- CONTROLADOR DE TEMA NOTURNO ---
   const btnToggleTema = document.getElementById("btn-toggle-tema");
@@ -185,7 +292,77 @@ function iniciarDashboard() {
   };
 
   // >>> API: colaboradores (começa vazio; guarda no localStorage até ter backend).
+  // Há uma cópia de segurança separada por e-mail do dono: se a lista principal for apagada
+  // (ex.: ao sair da conta), ela é restaurada a partir da cópia.
+  const chaveBackupColaboradores = () => "colaboradoresBackup:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
   let colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
+  if (!colaboradores.length) {
+    const backup = lerJsonLocal(chaveBackupColaboradores(), []);
+    if (Array.isArray(backup) && backup.length) {
+      colaboradores = backup;
+      salvarColaboradoresLocal(colaboradores);
+    }
+  }
+
+  // Salva a lista de colaboradores (principal + cópia de segurança)
+  function guardarColaboradores() {
+    salvarColaboradoresLocal(colaboradores);
+    try { localStorage.setItem(chaveBackupColaboradores(), JSON.stringify(colaboradores)); } catch (e) { /* sem armazenamento */ }
+  }
+
+  // Junta a lista que veio da API com a que já está no navegador.
+  // Nunca apaga quem só existe aqui (ex.: a API devolveu lista vazia) e mantém a cor escolhida.
+  // A API pode devolver a lista direto ou dentro de um objeto ({ dados: [...] }, { items: [...] }...)
+  function extrairLista(resposta) {
+    if (Array.isArray(resposta)) return resposta;
+    if (resposta && typeof resposta === "object") {
+      for (const chave of ["dados", "data", "items", "itens", "colaboradores", "result", "resultado", "$values", "value"]) {
+        if (Array.isArray(resposta[chave])) return resposta[chave];
+      }
+    }
+    return null;
+  }
+
+  // Status do banco (1/0, true/false, "Ativo"/"Inativo") -> true/false
+  function lerAtivoApi(item) {
+    const v = item.ativo ?? item.Ativo ?? item.status ?? item.Status;
+    if (v === undefined || v === null) return undefined;
+    if (typeof v === "boolean") return v;
+    if (typeof v === "number") return v === 1;
+    const t = String(v).trim().toLowerCase();
+    return !(t === "0" || t === "false" || t === "inativo" || t === "desativado");
+  }
+
+  function mesclarColaboradores(locais, daApi) {
+    const chaveDe = c => String(c.id) + "|" + String(c.email || "").toLowerCase();
+    const resultado = [];
+    const usados = new Set();
+    daApi.forEach(item => {
+      if (!item) return;
+      const api = {
+        id: item.id ?? item.Id,
+        nome: item.nome ?? item.Nome,
+        cargo: item.cargo ?? item.Cargo,
+        email: item.email ?? item.Email,
+        cor: item.cor ?? item.Cor,
+        ativo: lerAtivoApi(item)
+      };
+      if (api.id == null || !api.nome) return;
+      const local = locais.find(l => String(l.id) === String(api.id) ||
+        (api.email && l.email && String(l.email).toLowerCase() === String(api.email).toLowerCase()));
+      if (local) usados.add(chaveDe(local));
+      resultado.push({
+        id: Number(api.id),
+        nome: api.nome,
+        cargo: api.cargo || (local && local.cargo) || "",
+        email: api.email || (local && local.email) || "",
+        cor: api.cor || (local && local.cor) || "#00c0ef",
+        ativo: api.ativo !== undefined && api.ativo !== null ? api.ativo : (local ? local.ativo !== false : true)
+      });
+    });
+    locais.forEach(l => { if (!usados.has(chaveDe(l))) resultado.push(l); });
+    return resultado;
+  }
 
   // >>> API: agendamentos (começa vazio; guarda no localStorage até ter backend).
   let agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
@@ -194,10 +371,49 @@ function iniciarDashboard() {
   let contratos = [];
 
   // >>> API: carregamento inicial. Se falhar, mantém as listas vazias.
+  // Serviços do banco: a API manda nome, duração e preço; o que só existe aqui no navegador é mantido
+  function normalizarServicoApi(item) {
+    if (!item) return null;
+    const nome = String(item.nome ?? item.Nome ?? "").trim();
+    if (!nome) return null;
+    const id = Number(item.id ?? item.Id);
+    return {
+      id: Number.isFinite(id) ? id : Date.now() + Math.floor(Math.random() * 1000),
+      nome,
+      valor: Math.round((Number(item.preco ?? item.Preco ?? item.valor ?? item.Valor) || 0) * 100) / 100,
+      duracaoMin: Number(item.duracaoMinutos ?? item.DuracaoMinutos ?? item.duracaoMin ?? item.duracao ?? item.Duracao) || 0
+    };
+  }
+  function mesclarServicos(locais, daApi) {
+    const doBanco = daApi.map(normalizarServicoApi).filter(Boolean);
+    const nomesBanco = new Set(doBanco.map(s => s.nome.toLowerCase()));
+    return doBanco.concat(locais.filter(s => !nomesBanco.has(s.nome.toLowerCase())));
+  }
+
   async function carregarDadosIniciais() {
     try {
+      const dadosServicos = await apiRequest("SERVICOS"); // GET: serviços do dono (token)
+      const listaServicosApi = extrairLista(dadosServicos);
+      if (listaServicosApi) {
+        servicos = mesclarServicos(servicos, listaServicosApi);
+        guardarServicos();
+        renderizarListaServicos();
+        atualizarServicosAgendamento();
+      }
+    } catch (erro) {
+      console.warn("Não foi possível carregar serviços da API.", erro.message);
+    }
+
+    try {
       const dadosColaboradores = await apiRequest("COLABORADORES");
-      if (Array.isArray(dadosColaboradores)) colaboradores = dadosColaboradores;
+      console.log("[API] resposta de colaboradores:", dadosColaboradores);
+      const listaApi = extrairLista(dadosColaboradores);
+      if (listaApi) {
+        colaboradores = mesclarColaboradores(colaboradores, listaApi);
+        guardarColaboradores();
+      } else {
+        console.warn("A API de colaboradores não devolveu uma lista reconhecível.", dadosColaboradores);
+      }
     } catch (erro) {
       console.warn("Não foi possível carregar colaboradores da API.", erro.message);
     }
@@ -236,6 +452,10 @@ function iniciarDashboard() {
     PREMIUM: "Premium",
     PRO: "Premium"
   };
+
+  // Card do plano -> chave do plano, e se esse é o plano que está ativo agora
+  const alvoDoCard = btn => (btn.dataset.plano === "Básico" ? "BASICO" : "PREMIUM");
+  const planoEhAtual = alvo => planoAtual === alvo || (alvo === "PREMIUM" && planoAtual === "PRO");
 
   async function escolherPlano(novoPlano) {
     planoAtual = novoPlano;
@@ -281,6 +501,18 @@ function iniciarDashboard() {
         card.classList.add("bloqueado");
         if (overlay) overlay.hidden = false;
       }
+    });
+
+    // Botão "Cancelar assinatura": aparece só no card do plano pago que está ativo
+    // "Cancelar assinatura" também aparece no plano que está aguardando o pagamento do boleto.
+    // "Trocar forma de pagamento" só aparece no plano que já está ativo.
+    const pendente = lerJsonLocal("assinaturaPendente", null);
+    const planoPendente = pendente ? normalizarPlanoBoleto(pendente.plano) : null;
+    document.querySelectorAll(".btn-cancelar-assinatura, .btn-trocar-pagamento").forEach(btn => {
+      const alvo = alvoDoCard(btn);
+      const ativo = planoEhAtual(alvo);
+      const aguardando = planoPendente === alvo;
+      btn.hidden = btn.classList.contains("btn-trocar-pagamento") ? !ativo : !(ativo || aguardando);
     });
 
     const tagLock = document.getElementById("tag-lock-fin");
@@ -623,9 +855,33 @@ function iniciarDashboard() {
     });
   }
 
+  // Clicou no card: abre os detalhes, e de lá dá para editar
   function verDetalhesAgendamento(ag) {
-    alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}${ag.whatsapp ? `\nWhatsApp: ${formatarTelefone(ag.whatsapp)}` : ''}`);
+    const modal = document.getElementById("modal-detalhes-agendamento");
+    if (!modal) return;
+    const colab = comDono(colaboradores).find(c => c.id === ag.colaboradorId);
+    const set = (id, texto) => { document.getElementById(id).textContent = texto; };
+    set("det-cliente", ag.cliente || "—");
+    set("det-servico", ag.servico || "Não informado");
+    set("det-profissional", colab ? colab.nome : "—");
+    set("det-data", ag.data ? dataBR(ag.data) : "—");
+    set("det-horario", ag.horaInicio || "—");
+    set("det-duracao", ag.duracaoMin ? ag.duracaoMin + " min" : "—");
+    set("det-valor", ag.valor ? formatarMoeda(Number(ag.valor)) : "—");
+    set("det-whatsapp", ag.whatsapp ? formatarTelefone(ag.whatsapp) : "—");
+    document.getElementById("det-linha-whatsapp").hidden = !ag.whatsapp;
+
+    const fechar = () => { modal.hidden = true; };
+    document.getElementById("btn-fechar-detalhes").onclick = fechar;
+    document.getElementById("btn-fechar-detalhes-2").onclick = fechar;
+    modal.onclick = (e) => { if (e.target === modal) fechar(); };
+    document.getElementById("btn-editar-agendamento").onclick = () => { fechar(); abrirEdicaoAgendamento(ag); };
+    modal.hidden = false;
   }
+  document.addEventListener("keydown", (e) => {
+    const modalDet = document.getElementById("modal-detalhes-agendamento");
+    if (e.key === "Escape" && modalDet && !modalDet.hidden) modalDet.hidden = true;
+  });
 
   function renderizarAgenda() {
     agenda.innerHTML = "";
@@ -685,7 +941,7 @@ function iniciarDashboard() {
         const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
         const minInicio = (hIni - horaInicio) * 60 + mIni;
         const topPx = (minInicio / 60) * 48;
-        const heightPx = Math.max((ag.duracaoMin / 60) * 48, 38);
+        const heightPx = Math.max((ag.duracaoMin / 60) * 48, 52); // altura mínima: cabem o ✕ e o botão do WhatsApp
         const largura = 100 / item.totalColunas;
         const esquerda = item.coluna * largura;
 
@@ -789,7 +1045,10 @@ function iniciarDashboard() {
     return `${ano}-${mes}-${dia}`;
   }
 
-  btnAbrirAgendamento.addEventListener("click", () => {
+  // id do agendamento que está sendo editado (null = é um agendamento novo)
+  let agendamentoEditandoId = null;
+
+  function popularProfissionaisAgendamento() {
     // O dono sempre aparece na lista de profissionais, então não exige colaborador cadastrado
     selectProfissional.innerHTML = "";
     comDono(colaboradores)
@@ -798,14 +1057,65 @@ function iniciarDashboard() {
       .forEach(c => {
       selectProfissional.insertAdjacentHTML("beforeend", `<option value="${c.id}">${c.nome}</option>`);
     });
+  }
+
+  function definirModoEdicaoAgendamento(editando) {
+    const titulo = document.getElementById("modal-agendamento-titulo");
+    const botao = document.getElementById("btn-confirmar-agendamento");
+    if (titulo) titulo.textContent = editando ? "Editar Agendamento" : "Agendar Cliente";
+    if (botao) botao.textContent = editando ? "Salvar alterações" : "Confirmar Agendamento";
+  }
+
+  // Botão ✎ do card: abre o mesmo formulário já preenchido com os dados do agendamento
+  function abrirEdicaoAgendamento(ag) {
+    agendamentoEditandoId = ag.id;
+    definirModoEdicaoAgendamento(true);
+    limparErroForm(formAgendamento);
+    popularProfissionaisAgendamento();
+    selectProfissional.value = String(ag.colaboradorId);
+
+    document.getElementById("agend-cliente").value = ag.cliente || "";
+    const zap = document.getElementById("agend-whatsapp");
+    if (zap) zap.value = ag.whatsapp ? formatarTelefone(ag.whatsapp) : "";
+    const hojeISO = obterDataHojeISO();
+    const campoData = document.getElementById("agend-data");
+    campoData.min = ag.data < hojeISO ? ag.data : hojeISO; // permite manter a data de um agendamento antigo
+    campoData.value = ag.data;
+    document.getElementById("agend-hora-inicio").value = ag.horaInicio;
+    document.getElementById("agend-cor").value = ag.cor || "#3d5a80";
+
+    const campoDuracao = document.getElementById("agend-duracao");
+    campoDuracao.value = ag.duracaoMin;
+    servicos = lerJsonLocal(CHAVE_SERVICOS, []).filter(s => s && s.nome);
+    atualizarServicosAgendamento(Array.isArray(ag.servicos) ? ag.servicos : (ag.servico ? [ag.servico] : []));
+    // Serviço antigo que não está mais cadastrado: mantém a duração que o agendamento já tinha
+    if (!campoDuracao.value) campoDuracao.value = ag.duracaoMin;
+    modalAgendamento.hidden = false;
+  }
+
+  btnAbrirAgendamento.addEventListener("click", () => {
+    agendamentoEditandoId = null;
+    definirModoEdicaoAgendamento(false);
+    popularProfissionaisAgendamento();
     const hojeISO = obterDataHojeISO();
     const campoData = document.getElementById("agend-data");
     campoData.min = hojeISO;
     campoData.value = (seletorData.value >= hojeISO) ? seletorData.value : hojeISO;
+    servicos = lerJsonLocal(CHAVE_SERVICOS, []).filter(s => s && s.nome);
+    atualizarServicosAgendamento();
     modalAgendamento.hidden = false;
   });
+  formAgendamento.addEventListener("reset", () => setTimeout(() => atualizarServicosAgendamento([]), 0));
 
-  function fecharModalAgendamento() { modalAgendamento.hidden = true; limparErroForm(formAgendamento); }
+  function fecharModalAgendamento() {
+    modalAgendamento.hidden = true;
+    limparErroForm(formAgendamento);
+    if (agendamentoEditandoId !== null) { // cancelou/terminou uma edição: deixa o formulário limpo para o próximo agendamento
+      agendamentoEditandoId = null;
+      formAgendamento.reset();
+      definirModoEdicaoAgendamento(false);
+    }
+  }
   btnFecharModal.addEventListener("click", fecharModalAgendamento);
   btnCancelarAgendamento.addEventListener("click", fecharModalAgendamento);
 
@@ -830,7 +1140,9 @@ function iniciarDashboard() {
     limparErroForm(formAgendamento);
 
     const dataEscolhida = document.getElementById("agend-data").value;
-    if (dataEscolhida < obterDataHojeISO()) {
+    const agendamentoOriginal = agendamentoEditandoId !== null ? agendamentos.find(a => a.id === agendamentoEditandoId) : null;
+    const manteveData = !!agendamentoOriginal && agendamentoOriginal.data === dataEscolhida; // editar sem mudar o dia é permitido
+    if (dataEscolhida < obterDataHojeISO() && !manteveData) {
       alert("Não é possível agendar em uma data que já passou. Escolha uma data de hoje em diante.");
       return;
     }
@@ -845,6 +1157,7 @@ function iniciarDashboard() {
       horaInicio: document.getElementById("agend-hora-inicio").value,
       duracaoMin: parseInt(document.getElementById("agend-duracao").value),
       cor: document.getElementById("agend-cor").value,
+      valor: calcularTotalServicos(), // soma dos valores fixos dos serviços marcados
       whatsapp: whatsappCliente
     };
 
@@ -856,7 +1169,13 @@ function iniciarDashboard() {
     //   console.warn("Não foi possível salvar o agendamento na API.", erro.message);
     // }
 
-    agendamentos.push(novoAgendamento);
+    if (agendamentoEditandoId !== null) {
+      // >>> API: atualizar agendamento no backend (PUT /Agendamentos/{id}).
+      novoAgendamento.id = agendamentoEditandoId;
+      agendamentos = agendamentos.map(a => a.id === agendamentoEditandoId ? novoAgendamento : a);
+    } else {
+      agendamentos.push(novoAgendamento);
+    }
     salvarAgendamentosLocal(agendamentos);
     seletorData.value = novoAgendamento.data;
     renderizarAgenda();
@@ -898,6 +1217,7 @@ function iniciarDashboard() {
       opcao.label = c.telefone ? c.nome + " · " + formatarTelefone(c.telefone) : c.nome;
       lista.appendChild(opcao);
     });
+    renderizarListaClientes(); // tabela da Administração
   }
 
   async function carregarClientes() {
@@ -1064,12 +1384,339 @@ function iniciarDashboard() {
   // --- ADMINISTRATIVO ---
   const formColab = document.getElementById("form-colaborador");
 
+  // --- SERVIÇOS (cadastro do dono: nome, valor fixo e duração) ---
+  const formServico = document.getElementById("form-servico");
+  const listaServicos = document.getElementById("servicos-lista");
+  let servicoEditandoId = null;
+
+  const escaparHtml = t => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+
+  function renderizarListaServicos() {
+    if (!listaServicos) return;
+    if (!servicos.length) {
+      listaServicos.innerHTML = `<p style="padding: 12px; color: #888;">Nenhum serviço cadastrado.</p>`;
+      return;
+    }
+    const linhas = servicos.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(s => `
+      <tr>
+        <td>${escaparHtml(s.nome)}</td>
+        <td>${formatarMoeda(Number(s.valor) || 0)}</td>
+        <td>${Number(s.duracaoMin) || 0} min</td>
+        <td style="text-align:right; white-space:nowrap;">
+          <button type="button" class="btn-link" data-acao="editar" data-id="${s.id}">Editar</button>
+          <button type="button" class="btn-link" style="color:#e11d48; margin-left:8px;" data-acao="remover" data-id="${s.id}">Remover</button>
+        </td>
+      </tr>`).join("");
+    listaServicos.innerHTML = `<table class="tabela-contratos"><thead><tr><th>Serviço</th><th>Valor</th><th>Duração</th><th></th></tr></thead><tbody>${linhas}</tbody></table>`;
+  }
+
+  function sairModoEdicaoServico() {
+    servicoEditandoId = null;
+    const btn = document.getElementById("btn-salvar-servico");
+    if (btn) btn.textContent = "Salvar Serviço";
+  }
+
+  // Nome do serviço: escolhe na lista (a mesma do cargo do colaborador) ou digita em "Outros"
+  const SERV_OUTROS = "__outros__";
+  function popularListaNomesServico() {
+    const sel = document.getElementById("serv-nome-lista");
+    if (!sel) return;
+    const outros = sel.querySelector(`option[value="${SERV_OUTROS}"]`);
+    SERVICOS_PADRAO.forEach(nome => {
+      const opcao = document.createElement("option");
+      opcao.value = nome;
+      opcao.textContent = nome;
+      sel.insertBefore(opcao, outros);
+    });
+  }
+  // Mantém o campo de texto (que o cadastro lê) igual ao que foi escolhido na lista
+  function sincronizarNomeServico() {
+    const sel = document.getElementById("serv-nome-lista");
+    const campo = document.getElementById("serv-nome");
+    if (!sel || !campo) return;
+    if (sel.value === SERV_OUTROS) { campo.hidden = false; }
+    else { campo.hidden = true; campo.value = sel.value; }
+  }
+  function definirNomeServicoNoForm(nome) {
+    const sel = document.getElementById("serv-nome-lista");
+    const campo = document.getElementById("serv-nome");
+    if (!sel || !campo) return;
+    const padrao = SERVICOS_PADRAO.find(n => n.toLowerCase() === String(nome).toLowerCase());
+    sel.value = padrao || SERV_OUTROS;
+    campo.hidden = !!padrao;
+    campo.value = padrao || nome;
+  }
+
+  // Duração: lista de tempos de 15 em 15 minutos (até 8 horas)
+  function textoDuracao(min) {
+    const h = Math.floor(min / 60), m = min % 60;
+    if (!h) return m + " min";
+    return m ? h + " h " + m + " min" : h + (h === 1 ? " hora" : " horas");
+  }
+  function popularListaDuracao() {
+    const sel = document.getElementById("serv-duracao");
+    if (!sel) return;
+    for (let min = 15; min <= 480; min += 15) {
+      const op = document.createElement("option");
+      op.value = String(min);
+      op.textContent = textoDuracao(min);
+      sel.appendChild(op);
+    }
+  }
+  function definirDuracaoServicoNoForm(min) {
+    const sel = document.getElementById("serv-duracao");
+    if (!sel) return;
+    sel.querySelectorAll("option[data-extra]").forEach(o => o.remove());
+    if (!Array.from(sel.options).some(o => o.value === String(min))) { // duração antiga que não está na lista
+      const op = document.createElement("option");
+      op.value = String(min);
+      op.textContent = textoDuracao(Number(min));
+      op.dataset.extra = "1";
+      sel.appendChild(op);
+    }
+    sel.value = String(min);
+  }
+
+  if (formServico) {
+    const campoNomeServ = document.getElementById("serv-nome");
+    const selectNomeServ = document.getElementById("serv-nome-lista");
+    const campoNomeFoco = () => (campoNomeServ.hidden ? selectNomeServ : campoNomeServ);
+    selectNomeServ.addEventListener("change", () => {
+      if (selectNomeServ.value === SERV_OUTROS) { campoNomeServ.value = ""; campoNomeServ.hidden = false; campoNomeServ.focus(); }
+      else sincronizarNomeServico();
+    });
+    const campoValorServ = document.getElementById("serv-valor");
+    const campoDuracaoServ = document.getElementById("serv-duracao");
+
+    formServico.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      if (usuarioLogado.perfil !== "DONO") return; // só o dono mexe nos serviços
+
+      const nome = campoNomeServ.value.trim().replace(/\s{2,}/g, " ");
+      const valor = Number(String(campoValorServ.value).replace(",", "."));
+      const duracao = parseInt(campoDuracaoServ.value, 10);
+
+      if (!nome) { mostrarErroForm(formServico, "Escolha o serviço na lista (ou digite o nome em Outros).", campoNomeFoco()); return; }
+      if (campoValorServ.value.trim() === "" || !isFinite(valor) || valor < 0) {
+        mostrarErroForm(formServico, "Digite um valor válido para o serviço (ex: 45,00).", campoValorServ);
+        return;
+      }
+      if (!duracao || duracao < 5 || duracao > 600) {
+        mostrarErroForm(formServico, "Escolha a duração do serviço na lista.", campoDuracaoServ);
+        return;
+      }
+      if (servicos.some(s => s.id !== servicoEditandoId && s.nome.toLowerCase() === nome.toLowerCase())) {
+        mostrarErroForm(formServico, "Já existe um serviço com esse nome.", campoNomeFoco());
+        return;
+      }
+      limparErroForm(formServico);
+
+      const valorFixo = Math.round(valor * 100) / 100;
+      if (servicoEditandoId !== null) {
+        const existente = servicos.find(s => s.id === servicoEditandoId);
+        if (existente) { existente.nome = nome; existente.valor = valorFixo; existente.duracaoMin = duracao; }
+      } else {
+        const novo = { id: Date.now(), nome, valor: valorFixo, duracaoMin: duracao };
+        // >>> API: POST /Servicos (tblServicos: DonoId vem do token; Nome, DuracaoMinutos, Preco).
+        // Só o cadastro novo vai para o banco; editar/remover ainda não têm endpoint (PUT/DELETE).
+        try {
+          const criado = await apiRequest("SERVICOS", {
+            method: "POST",
+            body: { nome, duracaoMinutos: duracao, preco: valorFixo }
+          });
+          if (criado && Number.isFinite(Number(criado.id ?? criado.Id))) novo.id = Number(criado.id ?? criado.Id);
+        } catch (erro) {
+          console.warn("Não foi possível salvar o serviço na API.", erro.message);
+          alert("O serviço foi salvo só neste navegador: não deu para enviar ao servidor.\n" + erro.message);
+        }
+        servicos.push(novo);
+      }
+
+      guardarServicos();
+      sairModoEdicaoServico();
+      formServico.reset();
+      renderizarListaServicos();
+      atualizarServicosAgendamento();
+    });
+
+    formServico.addEventListener("reset", () => { sairModoEdicaoServico(); limparErroForm(formServico); setTimeout(() => { sincronizarNomeServico(); definirDuracaoServicoNoForm(""); }, 0); });
+  }
+
+  if (listaServicos) {
+    listaServicos.addEventListener("click", function (e) {
+      const botao = e.target.closest("button[data-acao]");
+      if (!botao || usuarioLogado.perfil !== "DONO") return;
+      const id = Number(botao.dataset.id);
+      const servico = servicos.find(s => s.id === id);
+      if (!servico) return;
+
+      if (botao.dataset.acao === "remover") {
+        if (!confirm(`Remover o serviço "${servico.nome}"?`)) return;
+        servicos = servicos.filter(s => s.id !== id);
+        guardarServicos();
+        if (servicoEditandoId === id) { formServico.reset(); }
+        renderizarListaServicos();
+        atualizarServicosAgendamento();
+      } else {
+        definirNomeServicoNoForm(servico.nome);
+        document.getElementById("serv-valor").value = servico.valor;
+        definirDuracaoServicoNoForm(servico.duracaoMin);
+        servicoEditandoId = id;
+        document.getElementById("btn-salvar-servico").textContent = "Salvar alterações";
+        document.getElementById("serv-nome-lista").focus();
+      }
+    });
+  }
+  popularListaNomesServico();
+  popularListaDuracao();
+  renderizarListaServicos();
+
+
+  // =====================================================
+  // CLIENTES (cadastro do dono) — mesmo formato dos serviços: formulário + lista com Editar/Remover.
+  // O cliente é identificado pelo telefone (único). Cadastrar vai para a API (POST /Clientes);
+  // editar e remover ainda não têm endpoint (PUT/DELETE), então valem só neste navegador.
+  // =====================================================
+  const formClienteAdmin = document.getElementById("form-cliente-admin");
+  const listaClientesAdmin = document.getElementById("clientes-lista");
+  let clienteEditandoTel = null;
+
+  function renderizarListaClientes() {
+    if (!listaClientesAdmin) return;
+    if (!clientes.length) {
+      listaClientesAdmin.innerHTML = `<p style="padding: 12px; color: #888;">Nenhum cliente cadastrado.</p>`;
+      return;
+    }
+    const linhas = clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(c => `
+      <tr>
+        <td>${escaparHtml(c.nome)}</td>
+        <td>${escaparHtml(c.telefone ? formatarTelefone(c.telefone) : "—")}</td>
+        <td style="text-align:right; white-space:nowrap;">
+          <button type="button" class="btn-link" data-acao="editar" data-tel="${escaparHtml(c.telefone)}">Editar</button>
+          <button type="button" class="btn-link" style="color:#e11d48; margin-left:8px;" data-acao="remover" data-tel="${escaparHtml(c.telefone)}">Remover</button>
+        </td>
+      </tr>`).join("");
+    listaClientesAdmin.innerHTML = `<table class="tabela-contratos"><thead><tr><th>Cliente</th><th>Telefone</th><th></th></tr></thead><tbody>${linhas}</tbody></table>`;
+  }
+
+  function sairModoEdicaoCliente() {
+    clienteEditandoTel = null;
+    const btn = document.getElementById("btn-salvar-cliente-admin");
+    if (btn) btn.textContent = "Salvar Cliente";
+  }
+
+  if (formClienteAdmin) {
+    const campoNomeAdm = document.getElementById("cliadm-nome");
+    const campoTelAdm = document.getElementById("cliadm-telefone");
+    const btnSalvarAdm = document.getElementById("btn-salvar-cliente-admin");
+
+    campoNomeAdm.addEventListener("input", () => {
+      campoNomeAdm.value = campoNomeAdm.value.replace(/[^\p{L}\s'-]/gu, "").replace(/\s{2,}/g, " ");
+    });
+    campoTelAdm.addEventListener("input", () => { campoTelAdm.value = formatarTelefone(campoTelAdm.value); });
+
+    formClienteAdmin.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const nome = campoNomeAdm.value.trim();
+      campoNomeAdm.value = nome;
+      const telefone = telefoneValido(campoTelAdm.value);
+
+      if (!nome) { mostrarErroForm(formClienteAdmin, "Preencha o nome do cliente.", campoNomeAdm); return; }
+      if (nome.length < AGEND_CLIENTE_MIN || nome.length > AGEND_CLIENTE_MAX) {
+        mostrarErroForm(formClienteAdmin, `O nome do cliente deve ter de ${AGEND_CLIENTE_MIN} a ${AGEND_CLIENTE_MAX} caracteres.`, campoNomeAdm);
+        return;
+      }
+      if (!NOME_CLIENTE_REGEX.test(nome)) { mostrarErroForm(formClienteAdmin, mensagemNomeClienteInvalido(nome), campoNomeAdm); return; }
+      if (!campoTelAdm.value.trim()) { mostrarErroForm(formClienteAdmin, "Preencha o telefone do cliente.", campoTelAdm); return; }
+      if (!telefone) { mostrarErroForm(formClienteAdmin, "Digite um telefone válido com DDD. Exemplo: (11) 91234-5678", campoTelAdm); return; }
+      if (clientes.some(c => c.telefone === telefone && c.telefone !== clienteEditandoTel)) {
+        mostrarErroForm(formClienteAdmin, "Já existe um cliente cadastrado com esse telefone.", campoTelAdm);
+        return;
+      }
+      limparErroForm(formClienteAdmin);
+
+      if (clienteEditandoTel !== null) {
+        // >>> API: PUT /Clientes/{id} quando o endpoint existir.
+        const existente = clientes.find(c => c.telefone === clienteEditandoTel);
+        if (existente) { existente.nome = nome; existente.telefone = telefone; }
+        salvarClientesLocal();
+        atualizarListaClientes();
+        sairModoEdicaoCliente();
+        formClienteAdmin.reset();
+        return;
+      }
+
+      btnSalvarAdm.disabled = true;
+      let criado = null;
+      try {
+        // >>> API: POST /Clientes. O DonoId vem do token, por isso não é enviado.
+        criado = await apiRequest("CLIENTES", { method: "POST", body: { nome, telefone } });
+      } catch (erro) {
+        console.warn(erro.message);
+        mostrarErroForm(formClienteAdmin, mensagemErroApiComum(erro, "Não foi possível cadastrar o cliente."), null);
+        btnSalvarAdm.disabled = false;
+        return;
+      }
+      btnSalvarAdm.disabled = false;
+      const novo = normalizarCliente(criado && typeof criado === "object" ? criado : null) || { id: null, nome, telefone };
+      novo.nome = nome; novo.telefone = telefone;
+      clientes.push(novo);
+      salvarClientesLocal();
+      atualizarListaClientes();
+      formClienteAdmin.reset();
+    });
+
+    formClienteAdmin.addEventListener("reset", () => { sairModoEdicaoCliente(); limparErroForm(formClienteAdmin); });
+  }
+
+  if (listaClientesAdmin) {
+    listaClientesAdmin.addEventListener("click", function (e) {
+      const botao = e.target.closest("button[data-acao]");
+      if (!botao) return;
+      const cliente = clientes.find(c => c.telefone === botao.dataset.tel);
+      if (!cliente) return;
+      if (botao.dataset.acao === "remover") {
+        if (!confirm(`Remover o cliente "${cliente.nome}"?`)) return;
+        // >>> API: DELETE /Clientes/{id} quando o endpoint existir.
+        clientes = clientes.filter(c => c !== cliente);
+        salvarClientesLocal();
+        if (clienteEditandoTel === cliente.telefone) formClienteAdmin.reset();
+        atualizarListaClientes();
+      } else {
+        document.getElementById("cliadm-nome").value = cliente.nome;
+        document.getElementById("cliadm-telefone").value = formatarTelefone(cliente.telefone);
+        clienteEditandoTel = cliente.telefone;
+        document.getElementById("btn-salvar-cliente-admin").textContent = "Salvar alterações";
+        document.getElementById("cliadm-nome").focus();
+      }
+    });
+  }
+  renderizarListaClientes();
+
   // --- CARGO / ESPECIALIDADE: lista + opção "Outros" ---
   // Ao escolher "Outros", aparece um campo para digitar o serviço. O texto digitado vira o
   // valor da própria opção, então o resto do sistema continua lendo #colab-cargo normalmente.
   const campoCargo = document.getElementById("colab-cargo");
   const campoOutros = document.getElementById("colab-cargo-outros");
   const opcaoOutros = campoCargo ? campoCargo.querySelector('option[value="__outros__"]') : null;
+
+  // Serviços que o dono cadastrou como "Outros" também entram na lista de cargo do colaborador
+  function atualizarCargosColaborador() {
+    if (!campoCargo || !opcaoOutros) return;
+    campoCargo.querySelectorAll("option[data-servico-cadastrado]").forEach(o => o.remove());
+    const base = SERVICOS_PADRAO.map(n => n.toLowerCase());
+    servicos.map(s => s.nome)
+      .filter(nome => !base.includes(nome.toLowerCase()))
+      .sort((a, b) => a.localeCompare(b, "pt-BR"))
+      .forEach(nome => {
+        const opcao = document.createElement("option");
+        opcao.value = nome;
+        opcao.textContent = nome;
+        opcao.dataset.servicoCadastrado = "1";
+        campoCargo.insertBefore(opcao, opcaoOutros);
+      });
+  }
+  atualizarCargosColaborador();
 
   function sincronizarCargoOutros() {
     if (!campoCargo || !campoOutros || !opcaoOutros) return;
@@ -1155,7 +1802,7 @@ function iniciarDashboard() {
     }
 
     colaboradores.push(novoColab);
-    salvarColaboradoresLocal(colaboradores);
+    guardarColaboradores();
     credenciais[emailNovo] = { colaboradorId: novoColab.id, senhaHash: await gerarHashSenha(senhaNova) };
     localStorage.setItem(CHAVE_CREDENCIAIS, JSON.stringify(credenciais));
     atualizarSelectLoginSimulado();
@@ -1177,7 +1824,7 @@ function iniciarDashboard() {
     colaboradores = colaboradores.filter(c => c.id !== id);
     agendamentos = agendamentos.filter(a => a.colaboradorId !== id);
     salvarAgendamentosLocal(agendamentos);
-    salvarColaboradoresLocal(colaboradores);
+    guardarColaboradores();
     const credenciaisRestantes = lerJsonLocal(CHAVE_CREDENCIAIS, {});
     Object.keys(credenciaisRestantes).forEach(email => {
       if (credenciaisRestantes[email].colaboradorId === id) delete credenciaisRestantes[email];
@@ -1194,7 +1841,7 @@ function iniciarDashboard() {
     const colab = colaboradores.find(c => c.id === id);
     if (!colab) return;
     colab.ativo = !colab.ativo;
-    salvarColaboradoresLocal(colaboradores);
+    guardarColaboradores();
 
     // >>> API: persistir a troca de status.
     // try {
@@ -1442,6 +2089,49 @@ function iniciarDashboard() {
       window.location.href = `${PAGINA_ASSINATURA}?plano=${plano.toLowerCase()}&origem=painel`;
     });
   });
+
+  // --- CANCELAR ASSINATURA: pede confirmação; confirmando, volta para o plano Grátis ---
+  const modalCancelamento = document.getElementById("modal-cancelar-assinatura");
+  if (modalCancelamento) {
+    const fecharCancelamento = () => { modalCancelamento.hidden = true; };
+    let cancelandoPendente = false; // true = cancelando só o boleto que ainda não foi pago (não mexe no plano ativo)
+    document.querySelectorAll(".btn-cancelar-assinatura").forEach(btn => {
+      btn.addEventListener("click", () => {
+        cancelandoPendente = !planoEhAtual(alvoDoCard(btn));
+        modalCancelamento.hidden = false;
+      });
+    });
+    // Trocar a forma de pagamento: abre a tela de pagamento só com as formas (não cobra nada agora)
+    document.querySelectorAll(".btn-trocar-pagamento").forEach(btn => {
+      btn.addEventListener("click", () => {
+        window.location.href = `${PAGINA_ASSINATURA}?plano=${alvoDoCard(btn).toLowerCase()}&origem=painel&modo=trocar-pagamento`;
+      });
+    });
+    const btnManter = document.getElementById("manter-plano");
+    const btnFecharCanc = document.getElementById("btn-fechar-cancelamento");
+    const btnConfirmarCanc = document.getElementById("confirmar-cancelamento");
+    if (btnManter) btnManter.addEventListener("click", fecharCancelamento);
+    if (btnFecharCanc) btnFecharCanc.addEventListener("click", fecharCancelamento);
+    modalCancelamento.addEventListener("click", (e) => { if (e.target === modalCancelamento) fecharCancelamento(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalCancelamento.hidden) fecharCancelamento(); });
+    if (btnConfirmarCanc) {
+      btnConfirmarCanc.addEventListener("click", () => {
+        // >>> API: avisar o backend do cancelamento da assinatura.
+        if (cancelandoPendente) { // só o boleto pendente: o plano que já está ativo continua como está
+          localStorage.removeItem("assinaturaPendente");
+          fecharCancelamento();
+          atualizarPlano();
+          return;
+        }
+        localStorage.removeItem("assinaturaPendente");
+        localStorage.removeItem(CHAVE_ASSINATURA);
+        limparBoleto();
+        fecharCancelamento();
+        abaOrigemPlanos = "Planos";
+        escolherPlano("FREE");
+      });
+    }
+  }
 
   // --- SAIR (painel do dono): pergunta "tem certeza?"; confirmando, apaga a sessão e volta para o login ---
   const btnSair = document.getElementById("btn-sair");

@@ -280,6 +280,7 @@ function iniciarAssinatura() {
   // false = o plano só libera depois do pagamento do boleto (o certo). true = libera na hora, só para demonstração.
   const BOLETO_LIBERA_NA_HORA = false;
   const BOLETO_BANCO = "999";              // código de banco fictício (o boleto é uma simulação)
+  const PIX_CONFIRMACAO_TESTE_MS = 12000;  // MODO TESTE: tempo até o Pix "ser pago" sozinho (ou use o botão de simular)
   const ENDPOINT_NOTA = "api/notas-fiscais.php"; // >>> API: backend que emite a nota fiscal e envia por e-mail
   // MODO TESTE: true = simula a nota na tela (sem backend, sem e-mail, sem pagamento real).
   // Troque para false quando o backend estiver pronto.
@@ -322,7 +323,8 @@ function iniciarAssinatura() {
   let cartoes = [];        // cartões salvos: { id, bandeira, final, nome, validade }
   let cartaoSelId = null;  // cartão escolhido para pagar
   let notaTesteHtml = "";  // nota simulada (só no modo teste)
-  let boletoAtual = null;  // boleto gerado nesta tela: { linha, codigo, vencimento, valor, html }
+  let boletoAtual = null;  // boleto gerado nesta tela (ao apertar Assinar): { linha, codigo, vencimento, valor }
+  let modoTrocar = false;  // true = só trocar a forma de pagamento de uma assinatura que já existe (assinatura.html?modo=trocar-pagamento)
 
   const $ = (id) => document.getElementById(id);
   const moeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -356,7 +358,7 @@ function iniciarAssinatura() {
     const preco = calcularPreco(planoEscolhido, ciclo);
     const subtotal = gratis ? 0 : p.mensal * (ciclo === "anual" ? 12 : 1);
 
-    $("titulo-pagina").textContent = "Assinar plano " + p.nome;
+    $("titulo-pagina").textContent = modoTrocar ? "Trocar forma de pagamento" : "Assinar plano " + p.nome;
     $("res-plano").textContent = p.nome;
     $("res-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
     $("res-subtotal").textContent = moeda(subtotal);
@@ -369,6 +371,17 @@ function iniciarAssinatura() {
     $("aviso-cobranca").textContent = gratis
       ? "Sem cobrança. Ao fim dos 30 dias, escolha um plano pago para continuar."
       : (ciclo === "anual" ? "Cobrança única por ano. Você pode cancelar quando quiser." : "Cobrança mensal. Você pode cancelar quando quiser.");
+
+    // Trocar forma de pagamento: não cobra nada agora, só muda como as próximas cobranças serão feitas
+    if (modoTrocar) {
+      $("sub-pagina").textContent = "Escolha como prefere pagar as próximas cobranças do plano " + p.nome + ".";
+      $("btn-assinar").textContent = "Salvar forma de pagamento";
+      $("aviso-cobranca").textContent = "Nenhuma cobrança agora. A nova forma vale a partir da próxima cobrança.";
+      $("rotulo-total").textContent = "Cobrado agora";
+      $("res-total").textContent = moeda(0);
+      $("txt-pix").textContent = "A partir da próxima cobrança, o código Pix será gerado para você pagar no app do seu banco.";
+      $("txt-boleto").textContent = "A partir da próxima cobrança, o boleto será gerado com os seus dados (pagamento confirmado em 1 a 3 dias úteis).";
+    }
 
     // Plano grátis não precisa de pagamento
     $("bloco-pagamento").hidden = gratis;
@@ -416,7 +429,6 @@ function iniciarAssinatura() {
     const lista = $("lista-cartoes");
     lista.textContent = "";
     $("cartao-vazio").hidden = cartoes.length > 0 || !$("form-novo-cartao").hidden;
-    $("area-pagar-cartao").hidden = cartoes.length === 0;
     cartoes.forEach((c) => {
       const rotulo = document.createElement("label");
       rotulo.className = "cartao-item" + (c.id === cartaoSelId ? " sel" : "");
@@ -424,7 +436,7 @@ function iniciarAssinatura() {
       radio.type = "radio";
       radio.name = "cartao-salvo";
       radio.checked = c.id === cartaoSelId;
-      radio.addEventListener("change", () => { cartaoSelId = c.id; $("cc-cvv").value = ""; renderCartoes(); });
+      radio.addEventListener("change", () => { cartaoSelId = c.id; renderCartoes(); });
       const info = document.createElement("span");
       info.className = "cartao-info";
       info.textContent = c.bandeira + " •••• " + c.final;
@@ -452,7 +464,7 @@ function iniciarAssinatura() {
     $("form-novo-cartao").hidden = !abrir;
     $("erro-cartao").hidden = true;
     if (abrir) $("cc-numero").focus();
-    else ["cc-numero", "cc-nome", "cc-validade"].forEach((id) => { $(id).value = ""; });
+    else ["cc-numero", "cc-nome", "cc-validade", "cc-cvv"].forEach((id) => { $(id).value = ""; });
     renderCartoes();
   }
 
@@ -474,7 +486,8 @@ function iniciarAssinatura() {
       erroEl.hidden = false;
       return;
     }
-    // >>> API: aqui o gateway tokeniza o cartão; guarde só o token no backend. No front fica apenas o que aparece na lista.
+    // >>> API: aqui o gateway tokeniza o cartão (número + validade + CVV) e devolve só um token; guarde só o token no backend.
+    // O CVV é pedido aqui, no cadastro do cartão, e NUNCA é guardado (nem no front, nem no banco). No front fica apenas o que aparece na lista.
     const cartao = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       bandeira, final, validade,
@@ -570,10 +583,6 @@ function iniciarAssinatura() {
       const cartao = cartaoSelecionado();
       if (!cartao) falhar("Adicione um cartão ou escolha um dos seus cartões para pagar.", "btn-novo-cartao");
       else if (!validadeValida(cartao.validade)) falhar("O cartão selecionado está vencido. Escolha outro ou adicione um novo.", "btn-novo-cartao");
-      if (cartao && !/^\d{3,4}$/.test($("cc-cvv").value)) falhar("Digite o CVV do cartão selecionado (3 ou 4 números).", "cc-cvv");
-    }
-    if (planoEscolhido !== "FREE" && metodoAtual() === "boleto" && !opcoes.gerandoBoleto && !boletoAtual) {
-      falhar('Clique em "Gerar boleto" antes de assinar.', "btn-gerar-boleto");
     }
     return { erros, primeiro };
   }
@@ -594,6 +603,9 @@ function iniciarAssinatura() {
     else if (/[^\p{L}\s]/u.test(nomeCartao)) falhar("O nome no cartão deve ter apenas letras (sem números, símbolos ou pontuação).", "cc-nome");
     else if (!NOME_REGEX.test(nomeCartao)) falhar("Digite o nome como está impresso no cartão, com nome e sobrenome.", "cc-nome");
     if (!validadeValida($("cc-validade").value)) falhar("Validade inválida ou vencida. Use o formato MM/AA.", "cc-validade");
+    const cvv = $("cc-cvv").value.trim();
+    if (!cvv) falhar("Preencha o CVV do cartão.", "cc-cvv");
+    else if (!/^\d{3,4}$/.test(cvv)) falhar("O CVV deve ter 3 ou 4 números.", "cc-cvv");
     return { erros, primeiro };
   }
 
@@ -726,13 +738,6 @@ function iniciarAssinatura() {
     $("boleto-aviso-teste").hidden = !MODO_TESTE;
   }
 
-  // Mudou nome, e-mail ou CPF: o boleto gerado ficou com dados antigos, então precisa gerar de novo
-  function descartarBoleto() {
-    if (!boletoAtual) return;
-    boletoAtual = null;
-    mostrarBoleto();
-  }
-
   function abrirBoleto() {
     if (!boletoAtual) return;
     const pagina = gerarBoletoHtml(boletoAtual, dadosDoPedidoBoleto());
@@ -764,17 +769,8 @@ function iniciarAssinatura() {
   $("cc-cvv").addEventListener("input", (e) => { e.target.value = soDigitos(e.target.value); });
   $("form-assinatura").addEventListener("input", limparErro);
 
-  // Boleto
-  $("btn-gerar-boleto").addEventListener("click", () => {
-    const { erros, primeiro } = validarFormulario({ gerandoBoleto: true }); // confere nome, e-mail e CPF
-    if (erros.length > 0) { mostrarErro(erros.join("\n"), primeiro); return; }
-    limparErro();
-    boletoAtual = gerarBoleto(calcularPreco(planoEscolhido, ciclo).total);
-    mostrarBoleto();
-  });
-  ["ass-nome", "ass-email", "ass-cpf"].forEach((id) => $(id).addEventListener("input", descartarBoleto));
+  // Boleto: ele é gerado quando a pessoa aperta "Assinar" e aparece na tela de confirmação
   $("btn-ver-boleto").addEventListener("click", abrirBoleto);
-  $("link-boleto").addEventListener("click", (e) => { e.preventDefault(); abrirBoleto(); });
   $("btn-copiar-boleto").addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText($("boleto-linha").value);
@@ -803,16 +799,81 @@ function iniciarAssinatura() {
     setTimeout(() => { $("btn-copiar-pix").textContent = "Copiar"; }, 2000);
   });
 
+  // Pix: o código só é gerado quando a pessoa aperta "Assinar"; depois a tela espera o pagamento
+  let confirmarPixAgora = null;
+  function gerarCodigoPix() {
+    // >>> API: com o gateway real, use o "copia e cola" que ele devolver
+    return "00020126-SIMULACAO-" + Math.random().toString(36).slice(2, 12).toUpperCase();
+  }
+  function aguardarPagamentoPix() {
+    return new Promise((resolve) => {
+      let timer = null;
+      confirmarPixAgora = () => { clearTimeout(timer); confirmarPixAgora = null; resolve(); };
+      // >>> API: com o gateway real, aqui entra a consulta do status do Pix (ou o webhook) no lugar do tempo fixo.
+      timer = setTimeout(confirmarPixAgora, PIX_CONFIRMACAO_TESTE_MS);
+    });
+  }
+  $("btn-simular-pix").addEventListener("click", () => { if (confirmarPixAgora) confirmarPixAgora(); });
+
+  // Trocar a forma de pagamento de uma assinatura que já existe (não cobra nada agora)
+  async function salvarTrocaPagamento() {
+    const metodo = metodoAtual();
+    const cartaoUsado = metodo === "cartao" ? cartaoSelecionado() : null;
+    let reg = null;
+    try { reg = JSON.parse(localStorage.getItem(CHAVE_ASSINATURA)); } catch (e) { reg = null; }
+    if (!reg) { mostrarErro("Não encontramos uma assinatura ativa para trocar a forma de pagamento.", null); return; }
+
+    const btn = $("btn-assinar");
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Salvando...";
+    // >>> API: avisar o backend/gateway da nova forma de pagamento (PUT na assinatura, com o token do cartão).
+    await new Promise((r) => setTimeout(r, 800));
+
+    reg.metodo = metodo;
+    reg.cartaoFinal = cartaoUsado ? cartaoUsado.final : null;
+    delete reg.boletoVencimento;
+    delete reg.boletoLinha;
+    localStorage.setItem(CHAVE_ASSINATURA, JSON.stringify(reg));
+
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+    mostrarSucessoTroca(metodo, cartaoUsado, reg);
+  }
+
+  function mostrarSucessoTroca(metodo, cartao, reg) {
+    const p = PLANOS[planoEscolhido];
+    const nomes = { pix: "Pix", boleto: "Boleto", cartao: cartao ? cartao.bandeira + " •••• " + cartao.final : "Cartão de crédito" };
+    $("suc-titulo").textContent = "Forma de pagamento atualizada";
+    $("suc-sub").textContent = "As próximas cobranças do plano " + p.nome + " serão por " + nomes[metodo] + ".";
+    $("suc-plano").textContent = p.nome;
+    $("suc-ciclo").textContent = ciclo === "anual" ? "Anual" : "Mensal";
+    $("suc-total").textContent = moeda(Number(reg.total) || calcularPreco(planoEscolhido, ciclo).total);
+    $("suc-rotulo-data").textContent = "Próxima cobrança";
+    const proxima = reg.validoAte ? new Date(reg.validoAte) : dataRenovacao(planoEscolhido, ciclo);
+    $("suc-data").textContent = proxima.toLocaleDateString("pt-BR");
+    $("suc-nota").hidden = true;
+    $("suc-boleto").hidden = true;
+    $("suc-redireciona").textContent = "";
+    $("btn-ir-painel").textContent = "Voltar para a agenda";
+    $("etapa-checkout").hidden = true;
+    $("etapa-sucesso").hidden = false;
+    window.scrollTo(0, 0);
+  }
+
   $("form-assinatura").addEventListener("submit", async (e) => {
     e.preventDefault();
     const { erros, primeiro } = validarFormulario();
     if (erros.length > 0) { mostrarErro(erros.join("\n"), primeiro); return; }
     limparErro();
 
+    if (modoTrocar) { await salvarTrocaPagamento(); return; }
+
     const gratis = planoEscolhido === "FREE";
     const preco = calcularPreco(planoEscolhido, ciclo);
     const metodo = gratis ? null : metodoAtual();
     const validoAte = dataRenovacao(planoEscolhido, ciclo);
+    if (metodo === "boleto") boletoAtual = gerarBoleto(preco.total); // o boleto só é gerado agora, ao apertar Assinar
     const boleto = metodo === "boleto" ? boletoAtual : null;
     const pendente = !!boleto && !BOLETO_LIBERA_NA_HORA; // boleto: o plano só libera depois do pagamento
     const cartaoUsado = metodo === "cartao" ? cartaoSelecionado() : null;
@@ -836,9 +897,21 @@ function iniciarAssinatura() {
     // });
     // Simulação: o cartão aprova na hora; o Pix leva alguns segundos para "confirmar".
     // Com o gateway real, o Pix fica "pendente" até o banco confirmar o pagamento (webhook).
-    if (metodo === "pix") btn.textContent = "Aguardando confirmação do Pix...";
-    if (metodo === "boleto") btn.textContent = "Registrando boleto...";
-    await new Promise((r) => setTimeout(r, metodo === "pix" ? 3500 : 1500));
+    if (metodo === "pix") {
+      // O Pix só é gerado agora, ao apertar Assinar: mostra o QR Code e o copia e cola e espera o pagamento
+      $("pix-codigo").value = gerarCodigoPix();
+      atualizarQrPix();
+      $("pix-resultado").hidden = false;
+      $("pix-teste").hidden = !MODO_TESTE;
+      btn.textContent = "Aguardando o pagamento do Pix...";
+      $("pix-resultado").scrollIntoView({ behavior: "smooth", block: "center" });
+      await aguardarPagamentoPix();
+    } else if (metodo === "boleto") {
+      btn.textContent = "Gerando boleto...";
+      await new Promise((r) => setTimeout(r, 1200));
+    } else {
+      await new Promise((r) => setTimeout(r, 1500));
+    }
 
     // Só guarda dados do pedido. Nunca número, validade ou CVV do cartão.
     const registro = {
@@ -996,6 +1069,7 @@ function iniciarAssinatura() {
       nota.appendChild(ver);
     }
     $("suc-boleto").hidden = !pendente;
+    if (pendente) mostrarBoleto();
     $("suc-rotulo-data").textContent = gratis ? "Teste até" : (pendente ? "Vencimento do boleto" : "Próxima cobrança");
     $("suc-data").textContent = (pendente ? boletoAtual.vencimento : validoAte).toLocaleDateString("pt-BR");
     $("etapa-checkout").hidden = true;
@@ -1029,11 +1103,10 @@ function iniciarAssinatura() {
   });
 
   $("btn-ir-painel").href = PAGINA_PAINEL;
-  $("pix-codigo").value = "00020126-SIMULACAO-" + Math.random().toString(36).slice(2, 12).toUpperCase();
-  atualizarQrPix(); // >>> API: com o gateway real, coloque o "copia e cola" que ele devolver em #pix-codigo antes de chamar isto
 
   // O plano vem da tela de Planos: assinatura.html?plano=profissional
   const params = new URLSearchParams(window.location.search);
+  modoTrocar = params.get("modo") === "trocar-pagamento";
   const planoUrl = (params.get("plano") || "").toUpperCase();
   let podeContinuar = true;
 
@@ -1052,11 +1125,25 @@ function iniciarAssinatura() {
       window.location.replace(PAGINA_CADASTRO + "?modo=cadastro&plano=" + planoUrl.toLowerCase());
     } else {
       carregarCadastro(sessao);
+
+      // Trocar forma de pagamento: usa o plano e o ciclo da assinatura que já existe
+      if (modoTrocar) {
+        let reg = null;
+        try { reg = JSON.parse(localStorage.getItem(CHAVE_ASSINATURA)); } catch (e) { reg = null; }
+        const chaveReg = String((reg && reg.plano) || "").toUpperCase();
+        if (!reg || !chaveReg || chaveReg === "FREE") {
+          podeContinuar = false;
+          window.location.replace(PAGINA_PAINEL); // sem assinatura paga, não há o que trocar
+        } else {
+          if (PLANOS[chaveReg]) planoEscolhido = chaveReg;
+          if (reg.ciclo === "anual" || reg.ciclo === "mensal") ciclo = reg.ciclo;
+        }
+      }
     }
   }
 
   // Botão "voltar" do topo
-  if (params.get("origem") === "painel") {
+  if (params.get("origem") === "painel" || modoTrocar) {
     // Veio da agenda: volta para a agenda (continua logado)
     $("link-voltar").textContent = "Voltar à agenda";
     $("link-voltar").href = PAGINA_PAINEL;
@@ -1066,6 +1153,11 @@ function iniciarAssinatura() {
     $("link-voltar").href = PAGINA_CADASTRO + "?modo=entrar&plano=" + planoUrl.toLowerCase();
     $("link-voltar").addEventListener("click", sairDaConta);
   }
+
+  // Botão "Cancelar": desiste da compra (ou da troca) e volta para a agenda/tela de planos
+  $("btn-cancelar-compra").addEventListener("click", () => {
+    window.location.href = (params.get("origem") === "painel" || modoTrocar) ? PAGINA_PAINEL : PAGINA_PLANOS;
+  });
 
   if (podeContinuar) atualizarTela();
 }

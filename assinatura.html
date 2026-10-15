@@ -141,7 +141,7 @@ h2 { font-size: 15px; margin: 0 0 12px; }
   <!-- ETAPA 1: ESCOLHER, PREENCHER E PAGAR -->
   <div id="etapa-checkout">
     <h1 id="titulo-pagina">Assine o seu plano</h1>
-    <p class="sub">Informe seus dados e finalize. Você pode trocar de plano depois.</p>
+    <p class="sub" id="sub-pagina">Informe seus dados e finalize. Você pode trocar de plano depois.</p>
 
     <form id="form-assinatura" class="layout" novalidate>
       <div>
@@ -173,32 +173,22 @@ h2 { font-size: 15px; margin: 0 0 12px; }
           </div>
 
           <div id="painel-pix" class="pix-caixa">
-            Ao confirmar, o código Pix é gerado para você pagar no app do seu banco. O plano é liberado assim que o pagamento é confirmado.
-            <div class="pix-qr" id="pix-qr"></div>
-            <p class="pix-dica">Escaneie o QR Code no app do seu banco ou use o Pix copia e cola abaixo.</p>
-            <div class="pix-codigo">
-              <input type="text" id="pix-codigo" readonly aria-label="Código Pix copia e cola">
-              <button type="button" class="btn-sec" id="btn-copiar-pix">Copiar</button>
+            <span id="txt-pix">Ao clicar em <strong>Assinar</strong>, o código Pix é gerado aqui para você pagar no app do seu banco. O plano é liberado assim que o pagamento é confirmado.</span>
+            <!-- Só aparece depois que a pessoa aperta "Assinar" -->
+            <div id="pix-resultado" hidden>
+              <div class="pix-qr" id="pix-qr"></div>
+              <p class="pix-dica">Escaneie o QR Code no app do seu banco ou use o Pix copia e cola abaixo.</p>
+              <div class="pix-codigo">
+                <input type="text" id="pix-codigo" readonly aria-label="Código Pix copia e cola">
+                <button type="button" class="btn-sec" id="btn-copiar-pix">Copiar</button>
+              </div>
+              <p class="pix-dica">Aguardando a confirmação do pagamento...</p>
+              <p class="pix-dica" id="pix-teste" hidden><button type="button" class="btn-sec" id="btn-simular-pix">Simular pagamento (modo teste)</button></p>
             </div>
           </div>
 
           <div id="painel-boleto" class="pix-caixa" hidden>
-            O boleto é gerado aqui na tela, com os seus dados. O plano é liberado depois que o pagamento for confirmado (de 1 a 3 dias úteis).
-            <div style="margin-top:10px;">
-              <button type="button" class="btn-mini" id="btn-gerar-boleto">Gerar boleto</button>
-            </div>
-            <div id="boleto-resultado" hidden>
-              <div class="linha"><span>Vencimento</span><span id="boleto-venc"></span></div>
-              <div class="linha"><span>Valor</span><span id="boleto-valor"></span></div>
-              <div class="boleto-barras" id="boleto-barras"></div>
-              <p class="pix-dica">Linha digitável (para pagar no app do banco):</p>
-              <div class="pix-codigo">
-                <input type="text" id="boleto-linha" readonly aria-label="Linha digitável do boleto">
-                <button type="button" class="btn-sec" id="btn-copiar-boleto">Copiar</button>
-              </div>
-              <p style="margin:10px 0 0;"><button type="button" class="btn-sec" id="btn-ver-boleto">Ver / imprimir boleto</button></p>
-              <p class="aviso" id="boleto-aviso-teste">MODO TESTE: este boleto é só uma simulação e não pode ser pago.</p>
-            </div>
+            <span id="txt-boleto">Ao clicar em <strong>Assinar</strong>, o boleto é gerado com os seus dados e aparece na próxima tela. O plano é liberado depois que o pagamento for confirmado (de 1 a 3 dias úteis).</span>
           </div>
 
           <div id="painel-cartao" hidden>
@@ -222,6 +212,10 @@ h2 { font-size: 15px; margin: 0 0 12px; }
                 <label for="cc-validade">Validade</label>
                 <input type="text" id="cc-validade" placeholder="MM/AA" inputmode="numeric" autocomplete="cc-exp" maxlength="5">
               </div>
+              <div class="campo">
+                <label for="cc-cvv">CVV</label>
+                <input type="password" id="cc-cvv" placeholder="123" inputmode="numeric" autocomplete="cc-csc" maxlength="4">
+              </div>
               <p class="erro" id="erro-cartao" role="alert" hidden></p>
               <div class="linha-botoes">
                 <button type="button" class="btn-mini" id="btn-salvar-cartao">Salvar cartão</button>
@@ -229,12 +223,6 @@ h2 { font-size: 15px; margin: 0 0 12px; }
               </div>
             </div>
 
-            <div class="campos" id="area-pagar-cartao" hidden>
-              <div class="campo">
-                <label for="cc-cvv">CVV do cartão selecionado</label>
-                <input type="password" id="cc-cvv" placeholder="123" inputmode="numeric" autocomplete="cc-csc" maxlength="4">
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -246,10 +234,11 @@ h2 { font-size: 15px; margin: 0 0 12px; }
         <div class="linha"><span>Subtotal</span><span id="res-subtotal">-</span></div>
         <div class="linha" id="linha-desconto" hidden><span>Desconto anual</span><span class="desconto" id="res-desconto">-</span></div>
         <div class="linha"><span>Próxima cobrança</span><span id="res-renovacao">-</span></div>
-        <div class="linha total"><span>Total hoje</span><span id="res-total">-</span></div>
+        <div class="linha total"><span id="rotulo-total">Total hoje</span><span id="res-total">-</span></div>
 
         <p class="erro" id="erro-form" role="alert" hidden></p>
         <button type="submit" class="btn" id="btn-assinar">Assinar</button>
+        <button type="button" class="btn-sec" id="btn-cancelar-compra" style="width:100%; margin-top:10px; padding:11px;">Cancelar</button>
         <p class="aviso" id="aviso-cobranca">Você pode cancelar quando quiser.</p>
       </aside>
     </form>
@@ -267,7 +256,22 @@ h2 { font-size: 15px; margin: 0 0 12px; }
       <div class="linha" style="border-bottom:none;"><span id="suc-rotulo-data">Válido até</span><span id="suc-data"></span></div>
     </div>
     <p class="sub" id="suc-nota" style="margin-top:14px; text-align:center;" hidden></p>
-    <p class="sub" id="suc-boleto" style="margin-top:10px; text-align:center;" hidden><a href="#" id="link-boleto">Ver / imprimir o boleto</a></p>
+    <!-- Boleto gerado ao apertar "Assinar" (só aparece quando a forma de pagamento é boleto) -->
+    <div class="bloco" id="suc-boleto" hidden>
+      <h2>Seu boleto</h2>
+      <div id="boleto-resultado" hidden>
+        <div class="linha"><span>Vencimento</span><span id="boleto-venc"></span></div>
+        <div class="linha"><span>Valor</span><span id="boleto-valor"></span></div>
+        <div class="boleto-barras" id="boleto-barras"></div>
+        <p class="pix-dica">Linha digitável (para pagar no app do banco):</p>
+        <div class="pix-codigo">
+          <input type="text" id="boleto-linha" readonly aria-label="Linha digitável do boleto">
+          <button type="button" class="btn-sec" id="btn-copiar-boleto">Copiar</button>
+        </div>
+        <p style="margin:10px 0 0;"><button type="button" class="btn-sec" id="btn-ver-boleto">Ver / imprimir boleto</button></p>
+        <p class="aviso" id="boleto-aviso-teste">MODO TESTE: este boleto é só uma simulação e não pode ser pago.</p>
+      </div>
+    </div>
     <p class="sub" id="suc-redireciona" style="margin-top:14px; text-align:center;"></p>
     <p style="margin-top:10px;"><a class="btn" id="btn-ir-painel" href="agenda.html" style="display:block; text-decoration:none;">Ir para a agenda agora</a></p>
   </div>

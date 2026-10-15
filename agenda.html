@@ -169,15 +169,15 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .linha-hora { height: 48px; border-top: 1px solid var(--border); box-sizing: border-box; }
 
 .agendamento {
-  position: absolute; border-radius: 6px; padding: 4px 18px 4px 6px; font-size: 11px; color: #fff; overflow: hidden; box-sizing: border-box; z-index: 10;
+  position: absolute; border-radius: 6px; padding: 4px 34px 4px 8px; font-size: 11px; color: #fff; overflow: hidden; box-sizing: border-box; z-index: 10;
   display: flex; flex-direction: column; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.12); cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0.2s ease; transform-origin: right top;
 }
 .agendamento:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 12px rgba(0,0,0,0.25); z-index: 50; }
 .agendamento strong { display: block; font-size: 11px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .agendamento span { opacity: .9; font-size: 10px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
-.agendamento .remover { position: absolute; top: 2px; right: 4px; background: none; border: none; color: rgba(255,255,255,0.8); cursor: pointer; font-size: 11px; font-weight: bold; padding: 0; z-index: 2; }
-.agendamento .remover:hover { color: #fff; }
+.agendamento .remover { position: absolute; top: 5px; right: 6px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.22); border: none; border-radius: 50%; color: #fff; cursor: pointer; font-size: 11px; font-weight: bold; padding: 0; z-index: 2; }
+.agendamento .remover:hover { background: rgba(0,0,0,0.45); }
 
 /* ADMINISTRATIVO */
 .admin-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: start; }
@@ -282,7 +282,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .form-agendamento .campo[hidden] { display: none; }
 .btn-tema.whatsapp-on { background: #25d366; border-color: #25d366; color: #fff; }
 .btn-tema.whatsapp-on:hover { background: #1ebe5b; }
-.agendamento .btn-whatsapp-card { position: absolute; bottom: 2px; right: 4px; background: #25d366; border: none; color: #fff; cursor: pointer; font-size: 11px; line-height: 1; padding: 3px 5px; border-radius: 6px; z-index: 2; }
+.agendamento .btn-whatsapp-card { position: absolute; bottom: 5px; right: 6px; width: 26px; height: 22px; display: flex; align-items: center; justify-content: center; background: #25d366; border: none; color: #fff; cursor: pointer; font-size: 12px; line-height: 1; padding: 0; border-radius: 6px; z-index: 2; }
 .agendamento .btn-whatsapp-card:hover { background: #1ebe5b; }
 
 /* Serviços em caixinhas (cadastro de colaborador) e botão de boleto */
@@ -294,6 +294,10 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .btn-ver-boleto { display:block; width:100%; margin-top:10px; padding:10px; background:transparent; color:var(--roxo); border:1px solid var(--roxo); border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; text-align:center; transition:background .2s,color .2s; }
 .btn-ver-boleto[hidden] { display:none; }
 .btn-ver-boleto:hover { background:var(--roxo); color:#fff; }
+.btn-trocar-pagamento { display:block; width:100%; margin-top:10px; padding:10px; background:transparent; color:var(--texto); border:1px solid var(--border); border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; text-align:center; transition:background .2s; }
+.btn-trocar-pagamento[hidden] { display:none; }
+.btn-trocar-pagamento:hover { background:var(--hover-menu); }
+.form-agendamento input[readonly] { background: var(--hover-menu); color: var(--muted); cursor: not-allowed; }
 .boleto-linha { display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border); }
 .boleto-linha span:first-child { color:var(--muted); }
 .boleto-codigo { font-family:monospace; font-size:12px; word-break:break-all; background:var(--input-bg); border:1px solid var(--border); border-radius:7px; padding:8px 10px; margin-top:10px; }
@@ -567,6 +571,78 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 
         </div>
 
+        <!-- SERVIÇOS: só o dono cadastra (nome, valor fixo e duração) -->
+        <h2 style="margin-top:26px;">Serviços</h2>
+        <div class="admin-grid">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h3>Cadastrar Serviço</h3>
+            </div>
+            <form id="form-servico" class="form-agendamento" novalidate>
+              <div class="campo">
+                <label for="serv-nome-lista">Nome do serviço <span class="obrigatorio">*</span></label>
+                <!-- As opções são colocadas pelo agenda.js (SERVICOS_PADRAO), a mesma lista do cargo do colaborador -->
+                <select id="serv-nome-lista">
+                  <option value="">Selecione o serviço...</option>
+                  <option value="__outros__">Outros</option>
+                </select>
+                <input type="text" id="serv-nome" placeholder="Digite o nome do serviço" maxlength="60" autocomplete="off" hidden>
+              </div>
+              <div class="campo">
+                <label for="serv-valor">Valor (R$) <span class="obrigatorio">*</span></label>
+                <input type="number" id="serv-valor" placeholder="Ex: 45,00" min="0" step="0.01" inputmode="decimal">
+                <small class="dica-campo">Valor fixo, definido só pelo dono.</small>
+              </div>
+              <div class="campo">
+                <label for="serv-duracao">Duração (minutos) <span class="obrigatorio">*</span></label>
+                <!-- As opções de tempo são colocadas pelo agenda.js -->
+                <select id="serv-duracao">
+                  <option value="">Selecione a duração...</option>
+                </select>
+              </div>
+              <div class="form-botoes">
+                <button type="submit" class="btn-salvar" id="btn-salvar-servico">Salvar Serviço</button>
+                <button type="reset" class="btn-cancelar">Limpar</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="admin-card">
+            <h3 style="margin-top:0;">Serviços Cadastrados</h3>
+            <div id="servicos-lista"></div>
+          </div>
+        </div>
+
+        <!-- CLIENTES: mesmo formato dos serviços (formulário + lista) -->
+        <h2 style="margin-top:26px;">Clientes</h2>
+        <div class="admin-grid">
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <h3>Cadastrar Cliente</h3>
+            </div>
+            <form id="form-cliente-admin" class="form-agendamento" novalidate>
+              <div class="campo">
+                <label for="cliadm-nome">Nome do cliente <span class="obrigatorio">*</span></label>
+                <input type="text" id="cliadm-nome" placeholder="Ex: João Pereira" maxlength="60" autocomplete="off">
+              </div>
+              <div class="campo">
+                <label for="cliadm-telefone">Telefone / WhatsApp <span class="obrigatorio">*</span></label>
+                <input type="tel" id="cliadm-telefone" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
+                <small class="dica-campo">Com DDD. Também é usado para o lembrete pelo WhatsApp.</small>
+              </div>
+              <div class="form-botoes">
+                <button type="submit" class="btn-salvar" id="btn-salvar-cliente-admin">Salvar Cliente</button>
+                <button type="reset" class="btn-cancelar">Limpar</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="admin-card">
+            <h3 style="margin-top:0;">Clientes Cadastrados</h3>
+            <div id="clientes-lista"></div>
+          </div>
+        </div>
+
         <!-- Elemento oculto: o script.js ainda escreve nele (renderizarContratos).
              Se ele não existir, o script dá erro e a agenda não carrega. -->
         <table hidden aria-hidden="true">
@@ -659,6 +735,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
             <div>
               <button class="btn-selecionar-plano" id="btn-plano-basico">Escolher Básico</button>
               <button type="button" class="btn-ver-boleto" data-plano="Básico">📄 Ver boleto</button>
+              <button type="button" class="btn-trocar-pagamento" data-plano="Básico" hidden>💳 Trocar forma de pagamento</button>
               <button type="button" class="btn-cancelar-assinatura" data-plano="Básico" hidden>Cancelar assinatura</button>
             </div>
           </div>
@@ -681,6 +758,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
             <div>
               <button class="btn-selecionar-plano" id="btn-plano-premium">Escolher Premium</button>
               <button type="button" class="btn-ver-boleto" data-plano="Premium">📄 Ver boleto</button>
+              <button type="button" class="btn-trocar-pagamento" data-plano="Premium" hidden>💳 Trocar forma de pagamento</button>
               <button type="button" class="btn-cancelar-assinatura" data-plano="Premium" hidden>Cancelar assinatura</button>
             </div>
           </div>
@@ -696,7 +774,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 <div class="modal-overlay" id="modal-agendamento" hidden>
   <div class="modal-card">
     <div class="modal-header">
-      <h3>Agendar Cliente</h3>
+      <h3 id="modal-agendamento-titulo">Agendar Cliente</h3>
       <button type="button" id="btn-fechar-modal" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
     </div>
     <form id="form-novo-agendamento" class="form-agendamento">
@@ -717,18 +795,6 @@ h2 { font-size: 17px; margin: 0 0 12px; }
         <label>Serviço</label>
         <select id="agend-servico" required>
           <option value="">Selecione o serviço...</option>
-          <option value="Manicure">Manicure</option>
-          <option value="Pedicure">Pedicure</option>
-          <option value="Corte de cabelo">Corte de cabelo</option>
-          <option value="Escova">Escova</option>
-          <option value="Coloração">Coloração</option>
-          <option value="Barba">Barba</option>
-          <option value="Spa">Spa</option>
-          <option value="Massagem">Massagem</option>
-          <option value="Limpeza de pele">Limpeza de pele</option>
-          <option value="Maquiagem">Maquiagem</option>
-          <option value="Depilação">Depilação</option>
-          <option value="Design de sobrancelhas">Design de sobrancelhas</option>
         </select>
       </div>
 
@@ -749,8 +815,15 @@ h2 { font-size: 17px; margin: 0 0 12px; }
         </div>
         <div class="campo">
           <label>Duração (min)</label>
-          <input type="number" id="agend-duracao" value="60" step="15" min="15" required>
+          <input type="number" id="agend-duracao" value="" placeholder="—" readonly tabindex="-1" aria-describedby="dica-duracao">
+          <small class="dica-campo" id="dica-duracao">Vem da duração cadastrada no serviço.</small>
         </div>
+      </div>
+
+      <div class="campo">
+        <label>Valor (R$)</label>
+        <input type="text" id="agend-valor" value="" placeholder="—" readonly tabindex="-1">
+        <small class="dica-campo">Valor cadastrado no serviço.</small>
       </div>
 
       <div class="campo">
@@ -759,10 +832,32 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       </div>
 
       <div class="form-botoes">
-        <button type="submit" class="btn-salvar">Confirmar Agendamento</button>
+        <button type="submit" class="btn-salvar" id="btn-confirmar-agendamento">Confirmar Agendamento</button>
         <button type="button" id="btn-cancelar-agendamento" class="btn-cancelar">Cancelar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- MODAL: DETALHES DO AGENDAMENTO (aparece ao clicar no card da agenda; daqui se edita) -->
+<div class="modal-overlay" id="modal-detalhes-agendamento" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Detalhes do agendamento</h3>
+      <button type="button" id="btn-fechar-detalhes" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <div class="boleto-linha"><span>Cliente</span><strong id="det-cliente">—</strong></div>
+    <div class="boleto-linha"><span>Serviço</span><strong id="det-servico">—</strong></div>
+    <div class="boleto-linha"><span>Profissional</span><strong id="det-profissional">—</strong></div>
+    <div class="boleto-linha"><span>Data</span><strong id="det-data">—</strong></div>
+    <div class="boleto-linha"><span>Horário</span><strong id="det-horario">—</strong></div>
+    <div class="boleto-linha"><span>Duração</span><strong id="det-duracao">—</strong></div>
+    <div class="boleto-linha"><span>Valor</span><strong id="det-valor">—</strong></div>
+    <div class="boleto-linha" id="det-linha-whatsapp"><span>WhatsApp</span><strong id="det-whatsapp">—</strong></div>
+    <div class="form-botoes">
+      <button type="button" class="btn-cancelar" id="btn-fechar-detalhes-2">Fechar</button>
+      <button type="button" class="btn-salvar" id="btn-editar-agendamento">✎ Editar</button>
+    </div>
   </div>
 </div>
 
