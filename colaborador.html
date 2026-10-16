@@ -9,6 +9,13 @@
 <!-- Todo o JavaScript do site está reunido em um único arquivo -->
 <script src="js/comum.js"></script>
 <script src="js/colaborador.js"></script>
+<style>
+  .btn-link { background:none; border:none; padding:0; color:#6c5ce7; font-weight:600; font-size:12px; cursor:pointer; align-self:flex-start; }
+  .btn-link:hover { text-decoration:underline; }
+  .dica-campo { font-size:11px; color:var(--muted); }
+  .opcional { font-weight:400; font-size:11px; color:var(--muted); }
+  #modal-agendamento input[readonly] { background:rgba(127,127,127,.12); cursor:not-allowed; }
+</style>
 
 </head>
 <body>
@@ -55,6 +62,8 @@
                 <option value="todos">Procurar colaborador...</option>
               </select>
             </div>
+
+            <button type="button" id="btn-abrir-cliente" style="padding:8px 14px; border:1px solid var(--border); background:var(--input-bg); color:var(--texto); border-radius:7px; cursor:pointer; font-size:13px; font-weight:600;">&#128100; Cadastrar Cliente</button>
 
             <!-- Só aparece quando a própria agenda está selecionada -->
             <button type="button" id="btn-abrir-agendamento" class="btn-novo-agendamento" style="display:none;">+ Novo Agendamento</button>
@@ -131,25 +140,22 @@
     <form id="form-novo-agendamento" class="form-agendamento">
       <div class="campo">
         <label>Cliente</label>
-        <input type="text" id="agend-cliente" placeholder="Ex: João Pereira" required autocomplete="off">
+        <input type="text" id="agend-cliente" list="lista-clientes" placeholder="Ex: João Pereira" required autocomplete="off">
+        <datalist id="lista-clientes"></datalist>
+        <button type="button" id="btn-novo-cliente-modal" class="btn-link">+ Cadastrar novo cliente</button>
+      </div>
+
+      <div class="campo">
+        <label>WhatsApp do cliente <span class="opcional">(opcional)</span></label>
+        <input type="text" id="agend-whatsapp" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
+        <small class="dica-campo">Com DDD. Serve para enviar o lembrete do horário pelo WhatsApp.</small>
       </div>
 
       <div class="campo">
         <label>Serviço</label>
+        <!-- As opções vêm do banco (GET /Servicos): o colaborador.js troca este campo pelas listas de serviço -->
         <select id="agend-servico" required>
           <option value="">Selecione o serviço...</option>
-          <option value="Manicure">Manicure</option>
-          <option value="Pedicure">Pedicure</option>
-          <option value="Corte de cabelo">Corte de cabelo</option>
-          <option value="Escova">Escova</option>
-          <option value="Coloração">Coloração</option>
-          <option value="Barba">Barba</option>
-          <option value="Spa">Spa</option>
-          <option value="Massagem">Massagem</option>
-          <option value="Limpeza de pele">Limpeza de pele</option>
-          <option value="Maquiagem">Maquiagem</option>
-          <option value="Depilação">Depilação</option>
-          <option value="Design de sobrancelhas">Design de sobrancelhas</option>
         </select>
       </div>
 
@@ -165,8 +171,15 @@
         </div>
         <div class="campo">
           <label>Duração (min)</label>
-          <input type="number" id="agend-duracao" value="60" step="15" min="15" required>
+          <input type="text" id="agend-duracao" placeholder="—" readonly>
+          <small class="dica-campo">Vem da duração cadastrada no serviço.</small>
         </div>
+      </div>
+
+      <div class="campo">
+        <label>Valor (R$)</label>
+        <input type="text" id="agend-valor" placeholder="—" readonly>
+        <small class="dica-campo">Valor cadastrado no serviço.</small>
       </div>
 
       <div class="campo">
@@ -177,6 +190,33 @@
       <div class="form-botoes">
         <button type="submit" class="btn-salvar">Confirmar Agendamento</button>
         <button type="button" id="btn-cancelar-agendamento" class="btn-cancelar">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL DE CADASTRAR CLIENTE (os mesmos clientes do dono) -->
+<div class="modal-overlay" id="modal-cliente" hidden>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Cadastrar Cliente</h3>
+      <button type="button" id="btn-fechar-cliente" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
+    </div>
+    <form id="form-cliente" class="form-agendamento" novalidate>
+      <div class="campo">
+        <label for="cli-nome">Nome do cliente <span style="color:#e74c3c;">*</span></label>
+        <input type="text" id="cli-nome" placeholder="Ex: João Pereira" maxlength="60" autocomplete="off">
+      </div>
+
+      <div class="campo">
+        <label for="cli-telefone">Telefone / WhatsApp <span style="color:#e74c3c;">*</span></label>
+        <input type="text" id="cli-telefone" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
+        <small class="dica-campo">Com DDD. Também é usado para o lembrete pelo WhatsApp.</small>
+      </div>
+
+      <div class="form-botoes">
+        <button type="submit" class="btn-salvar" id="btn-salvar-cliente">Salvar Cliente</button>
+        <button type="button" id="btn-cancelar-cliente" class="btn-cancelar">Cancelar</button>
       </div>
     </form>
   </div>

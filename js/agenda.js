@@ -80,11 +80,19 @@ function iniciarDashboard() {
   // Lista de serviços usada no cadastro de serviços e no cargo do colaborador.
   // Mantenha igual às opções de #colab-cargo no agenda.html.
   const SERVICOS_PADRAO = ["Manicure", "Pedicure", "Cabeleireiro", "Barbeiro", "Spa", "Esteticista", "Massagista", "Maquiador", "Depilador", "Designer de Sobrancelhas"];
-  let servicos = lerJsonLocal(CHAVE_SERVICOS, []).filter(s => s && s.nome);
+  // O BANCO é a única fonte dos serviços: a lista começa vazia e só é preenchida pelo GET da API.
+  // Nada de serviço guardado no navegador (limpa o resto que versões antigas deixaram).
+  try { localStorage.removeItem(CHAVE_SERVICOS); } catch (e) { /* sem armazenamento */ }
+  let servicos = [];
+  let erroCarregarServicos = ""; // motivo de a lista estar vazia quando o GET /Servicos falha
+
+  // Cópia do que veio do BANCO, para a tela do colaborador (que não tem token da API) ler.
+  // Não é uma fonte própria: é regravada a cada carga/alteração e fica vazia se o banco falhar.
+  const chaveServicosDoBanco = () => "servicosDoBanco:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
 
   function guardarServicos() {
-    try { localStorage.setItem(CHAVE_SERVICOS, JSON.stringify(servicos)); } catch (e) { /* sem armazenamento */ }
-    atualizarCargosColaborador(); // serviços novos também entram na lista do colaborador
+    try { localStorage.setItem(chaveServicosDoBanco(), JSON.stringify(servicos)); } catch (e) { /* sem armazenamento */ }
+    atualizarCargosColaborador(); // serviços do banco também entram na lista do colaborador
   }
 
   // Cada linha do agendamento é uma LISTA (select) com os serviços cadastrados.
@@ -159,8 +167,8 @@ function iniciarDashboard() {
     const btnMais = document.getElementById("btn-mais-servico");
     if (!servicos.length) {
       const aviso = document.createElement("small");
-      aviso.style.cssText = "color:var(--muted);";
-      aviso.textContent = "Nenhum serviço cadastrado. O dono cadastra em Administração > Serviços.";
+      aviso.style.cssText = erroCarregarServicos ? "color:#e11d48;" : "color:var(--muted);";
+      aviso.textContent = erroCarregarServicos || "Nenhum serviço cadastrado. O dono cadastra em Administração > Serviços.";
       grupo.appendChild(aviso);
       if (btnMais) btnMais.hidden = true;
       atualizarResumoServicos();
@@ -316,7 +324,7 @@ function iniciarDashboard() {
   function extrairLista(resposta) {
     if (Array.isArray(resposta)) return resposta;
     if (resposta && typeof resposta === "object") {
-      for (const chave of ["dados", "data", "items", "itens", "colaboradores", "result", "resultado", "$values", "value"]) {
+      for (const chave of ["dados", "data", "items", "itens", "colaboradores", "servicos", "Servicos", "servicosCadastrados", "result", "resultado", "$values", "value"]) {
         if (Array.isArray(resposta[chave])) return resposta[chave];
       }
     }
@@ -384,25 +392,38 @@ function iniciarDashboard() {
       duracaoMin: Number(item.duracaoMinutos ?? item.DuracaoMinutos ?? item.duracaoMin ?? item.duracao ?? item.Duracao) || 0
     };
   }
-  function mesclarServicos(locais, daApi) {
-    const doBanco = daApi.map(normalizarServicoApi).filter(Boolean);
-    const nomesBanco = new Set(doBanco.map(s => s.nome.toLowerCase()));
-    return doBanco.concat(locais.filter(s => !nomesBanco.has(s.nome.toLowerCase())));
+  // Só vale o que está no banco: serviço que existe só no navegador é descartado.
+  function mesclarServicos(_locais, daApi) {
+    return daApi.map(normalizarServicoApi).filter(Boolean);
   }
 
-  async function carregarDadosIniciais() {
+  // Lê os serviços do banco (GET /Servicos) e redesenha a tela. Se falhar, a lista fica vazia com o motivo.
+  async function recarregarServicosDoBanco() {
     try {
       const dadosServicos = await apiRequest("SERVICOS"); // GET: serviços do dono (token)
-      const listaServicosApi = extrairLista(dadosServicos);
+      console.log("[API] resposta de serviços:", dadosServicos);
+      // API sem conteúdo (204 / corpo vazio) = nenhum serviço no banco
+      const listaServicosApi = (dadosServicos === null || dadosServicos === undefined || dadosServicos === "") ? [] : extrairLista(dadosServicos);
       if (listaServicosApi) {
+        erroCarregarServicos = "";
         servicos = mesclarServicos(servicos, listaServicosApi);
-        guardarServicos();
-        renderizarListaServicos();
-        atualizarServicosAgendamento();
+      } else {
+        servicos = [];
+        erroCarregarServicos = "A API respondeu, mas não devolveu uma lista de serviços reconhecível (veja o console, F12).";
+        console.warn(erroCarregarServicos, dadosServicos);
       }
     } catch (erro) {
       console.warn("Não foi possível carregar serviços da API.", erro.message);
+      servicos = []; // sem banco, sem serviço
+      erroCarregarServicos = "Não foi possível carregar os serviços do banco. " + mensagemErroApiComum(erro, "Erro ao buscar os serviços na API.");
     }
+    guardarServicos();
+    renderizarListaServicos();
+    atualizarServicosAgendamento();
+  }
+
+  async function carregarDadosIniciais() {
+    await recarregarServicosDoBanco();
 
     try {
       const dadosColaboradores = await apiRequest("COLABORADORES");
@@ -870,6 +891,11 @@ function iniciarDashboard() {
     set("det-valor", ag.valor ? formatarMoeda(Number(ag.valor)) : "—");
     set("det-whatsapp", ag.whatsapp ? formatarTelefone(ag.whatsapp) : "—");
     document.getElementById("det-linha-whatsapp").hidden = !ag.whatsapp;
+    const btnZapDetalhes = document.getElementById("btn-whatsapp-detalhes");
+    if (btnZapDetalhes) {
+      btnZapDetalhes.hidden = !(whatsappLigado && telefoneValido(ag.whatsapp || ""));
+      btnZapDetalhes.onclick = () => abrirWhatsApp(ag);
+    }
 
     const fechar = () => { modal.hidden = true; };
     document.getElementById("btn-fechar-detalhes").onclick = fechar;
@@ -955,16 +981,6 @@ function iniciarDashboard() {
           <strong>${ag.cliente}</strong>
           ${ag.servico ? `<span>${ag.servico}</span>` : ''}
         `;
-        if (whatsappLigado && telefoneValido(ag.whatsapp || "")) {
-          const btnZap = document.createElement("button");
-          btnZap.type = "button";
-          btnZap.className = "btn-whatsapp-card";
-          btnZap.textContent = "💬";
-          btnZap.title = "Enviar lembrete pelo WhatsApp";
-          btnZap.setAttribute("aria-label", `Enviar lembrete pelo WhatsApp para ${ag.cliente}`);
-          btnZap.addEventListener("click", (e) => { e.stopPropagation(); abrirWhatsApp(ag); });
-          bloco.appendChild(btnZap);
-        }
         col.appendChild(bloco);
       });
 
@@ -1086,7 +1102,6 @@ function iniciarDashboard() {
 
     const campoDuracao = document.getElementById("agend-duracao");
     campoDuracao.value = ag.duracaoMin;
-    servicos = lerJsonLocal(CHAVE_SERVICOS, []).filter(s => s && s.nome);
     atualizarServicosAgendamento(Array.isArray(ag.servicos) ? ag.servicos : (ag.servico ? [ag.servico] : []));
     // Serviço antigo que não está mais cadastrado: mantém a duração que o agendamento já tinha
     if (!campoDuracao.value) campoDuracao.value = ag.duracaoMin;
@@ -1101,9 +1116,9 @@ function iniciarDashboard() {
     const campoData = document.getElementById("agend-data");
     campoData.min = hojeISO;
     campoData.value = (seletorData.value >= hojeISO) ? seletorData.value : hojeISO;
-    servicos = lerJsonLocal(CHAVE_SERVICOS, []).filter(s => s && s.nome);
     atualizarServicosAgendamento();
     modalAgendamento.hidden = false;
+    recarregarServicosDoBanco(); // traz o que está no banco agora
   });
   formAgendamento.addEventListener("reset", () => setTimeout(() => atualizarServicosAgendamento([]), 0));
 
@@ -1296,6 +1311,7 @@ function iniciarDashboard() {
       return;
     }
     if (!NOME_CLIENTE_REGEX.test(nome)) { mostrarErroForm(formCliente, mensagemNomeClienteInvalido(nome), campoNomeCliente); return; }
+    if (!nomeClienteComIniciaisMaiusculas(nome)) { mostrarErroForm(formCliente, MSG_NOME_CLIENTE_MAIUSCULA, campoNomeCliente); return; }
     if (!campoTelefoneCliente.value.trim()) { mostrarErroForm(formCliente, "Preencha o telefone do cliente.", campoTelefoneCliente); return; }
     if (!telefone) { mostrarErroForm(formCliente, "Digite um telefone válido com DDD. Exemplo: (11) 91234-5678", campoTelefoneCliente); return; }
     if (clientes.some(c => c.telefone === telefone)) {
@@ -1394,7 +1410,9 @@ function iniciarDashboard() {
   function renderizarListaServicos() {
     if (!listaServicos) return;
     if (!servicos.length) {
-      listaServicos.innerHTML = `<p style="padding: 12px; color: #888;">Nenhum serviço cadastrado.</p>`;
+      listaServicos.innerHTML = erroCarregarServicos
+        ? `<p style="padding: 12px; color: #e11d48;">${escaparHtml(erroCarregarServicos)}</p>`
+        : `<p style="padding: 12px; color: #888;">Nenhum serviço cadastrado.</p>`;
       return;
     }
     const linhas = servicos.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map(s => `
@@ -1514,7 +1532,15 @@ function iniciarDashboard() {
       const valorFixo = Math.round(valor * 100) / 100;
       if (servicoEditandoId !== null) {
         const existente = servicos.find(s => s.id === servicoEditandoId);
+        try {
+          // >>> API: PUT /Servicos/{id} (precisa existir no back-end)
+          await apiRequest("SERVICOS", { method: "PUT", body: { nome, duracaoMinutos: duracao, preco: valorFixo } }, `/${servicoEditandoId}`);
+        } catch (erro) {
+          mostrarErroForm(formServico, "Não foi possível alterar o serviço no banco: " + erro.message, campoNomeFoco());
+          return;
+        }
         if (existente) { existente.nome = nome; existente.valor = valorFixo; existente.duracaoMin = duracao; }
+        await recarregarServicosDoBanco(); // o que vale é o que ficou gravado no banco
       } else {
         const novo = { id: Date.now(), nome, valor: valorFixo, duracaoMin: duracao };
         // >>> API: POST /Servicos (tblServicos: DonoId vem do token; Nome, DuracaoMinutos, Preco).
@@ -1524,12 +1550,14 @@ function iniciarDashboard() {
             method: "POST",
             body: { nome, duracaoMinutos: duracao, preco: valorFixo }
           });
-          if (criado && Number.isFinite(Number(criado.id ?? criado.Id))) novo.id = Number(criado.id ?? criado.Id);
+          const idCriado = criado ? Number(criado.id ?? criado.Id) : NaN;
+          if (Number.isFinite(idCriado)) novo.id = idCriado;
         } catch (erro) {
           console.warn("Não foi possível salvar o serviço na API.", erro.message);
-          alert("O serviço foi salvo só neste navegador: não deu para enviar ao servidor.\n" + erro.message);
+          mostrarErroForm(formServico, "Não foi possível salvar o serviço no banco: " + erro.message, campoNomeFoco());
+          return; // não entra na lista se não foi para o banco
         }
-        servicos.push(novo);
+        await recarregarServicosDoBanco(); // o id verdadeiro vem do banco
       }
 
       guardarServicos();
@@ -1543,7 +1571,7 @@ function iniciarDashboard() {
   }
 
   if (listaServicos) {
-    listaServicos.addEventListener("click", function (e) {
+    listaServicos.addEventListener("click", async function (e) {
       const botao = e.target.closest("button[data-acao]");
       if (!botao || usuarioLogado.perfil !== "DONO") return;
       const id = Number(botao.dataset.id);
@@ -1552,11 +1580,19 @@ function iniciarDashboard() {
 
       if (botao.dataset.acao === "remover") {
         if (!confirm(`Remover o serviço "${servico.nome}"?`)) return;
+        try {
+          // >>> API: DELETE /Servicos/{id} (precisa existir no back-end)
+          await apiRequest("SERVICOS", { method: "DELETE" }, `/${id}`);
+        } catch (erro) {
+          alert("Não foi possível remover o serviço no banco: " + erro.message);
+          return; // continua na lista porque continua no banco
+        }
         servicos = servicos.filter(s => s.id !== id);
         guardarServicos();
         if (servicoEditandoId === id) { formServico.reset(); }
         renderizarListaServicos();
         atualizarServicosAgendamento();
+        await recarregarServicosDoBanco(); // confirma com o banco
       } else {
         definirNomeServicoNoForm(servico.nome);
         document.getElementById("serv-valor").value = servico.valor;
@@ -1627,6 +1663,7 @@ function iniciarDashboard() {
         return;
       }
       if (!NOME_CLIENTE_REGEX.test(nome)) { mostrarErroForm(formClienteAdmin, mensagemNomeClienteInvalido(nome), campoNomeAdm); return; }
+      if (!nomeClienteComIniciaisMaiusculas(nome)) { mostrarErroForm(formClienteAdmin, MSG_NOME_CLIENTE_MAIUSCULA, campoNomeAdm); return; }
       if (!campoTelAdm.value.trim()) { mostrarErroForm(formClienteAdmin, "Preencha o telefone do cliente.", campoTelAdm); return; }
       if (!telefone) { mostrarErroForm(formClienteAdmin, "Digite um telefone válido com DDD. Exemplo: (11) 91234-5678", campoTelAdm); return; }
       if (clientes.some(c => c.telefone === telefone && c.telefone !== clienteEditandoTel)) {
@@ -1733,6 +1770,73 @@ function iniciarDashboard() {
     campoOutros.addEventListener("input", sincronizarCargoOutros);
     document.getElementById("form-colaborador").addEventListener("reset", () => setTimeout(sincronizarCargoOutros, 0));
   }
+  // --- Colaborador: máscara e tamanho de telefone, CPF e data de admissão ---
+  const campoColabTel = document.getElementById("colab-telefone");
+  const campoColabCpf = document.getElementById("colab-cpf");
+  const campoColabAdmissao = document.getElementById("colab-data-admissao");
+
+  // CPF com máscara 000.000.000-00 (no máximo 11 números)
+  function formatarCpf(valor) {
+    const d = String(valor).replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return d.slice(0, 3) + "." + d.slice(3);
+    if (d.length <= 9) return d.slice(0, 3) + "." + d.slice(3, 6) + "." + d.slice(6);
+    return d.slice(0, 3) + "." + d.slice(3, 6) + "." + d.slice(6, 9) + "-" + d.slice(9);
+  }
+  // Devolve só os 11 números se o CPF for válido (tamanho + dígitos verificadores), senão ""
+  function cpfValido(valor) {
+    const d = String(valor).replace(/\D/g, "");
+    if (d.length !== 11 || /^(\d)\1+$/.test(d)) return "";
+    for (const tam of [9, 10]) {
+      let soma = 0;
+      for (let i = 0; i < tam; i++) soma += Number(d[i]) * (tam + 1 - i);
+      const dv = (soma * 10) % 11 % 10;
+      if (dv !== Number(d[tam])) return "";
+    }
+    return d;
+  }
+  // Data de admissão: ano com 4 dígitos, de 1950 até hoje
+  const ADMISSAO_ANO_MIN = 1950;
+  function anoDaData(valor) { return String(valor || "").replace(/^[+-]/, "").split("-")[0]; }
+  function admissaoValida(valor) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(valor || "")) return false;
+    if (Number(anoDaData(valor)) < ADMISSAO_ANO_MIN) return false;
+    return valor <= obterDataHojeISO();
+  }
+
+  if (campoColabTel) {
+    campoColabTel.maxLength = 15; // (11) 91234-5678
+    campoColabTel.inputMode = "numeric";
+    campoColabTel.addEventListener("input", () => { campoColabTel.value = formatarTelefone(campoColabTel.value); });
+  }
+  if (campoColabCpf) {
+    campoColabCpf.maxLength = 14; // 000.000.000-00
+    campoColabCpf.inputMode = "numeric";
+    campoColabCpf.addEventListener("input", () => { campoColabCpf.value = formatarCpf(campoColabCpf.value); });
+  }
+  if (campoColabAdmissao) {
+    campoColabAdmissao.min = ADMISSAO_ANO_MIN + "-01-01";
+    campoColabAdmissao.max = obterDataHojeISO();
+    // o campo de data deixa digitar ano com 5 ou 6 dígitos: corta para 4
+    campoColabAdmissao.addEventListener("input", () => {
+      const ano = anoDaData(campoColabAdmissao.value);
+      if (ano.length > 4) campoColabAdmissao.value = campoColabAdmissao.value.replace(ano, ano.slice(0, 4));
+    });
+  }
+
+  function validarCamposColaboradorExtras() {
+    if (campoColabTel && !telefoneValido(campoColabTel.value)) {
+      return { erro: "Telefone inválido: digite o DDD e o número completo, ex: (11) 91234-5678.", campo: campoColabTel };
+    }
+    if (campoColabCpf && !cpfValido(campoColabCpf.value)) {
+      return { erro: "CPF inválido: digite os 11 números, ex: 123.456.789-09.", campo: campoColabCpf };
+    }
+    if (campoColabAdmissao && !admissaoValida(campoColabAdmissao.value)) {
+      return { erro: "Data de admissão inválida: use o ano com 4 dígitos (de " + ADMISSAO_ANO_MIN + " até hoje).", campo: campoColabAdmissao };
+    }
+    return null;
+  }
+
   formColab.addEventListener("submit", async function (e) {
     e.preventDefault();
 
@@ -1744,6 +1848,11 @@ function iniciarDashboard() {
     const validacaoColab = validarNovoColaborador();
     if (validacaoColab.erros.length > 0) {
       mostrarErroForm(formColab, validacaoColab.erros.join("\n"), validacaoColab.campoErro);
+      return;
+    }
+    const extrasColab = validarCamposColaboradorExtras();
+    if (extrasColab) {
+      mostrarErroForm(formColab, extrasColab.erro, extrasColab.campo);
       return;
     }
     limparErroForm(formColab);
@@ -1760,8 +1869,8 @@ function iniciarDashboard() {
     const cargoNovo = document.getElementById("colab-cargo").value;
     const emailNovo = document.getElementById("colab-email").value.trim().toLowerCase();
     const senhaNova = document.getElementById("colab-senha").value;
-    const telefoneNovo = document.getElementById("colab-telefone").value.trim();
-    const cpfNovo = document.getElementById("colab-cpf").value.trim();
+    const telefoneNovo = telefoneValido(document.getElementById("colab-telefone").value); // só números
+    const cpfNovo = cpfValido(document.getElementById("colab-cpf").value); // só números
     const dataAdmissaoNova = document.getElementById("colab-data-admissao").value;
     const credenciais = lerJsonLocal(CHAVE_CREDENCIAIS, {});
     if (credenciais[emailNovo]) {

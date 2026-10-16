@@ -208,6 +208,9 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .form-botoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 .btn-salvar { background: var(--roxo); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
 .btn-cancelar { background: none; border: 1px solid var(--border); color: var(--texto); border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
+.btn-whatsapp-detalhes { background: #25d366; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: auto; }
+.btn-whatsapp-detalhes:hover { background: #1ebe5b; }
+.btn-whatsapp-detalhes[hidden] { display: none; }
 
 /* MODAL */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
@@ -855,6 +858,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
     <div class="boleto-linha"><span>Valor</span><strong id="det-valor">—</strong></div>
     <div class="boleto-linha" id="det-linha-whatsapp"><span>WhatsApp</span><strong id="det-whatsapp">—</strong></div>
     <div class="form-botoes">
+      <button type="button" class="btn-whatsapp-detalhes" id="btn-whatsapp-detalhes" hidden>💬 WhatsApp</button>
       <button type="button" class="btn-cancelar" id="btn-fechar-detalhes-2">Fechar</button>
       <button type="button" class="btn-salvar" id="btn-editar-agendamento">✎ Editar</button>
     </div>

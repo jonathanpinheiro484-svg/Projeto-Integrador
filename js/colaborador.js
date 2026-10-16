@@ -38,11 +38,177 @@ function iniciarColaborador() {
   }
 
   // =====================================================
-  // VÁRIOS SERVIÇOS NO MESMO AGENDAMENTO
-  // Troca o <select id="agend-servico"> (que só aceita 1 opção) por caixinhas de marcar.
-  // As opções continuam vindo do HTML: para incluir um serviço novo, basta
-  // colocar mais um <option> no select.
+  // SERVIÇOS DO BANCO NO AGENDAMENTO
+  // Mesmo modelo da agenda do dono: cada linha é uma LISTA com os serviços cadastrados
+  // no banco (GET /Servicos). Duração e valor vêm do cadastro do serviço (somente leitura).
+  // Sem serviço no banco não há o que escolher: nada fica guardado só no navegador.
   // =====================================================
+  const TEXTO_DICA_SERVICOS = "Marque quantos serviços forem necessários.";
+  let servicos = [];            // [{ id, nome, valor, duracaoMin }] — só o que veio do banco
+  let erroCarregarServicos = ""; // motivo de a lista estar vazia quando o GET /Servicos falha
+
+  function formatarMoeda(v) { return "R$ " + Number(v || 0).toFixed(2).replace(".", ","); }
+
+  // Máscara enquanto digita: (11) 91234-5678
+  function formatarTelefone(valor) {
+    const d = valor.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 2) return d.length ? `(${d}` : "";
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+
+  // Devolve só os números com DDD (10 ou 11 dígitos) ou "" se for inválido
+  function telefoneValido(valor) {
+    const d = valor.replace(/\D/g, "");
+    if (d.length < 10 || d.length > 11) return "";
+    if (/^(\d)\1+$/.test(d)) return ""; // 00000000000, 11111111111...
+    if (Number(d.slice(0, 2)) < 11) return ""; // DDD inexistente
+    if (d.length === 11 && d[2] !== "9") return ""; // celular tem 9 depois do DDD
+    return d;
+  }
+
+  // A API pode devolver a lista direto ou dentro de um objeto ({ dados: [...] }, { items: [...] }...)
+  function extrairLista(resposta) {
+    if (Array.isArray(resposta)) return resposta;
+    if (resposta && typeof resposta === "object") {
+      for (const chave of ["dados", "data", "items", "itens", "clientes", "servicos", "Servicos", "servicosCadastrados", "result", "resultado", "$values", "value"]) {
+        if (Array.isArray(resposta[chave])) return resposta[chave];
+      }
+    }
+    return null;
+  }
+
+  // A API manda nome, duração e preço (maiúsculo ou minúsculo)
+  function normalizarServicoApi(item) {
+    if (!item) return null;
+    const nome = String(item.nome ?? item.Nome ?? "").trim();
+    if (!nome) return null;
+    const id = Number(item.id ?? item.Id);
+    return {
+      id: Number.isFinite(id) ? id : Date.now() + Math.floor(Math.random() * 1000),
+      nome,
+      valor: Math.round((Number(item.preco ?? item.Preco ?? item.valor ?? item.Valor) || 0) * 100) / 100,
+      duracaoMin: Number(item.duracaoMinutos ?? item.DuracaoMinutos ?? item.duracaoMin ?? item.duracao ?? item.Duracao) || 0
+    };
+  }
+
+  // Lê os serviços do banco (GET /Servicos) e redesenha as listas. Se falhar, fica vazio com o motivo.
+  // O login do colaborador é simulado no front e não tem token da API. Sem token, usa a cópia dos
+  // serviços do banco que a agenda do dono grava a cada carga (chave "servicosDoBanco:<e-mail do dono>").
+  const chaveServicosDoBanco = () => "servicosDoBanco:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
+  function lerServicosCopiaDoBanco() {
+    return lerJsonLocal(chaveServicosDoBanco(), []).map(normalizarServicoApi).filter(Boolean);
+  }
+
+  async function recarregarServicosDoBanco() {
+    if (!API_CONFIG.token) {
+      servicos = lerServicosCopiaDoBanco();
+      erroCarregarServicos = servicos.length ? "" : "Nenhum serviço disponível. Peça ao dono para abrir a agenda dele e conferir se há serviços cadastrados.";
+    } else {
+      try {
+        const dados = await apiRequest("SERVICOS"); // GET: serviços do dono (token)
+        // API sem conteúdo (204 / corpo vazio) = nenhum serviço no banco
+        const lista = (dados === null || dados === undefined || dados === "") ? [] : extrairLista(dados);
+        if (lista) {
+          erroCarregarServicos = "";
+          servicos = lista.map(normalizarServicoApi).filter(Boolean);
+        } else {
+          servicos = [];
+          erroCarregarServicos = "A API respondeu, mas não devolveu uma lista de serviços reconhecível.";
+        }
+      } catch (erro) {
+        console.warn("Não foi possível carregar serviços da API.", erro.message);
+        servicos = [];
+        erroCarregarServicos = "Não foi possível carregar os serviços do banco. " + mensagemErroApiComum(erro, "Erro ao buscar os serviços na API.");
+      }
+    }
+    atualizarServicosAgendamento();
+  }
+
+  // Cada linha do agendamento é uma LISTA (select) com os serviços cadastrados.
+  function selectsServicos() {
+    const grupo = document.getElementById("agend-servicos-grupo");
+    return grupo ? Array.from(grupo.querySelectorAll("select.servico-select")) : [];
+  }
+  function opcoesSelecionadas() {
+    return selectsServicos().map(sel => sel.selectedOptions[0]).filter(op => op && op.value);
+  }
+  function calcularTotalServicos() {
+    return opcoesSelecionadas().reduce((soma, op) => soma + (Number(op.dataset.valor) || 0), 0);
+  }
+
+  // Soma a duração e o valor dos serviços escolhidos e preenche os campos (somente leitura)
+  function atualizarResumoServicos() {
+    const resumo = document.getElementById("agend-servicos-resumo");
+    const campoDuracao = document.getElementById("agend-duracao");
+    const campoValor = document.getElementById("agend-valor");
+    const escolhidas = opcoesSelecionadas();
+    const minutos = escolhidas.reduce((soma, op) => soma + (Number(op.dataset.duracao) || 0), 0);
+    if (escolhidas.length) {
+      if (campoDuracao) campoDuracao.value = minutos > 0 ? minutos : "";
+      if (campoValor) campoValor.value = formatarMoeda(calcularTotalServicos());
+      if (resumo) resumo.textContent = "Total: " + formatarMoeda(calcularTotalServicos()) + " · " + minutos + " min";
+    } else {
+      // Sem serviço escolhido, duração e valor ficam vazios: sempre vêm do cadastro do serviço
+      if (campoDuracao) campoDuracao.value = "";
+      if (campoValor) campoValor.value = "";
+      if (resumo) resumo.textContent = TEXTO_DICA_SERVICOS;
+    }
+  }
+
+  function criarLinhaServico(nomeEscolhido, podeRemover) {
+    const linha = document.createElement("div");
+    linha.className = "servico-linha";
+    const sel = document.createElement("select");
+    sel.className = "servico-select";
+    sel.setAttribute("aria-label", "Serviço");
+    sel.innerHTML = '<option value="">Selecione o serviço...</option>';
+    servicos.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach(s => {
+      const op = document.createElement("option");
+      op.value = s.nome;
+      op.dataset.valor = s.valor;
+      op.dataset.duracao = s.duracaoMin;
+      op.textContent = `${s.nome} · ${formatarMoeda(Number(s.valor) || 0)} · ${s.duracaoMin} min`;
+      sel.appendChild(op);
+    });
+    if (nomeEscolhido && servicos.some(s => s.nome === nomeEscolhido)) sel.value = nomeEscolhido;
+    sel.addEventListener("change", atualizarResumoServicos);
+    linha.appendChild(sel);
+    if (podeRemover) {
+      const remover = document.createElement("button");
+      remover.type = "button";
+      remover.className = "btn-link";
+      remover.style.color = "#e11d48";
+      remover.textContent = "Remover";
+      remover.addEventListener("click", () => { linha.remove(); atualizarResumoServicos(); });
+      linha.appendChild(remover);
+    }
+    return linha;
+  }
+
+  // Refaz as listas do agendamento com os serviços do banco (mantém o que já estava escolhido)
+  function atualizarServicosAgendamento(marcadosIniciais) {
+    const grupo = document.getElementById("agend-servicos-grupo");
+    if (!grupo) return;
+    const jaMarcados = Array.isArray(marcadosIniciais) ? marcadosIniciais : lerServicosMarcados();
+    grupo.innerHTML = "";
+    const btnMais = document.getElementById("btn-mais-servico");
+    if (!servicos.length) {
+      const aviso = document.createElement("small");
+      aviso.style.cssText = erroCarregarServicos ? "color:#e11d48;" : "color:var(--muted);";
+      aviso.textContent = erroCarregarServicos || "Nenhum serviço cadastrado. O dono cadastra em Administração > Serviços.";
+      grupo.appendChild(aviso);
+      if (btnMais) btnMais.hidden = true;
+      atualizarResumoServicos();
+      return;
+    }
+    if (btnMais) btnMais.hidden = false;
+    const nomes = jaMarcados.length ? jaMarcados : [""];
+    nomes.forEach((nome, i) => grupo.appendChild(criarLinhaServico(nome, i > 0)));
+    atualizarResumoServicos();
+  }
+
   function prepararServicosMultiplos() {
     const select = document.getElementById("agend-servico");
     if (!select || select.tagName !== "SELECT") return;
@@ -51,57 +217,59 @@ function iniciarColaborador() {
       const estilo = document.createElement("style");
       estilo.id = "estilo-servicos-multiplos";
       estilo.textContent =
-        ".servicos-grupo { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; max-height:170px; overflow-y:auto; padding:10px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); outline:none; }" +
-        ".servicos-grupo label { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--texto); cursor:pointer; }" +
-        ".servicos-grupo input[type=\"checkbox\"] { width:16px; height:16px; padding:0; margin:0; flex-shrink:0; cursor:pointer; accent-color:#6c5ce7; }" +
-        "@media (max-width:480px) { .servicos-grupo { grid-template-columns:1fr; } }";
+        ".servicos-lista { display:flex; flex-direction:column; gap:8px; outline:none; }" +
+        ".servico-linha { display:flex; align-items:center; gap:10px; }" +
+        ".servico-linha select { flex:1; min-width:0; }";
       document.head.appendChild(estilo);
     }
 
     const grupo = document.createElement("div");
     grupo.id = "agend-servicos-grupo";
-    grupo.className = "servicos-grupo";
+    grupo.className = "servicos-lista";
     grupo.setAttribute("role", "group");
     grupo.setAttribute("aria-label", "Serviços");
-    grupo.tabIndex = -1; // permite focar o grupo quando falta marcar algum serviço
-
-    Array.from(select.options).filter(opcao => opcao.value).forEach(opcao => {
-      const rotulo = document.createElement("label");
-      const caixa = document.createElement("input");
-      caixa.type = "checkbox";
-      caixa.value = opcao.value;
-      rotulo.appendChild(caixa);
-      rotulo.appendChild(document.createTextNode(opcao.textContent));
-      grupo.appendChild(rotulo);
-    });
+    grupo.tabIndex = -1; // permite focar o grupo quando falta escolher o serviço
 
     // O id "agend-servico" continua existindo (escondido) porque a validação do
-    // comum.js lê esse campo. Quem guarda os serviços de verdade é o grupo acima.
+    // comum.js lê esse campo. Quem guarda os serviços de verdade são as listas acima.
     const campoEscondido = document.createElement("input");
     campoEscondido.type = "hidden";
     campoEscondido.id = "agend-servico";
 
+    const btnMais = document.createElement("button");
+    btnMais.type = "button";
+    btnMais.id = "btn-mais-servico";
+    btnMais.className = "btn-link";
+    btnMais.textContent = "+ Adicionar outro serviço";
+    btnMais.addEventListener("click", () => {
+      const g = document.getElementById("agend-servicos-grupo");
+      const linha = criarLinhaServico("", true);
+      g.appendChild(linha);
+      linha.querySelector("select").focus();
+    });
+
     const dica = document.createElement("small");
+    dica.id = "agend-servicos-resumo";
     dica.style.cssText = "font-size:11px; color:var(--muted);";
-    dica.textContent = "Marque quantos serviços forem necessários.";
+    dica.textContent = TEXTO_DICA_SERVICOS;
 
     const campo = select.parentElement;
     select.replaceWith(grupo);
-    grupo.insertAdjacentElement("afterend", dica);
-    grupo.insertAdjacentElement("afterend", campoEscondido);
+    grupo.insertAdjacentElement("afterend", btnMais);
+    btnMais.insertAdjacentElement("afterend", campoEscondido);
+    campoEscondido.insertAdjacentElement("afterend", dica);
 
     const titulo = campo ? campo.querySelector(":scope > label") : null;
-    if (titulo) titulo.textContent = "Serviços";
+    if (titulo) titulo.textContent = "Serviço";
   }
 
-  // Lista dos serviços marcados, ex.: ["Manicure", "Pedicure"]
+  // Lista dos serviços escolhidos, ex.: ["Manicure", "Pedicure"]
   function lerServicosMarcados() {
-    const grupo = document.getElementById("agend-servicos-grupo");
-    if (!grupo) return [];
-    return Array.from(grupo.querySelectorAll('input[type="checkbox"]:checked')).map(caixa => caixa.value);
+    const nomes = selectsServicos().map(sel => sel.value).filter(Boolean);
+    return nomes.filter((nome, i) => nomes.indexOf(nome) === i); // sem repetir o mesmo serviço
   }
 
-  // Mesma validação de sempre (comum.js) + exigir pelo menos um serviço marcado
+  // Mesma validação de sempre (comum.js) + exigir pelo menos um serviço escolhido
   function validarAgendamentoComServicos() {
     const marcados = lerServicosMarcados();
     const campoEscondido = document.getElementById("agend-servico");
@@ -109,17 +277,20 @@ function iniciarColaborador() {
     if (campoEscondido) campoEscondido.value = marcados.length ? "serviços marcados" : "";
 
     const resultado = validarNovoAgendamento();
-    const erros = resultado.erros.filter(erro => erro !== "Preencha o serviço.");
-    let campoErro = (resultado.campoErro === campoEscondido) ? null : resultado.campoErro;
+    // Sem serviço escolhido a duração fica vazia de propósito: só o aviso do serviço aparece
+    const erros = resultado.erros.filter(erro => erro !== "Preencha o serviço." && (marcados.length > 0 || !/dura[cç][aã]o/i.test(erro)));
+    const erroNaDuracao = marcados.length === 0 && resultado.campoErro && resultado.campoErro.id === "agend-duracao";
+    let campoErro = (resultado.campoErro === campoEscondido || erroNaDuracao) ? null : resultado.campoErro;
 
     if (marcados.length === 0) {
       erros.unshift("Escolha pelo menos um serviço.");
-      if (!campoErro) campoErro = document.getElementById("agend-servicos-grupo");
+      if (!campoErro) campoErro = selectsServicos()[0] || document.getElementById("agend-servicos-grupo");
     }
     return { erros, campoErro };
   }
 
   prepararServicosMultiplos();
+  atualizarServicosAgendamento();
 
   // Só colaborador logado entra aqui
   const sessao = lerJsonLocal(CHAVE_SESSAO, null);
@@ -313,6 +484,184 @@ function iniciarColaborador() {
     renderizarAgenda();
   }
 
+  // --- EDITAR AGENDAMENTO (clicar no bloco da PRÓPRIA agenda) ---
+  // A janela é criada aqui mesmo. Edita só o cliente e o telefone (WhatsApp) do agendamento.
+  let agendEditandoId = null;
+
+  function garantirModalEdicao() {
+    let modalEd = document.getElementById("modal-editar-agendamento");
+    if (modalEd) return modalEd;
+
+    const estiloCampo = "width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid #ccc; border-radius:8px; font:inherit;";
+    modalEd = document.createElement("div");
+    modalEd.id = "modal-editar-agendamento";
+    modalEd.style.cssText = "display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; z-index:1000; padding:16px;";
+    modalEd.innerHTML =
+      '<form id="form-editar-agendamento" novalidate style="background:var(--card, #fff); color:inherit; width:100%; max-width:420px; border-radius:12px; padding:20px; display:flex; flex-direction:column; gap:12px;">' +
+        '<h3 style="margin:0;">Editar agendamento</h3>' +
+        '<small id="edit-agend-resumo" style="color:var(--muted);"></small>' +
+        '<label style="display:flex; flex-direction:column; gap:4px;">Cliente' +
+          '<input id="edit-agend-cliente" type="text" autocomplete="off" style="' + estiloCampo + '">' +
+        '</label>' +
+        '<label style="display:flex; flex-direction:column; gap:4px;">Telefone (WhatsApp)' +
+          '<span style="display:flex; gap:8px; align-items:center;">' +
+            '<input id="edit-agend-whatsapp" type="tel" autocomplete="off" placeholder="(11) 91234-5678" style="' + estiloCampo + 'flex:1; min-width:0;">' +
+            '<button type="button" id="btn-zap-edicao" title="Chamar no WhatsApp" aria-label="Chamar no WhatsApp" style="flex:none; width:38px; height:38px; padding:0; border:none; border-radius:8px; background:#25d366; cursor:pointer; display:flex; align-items:center; justify-content:center;">' +
+              '<svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2C6.5 2 2 6.2 2 11.4c0 2.1.8 4.1 2.1 5.7L3 22l5.2-1.6c1.1.5 2.5.8 3.8.8 5.5 0 10-4.2 10-9.4S17.5 2 12 2z"/></svg>' +
+            '</button>' +
+          '</span>' +
+        '</label>' +
+        '<small id="edit-agend-erro" style="color:#e11d48; display:none; white-space:pre-line;"></small>' +
+        '<div style="display:flex; gap:10px; justify-content:flex-end; align-items:center;">' +
+          '<button type="button" id="btn-cancelar-edicao" class="btn-link">Cancelar</button>' +
+          '<button type="submit" id="btn-salvar-edicao">Salvar</button>' +
+        '</div>' +
+      '</form>';
+    document.body.appendChild(modalEd);
+
+    const form = modalEd.querySelector("form");
+    const campoNomeEd = modalEd.querySelector("#edit-agend-cliente");
+    const campoZapEd = modalEd.querySelector("#edit-agend-whatsapp");
+    const erroEd = modalEd.querySelector("#edit-agend-erro");
+
+    const fechar = () => { modalEd.style.display = "none"; agendEditandoId = null; erroEd.style.display = "none"; };
+    const falhar = (msg, campo) => { erroEd.textContent = msg; erroEd.style.display = "block"; if (campo) campo.focus(); };
+
+    modalEd.querySelector("#btn-cancelar-edicao").addEventListener("click", fechar);
+    modalEd.addEventListener("click", (e) => { if (e.target === modalEd) fechar(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalEd.style.display !== "none") fechar(); });
+
+    // Mesmas regras do cadastro de cliente: nome só com letras; telefone com máscara
+    campoNomeEd.addEventListener("input", () => {
+      campoNomeEd.value = campoNomeEd.value.replace(/[^\p{L}\s'-]/gu, "").replace(/\s{2,}/g, " ");
+    });
+    campoZapEd.addEventListener("input", () => { campoZapEd.value = formatarTelefone(campoZapEd.value); });
+    modalEd.querySelector("#btn-zap-edicao").addEventListener("click", () => {
+      const tel = telefoneValido(campoZapEd.value);
+      if (!tel) { falhar("Digite um WhatsApp válido com DDD para abrir a conversa. Exemplo: (11) 91234-5678", campoZapEd); return; }
+      erroEd.style.display = "none";
+      window.open("https://wa.me/55" + tel, "_blank", "noopener");
+    });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const alvo = agendamentos.find(a => a.id === agendEditandoId);
+      if (!alvo || alvo.colaboradorId !== meuId) { fechar(); return; } // só edita a própria agenda
+
+      const nome = campoNomeEd.value.trim();
+      campoNomeEd.value = nome;
+      if (!nome) { falhar("Preencha o nome do cliente.", campoNomeEd); return; }
+      if (nome.length < AGEND_CLIENTE_MIN || nome.length > AGEND_CLIENTE_MAX) {
+        falhar(`O nome do cliente deve ter de ${AGEND_CLIENTE_MIN} a ${AGEND_CLIENTE_MAX} caracteres.`, campoNomeEd);
+        return;
+      }
+      if (!NOME_CLIENTE_REGEX.test(nome)) { falhar(mensagemNomeClienteInvalido(nome), campoNomeEd); return; }
+      if (!nomeClienteComIniciaisMaiusculas(nome)) { falhar(MSG_NOME_CLIENTE_MAIUSCULA, campoNomeEd); return; }
+
+      // Telefone é opcional no agendamento; se preencher, precisa ser válido
+      let telefone = "";
+      if (campoZapEd.value.trim()) {
+        telefone = telefoneValido(campoZapEd.value);
+        if (!telefone) { falhar("Digite um WhatsApp válido com DDD. Exemplo: (11) 91234-5678", campoZapEd); return; }
+      }
+
+      alvo.cliente = nome;
+      alvo.whatsapp = telefone;
+      salvarAgendamentosLocal(agendamentos);
+      renderizarAgenda();
+      fechar();
+    });
+
+    return modalEd;
+  }
+
+  function abrirEdicaoAgendamento(ag) {
+    if (ag.colaboradorId !== meuId) return;
+    const modalEd = garantirModalEdicao();
+    agendEditandoId = ag.id;
+    modalEd.querySelector("#edit-agend-erro").style.display = "none";
+    modalEd.querySelector("#edit-agend-cliente").value = ag.cliente || "";
+    modalEd.querySelector("#edit-agend-whatsapp").value = ag.whatsapp ? formatarTelefone(ag.whatsapp) : "";
+    modalEd.querySelector("#edit-agend-resumo").textContent =
+      `${ag.servico || "Serviço não informado"} · ${ag.data} às ${ag.horaInicio} · ${ag.duracaoMin} min` +
+      (ag.valor ? " · " + formatarMoeda(ag.valor) : "");
+    modalEd.style.display = "flex";
+    modalEd.querySelector("#edit-agend-cliente").focus();
+  }
+
+  // --- DETALHES DO AGENDAMENTO (própria agenda): mostra os dados e o botão Editar ---
+  function garantirModalDetalhes() {
+    let modalDet = document.getElementById("modal-detalhes-agendamento");
+    if (modalDet) return modalDet;
+
+    const linha = (rotulo, id) =>
+      '<div style="display:flex; justify-content:space-between; gap:16px; padding:9px 0; border-bottom:1px solid rgba(128,128,128,.25); font-size:14px;">' +
+        '<span style="color:var(--muted, #8a93a6);">' + rotulo + '</span>' +
+        '<strong id="' + id + '" style="text-align:right;"></strong>' +
+      '</div>';
+
+    modalDet = document.createElement("div");
+    modalDet.id = "modal-detalhes-agendamento";
+    modalDet.style.cssText = "display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; z-index:1000; padding:16px;";
+    modalDet.innerHTML =
+      '<div style="background:var(--card, #fff); color:inherit; width:100%; max-width:460px; border-radius:16px; padding:22px 22px 18px;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">' +
+          '<h3 style="margin:0; font-size:17px;">Detalhes do agendamento</h3>' +
+          '<button type="button" id="det-agend-x" aria-label="Fechar" style="background:none; border:none; font-size:20px; cursor:pointer; color:inherit;">✕</button>' +
+        '</div>' +
+        linha("Cliente", "det-agend-cliente") +
+        linha("Serviço", "det-agend-servico") +
+        linha("Profissional", "det-agend-profissional") +
+        linha("Data", "det-agend-data") +
+        linha("Horário", "det-agend-horario") +
+        linha("Duração", "det-agend-duracao") +
+        linha("Valor", "det-agend-valor") +
+        linha("WhatsApp", "det-agend-whatsapp") +
+        '<div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">' +
+          '<button type="button" id="det-agend-zap" style="display:none; margin-right:auto; align-items:center; gap:6px; padding:9px 14px; border:none; background:#25d366; color:#fff; border-radius:8px; cursor:pointer; font:inherit; font-weight:600;">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2C6.5 2 2 6.2 2 11.4c0 2.1.8 4.1 2.1 5.7L3 22l5.2-1.6c1.1.5 2.5.8 3.8.8 5.5 0 10-4.2 10-9.4S17.5 2 12 2z"/></svg>WhatsApp' +
+          '</button>' +
+          '<button type="button" id="det-agend-fechar" style="padding:9px 18px; border:1px solid rgba(128,128,128,.4); background:transparent; color:inherit; border-radius:8px; cursor:pointer; font:inherit;">Fechar</button>' +
+          '<button type="button" id="det-agend-editar" style="padding:9px 18px; border:none; background:#6c5ce7; color:#fff; border-radius:8px; cursor:pointer; font:inherit; font-weight:600;">✎ Editar</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modalDet);
+
+    const fechar = () => { modalDet.style.display = "none"; };
+    modalDet.querySelector("#det-agend-x").addEventListener("click", fechar);
+    modalDet.querySelector("#det-agend-fechar").addEventListener("click", fechar);
+    modalDet.addEventListener("click", (e) => { if (e.target === modalDet) fechar(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && modalDet.style.display !== "none") fechar(); });
+    modalDet.querySelector("#det-agend-editar").addEventListener("click", () => {
+      const ag = agendamentos.find(a => String(a.id) === modalDet.dataset.agendId);
+      fechar();
+      if (ag) abrirEdicaoAgendamento(ag);
+    });
+    modalDet.querySelector("#det-agend-zap").addEventListener("click", () => {
+      const ag = agendamentos.find(a => String(a.id) === modalDet.dataset.agendId);
+      if (ag && ag.whatsapp) window.open("https://wa.me/55" + String(ag.whatsapp).replace(/\D/g, ""), "_blank", "noopener");
+    });
+    return modalDet;
+  }
+
+  function abrirDetalhesAgendamento(ag) {
+    const modalDet = garantirModalDetalhes();
+    modalDet.dataset.agendId = ag.id;
+    const dono = comDono(colaboradores).find(c => c.id === ag.colaboradorId);
+    const [ano, mes, dia] = String(ag.data || "").split("-");
+    const colocar = (id, texto) => { modalDet.querySelector("#" + id).textContent = texto; };
+    colocar("det-agend-cliente", ag.cliente || "—");
+    colocar("det-agend-servico", ag.servico || "Não informado");
+    colocar("det-agend-profissional", (dono && dono.nome) || sessao.nome || "—");
+    colocar("det-agend-data", ano && mes && dia ? `${dia}/${mes}/${ano}` : (ag.data || "—"));
+    colocar("det-agend-horario", ag.horaInicio || "—");
+    colocar("det-agend-duracao", ag.duracaoMin ? ag.duracaoMin + " min" : "—");
+    colocar("det-agend-valor", formatarMoeda(ag.valor));
+    colocar("det-agend-whatsapp", ag.whatsapp ? formatarTelefone(ag.whatsapp) : "Não informado");
+    modalDet.querySelector("#det-agend-zap").style.display = ag.whatsapp ? "flex" : "none";
+    modalDet.style.display = "flex";
+  }
+
   function renderizarAgenda() {
     agenda.innerHTML = "";
 
@@ -409,7 +758,8 @@ function iniciarColaborador() {
           bloco.appendChild(span);
         }
         bloco.addEventListener("click", () => {
-          alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}`);
+          if (editavel) { abrirDetalhesAgendamento(ag); return; } // própria agenda: abre os detalhes, com botão Editar
+          alert(`📋 Detalhes do Agendamento:\n\nCliente: ${ag.cliente}\nServiço: ${ag.servico || "Não informado"}\nInício: ${ag.horaInicio}\nDuração: ${ag.duracaoMin} min\nData: ${ag.data}${ag.valor ? "\nValor: " + formatarMoeda(ag.valor) : ""}`);
         });
         col.appendChild(bloco);
       });
@@ -431,8 +781,11 @@ function iniciarColaborador() {
     const campoData = document.getElementById("agend-data");
     campoData.min = hojeISO;
     campoData.value = seletorData.value >= hojeISO ? seletorData.value : hojeISO;
+    atualizarServicosAgendamento();
     modal.hidden = false;
+    recarregarServicosDoBanco(); // traz os serviços que o dono cadastrou/alterou há pouco
   });
+  formAgend.addEventListener("reset", () => setTimeout(() => atualizarServicosAgendamento([]), 0));
   const fecharModal = () => { modal.hidden = true; limparErroForm(formAgend); };
   document.getElementById("btn-fechar-modal").addEventListener("click", fecharModal);
   document.getElementById("btn-cancelar-agendamento").addEventListener("click", fecharModal);
@@ -444,6 +797,16 @@ function iniciarColaborador() {
     if (validacaoAgend.erros.length > 0) {
       mostrarErroForm(formAgend, validacaoAgend.erros.join("\n"), validacaoAgend.campoErro);
       return;
+    }
+    // WhatsApp do cliente (opcional; se preencher, precisa ser válido)
+    let whatsappCliente = "";
+    const campoZap = document.getElementById("agend-whatsapp");
+    if (campoZap && campoZap.value.trim()) {
+      whatsappCliente = telefoneValido(campoZap.value);
+      if (!whatsappCliente) {
+        mostrarErroForm(formAgend, "Digite um WhatsApp válido com DDD. Exemplo: (11) 91234-5678", campoZap);
+        return;
+      }
     }
     limparErroForm(formAgend);
     const data = document.getElementById("agend-data").value;
@@ -460,7 +823,9 @@ function iniciarColaborador() {
       data,
       horaInicio: document.getElementById("agend-hora-inicio").value,
       duracaoMin: parseInt(document.getElementById("agend-duracao").value),
-      cor: document.getElementById("agend-cor").value
+      cor: document.getElementById("agend-cor").value,
+      valor: calcularTotalServicos(), // soma dos valores fixos dos serviços escolhidos
+      whatsapp: whatsappCliente
     };
     agendamentos.push(novo);
     salvarAgendamentosLocal(agendamentos);
@@ -470,6 +835,162 @@ function iniciarColaborador() {
     renderizarAgenda();
     fecharModal();
     formAgend.reset();
+  });
+
+  // =====================================================
+  // CLIENTES (os mesmos do dono)
+  // POST /Clientes cadastra { nome, telefone }; GET /Clientes devolve os clientes do dono do token.
+  // A lista local usa a MESMA chave da agenda do dono, então os dois enxergam os mesmos clientes.
+  // =====================================================
+  let clientes = []; // [{ id, nome, telefone (só números) }]
+  const chaveClientes = () => "clientesCadastrados:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
+
+  function normalizarCliente(c) {
+    if (!c) return null;
+    const nome = String(c.nome ?? c.Nome ?? "").trim();
+    if (!nome) return null;
+    return {
+      id: c.id ?? c.Id ?? null,
+      nome,
+      telefone: String(c.telefone ?? c.Telefone ?? "").replace(/\D/g, "")
+    };
+  }
+
+  function salvarClientesLocal() {
+    try { localStorage.setItem(chaveClientes(), JSON.stringify(clientes)); } catch (e) { /* sem armazenamento: vale só nesta visita */ }
+  }
+
+  function atualizarListaClientes() {
+    const lista = document.getElementById("lista-clientes");
+    if (!lista) return;
+    lista.innerHTML = "";
+    clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach(c => {
+      const opcao = document.createElement("option");
+      opcao.value = c.nome;
+      opcao.label = c.telefone ? c.nome + " · " + formatarTelefone(c.telefone) : c.nome;
+      lista.appendChild(opcao);
+    });
+  }
+
+  async function carregarClientes() {
+    clientes = lerJsonLocal(chaveClientes(), []).map(normalizarCliente).filter(Boolean);
+    atualizarListaClientes();
+    if (!API_CONFIG.token) return;
+    try {
+      const dados = await apiRequest("CLIENTES"); // GET: a API devolve só os clientes do dono do token
+      const listaApi = extrairLista(dados);
+      if (listaApi) {
+        clientes = listaApi.map(normalizarCliente).filter(Boolean);
+        salvarClientesLocal();
+        atualizarListaClientes();
+      }
+    } catch (erro) {
+      console.warn("Não foi possível carregar clientes da API.", erro.message);
+    }
+  }
+
+  // Escolheu (ou digitou) um cliente cadastrado no agendamento: já traz o telefone dele no WhatsApp
+  const campoClienteAgend = document.getElementById("agend-cliente");
+  const campoWhatsappAgend = document.getElementById("agend-whatsapp");
+  if (campoClienteAgend) {
+    const preencherTelefoneDoCliente = () => {
+      const nome = campoClienteAgend.value.trim().toLowerCase();
+      const achado = nome ? clientes.find(c => c.nome.toLowerCase() === nome) : null;
+      if (achado && achado.telefone && campoWhatsappAgend) campoWhatsappAgend.value = formatarTelefone(achado.telefone);
+    };
+    campoClienteAgend.addEventListener("input", preencherTelefoneDoCliente);
+    campoClienteAgend.addEventListener("change", preencherTelefoneDoCliente);
+  }
+  if (campoWhatsappAgend) {
+    campoWhatsappAgend.addEventListener("input", () => { campoWhatsappAgend.value = formatarTelefone(campoWhatsappAgend.value); });
+  }
+
+  // --- Janela "Cadastrar Cliente" ---
+  const modalCliente = document.getElementById("modal-cliente");
+  const formCliente = document.getElementById("form-cliente");
+  const campoNomeCliente = document.getElementById("cli-nome");
+  const campoTelefoneCliente = document.getElementById("cli-telefone");
+  const btnSalvarCliente = document.getElementById("btn-salvar-cliente");
+
+  function abrirModalCliente(nomeSugerido) {
+    formCliente.reset();
+    limparErroForm(formCliente);
+    if (nomeSugerido) campoNomeCliente.value = nomeSugerido;
+    modalCliente.hidden = false;
+    campoNomeCliente.focus();
+  }
+  function fecharModalCliente() { modalCliente.hidden = true; limparErroForm(formCliente); }
+
+  document.getElementById("btn-abrir-cliente").addEventListener("click", () => abrirModalCliente());
+  document.getElementById("btn-novo-cliente-modal").addEventListener("click", () => {
+    const digitado = campoClienteAgend ? campoClienteAgend.value.trim() : "";
+    const jaCadastrado = digitado && clientes.some(c => c.nome.toLowerCase() === digitado.toLowerCase());
+    abrirModalCliente(jaCadastrado ? "" : digitado);
+  });
+  document.getElementById("btn-fechar-cliente").addEventListener("click", fecharModalCliente);
+  document.getElementById("btn-cancelar-cliente").addEventListener("click", fecharModalCliente);
+  modalCliente.addEventListener("click", (e) => { if (e.target === modalCliente) fecharModalCliente(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalCliente.hidden) fecharModalCliente(); });
+
+  // Nome: só letras, espaço, hífen e apóstrofo. Telefone: máscara (11) 91234-5678
+  campoNomeCliente.addEventListener("input", () => {
+    campoNomeCliente.value = campoNomeCliente.value.replace(/[^\p{L}\s'-]/gu, "").replace(/\s{2,}/g, " ");
+  });
+  campoTelefoneCliente.addEventListener("input", () => {
+    campoTelefoneCliente.value = formatarTelefone(campoTelefoneCliente.value);
+  });
+
+  formCliente.addEventListener("submit", async function (e) {
+    e.preventDefault();
+
+    const nome = campoNomeCliente.value.trim();
+    campoNomeCliente.value = nome;
+    const telefone = telefoneValido(campoTelefoneCliente.value); // só números com DDD, ou ""
+
+    if (!nome) { mostrarErroForm(formCliente, "Preencha o nome do cliente.", campoNomeCliente); return; }
+    if (nome.length < AGEND_CLIENTE_MIN || nome.length > AGEND_CLIENTE_MAX) {
+      mostrarErroForm(formCliente, `O nome do cliente deve ter de ${AGEND_CLIENTE_MIN} a ${AGEND_CLIENTE_MAX} caracteres.`, campoNomeCliente);
+      return;
+    }
+    if (!NOME_CLIENTE_REGEX.test(nome)) { mostrarErroForm(formCliente, mensagemNomeClienteInvalido(nome), campoNomeCliente); return; }
+    if (!nomeClienteComIniciaisMaiusculas(nome)) { mostrarErroForm(formCliente, MSG_NOME_CLIENTE_MAIUSCULA, campoNomeCliente); return; }
+    if (!campoTelefoneCliente.value.trim()) { mostrarErroForm(formCliente, "Preencha o telefone do cliente.", campoTelefoneCliente); return; }
+    if (!telefone) { mostrarErroForm(formCliente, "Digite um telefone válido com DDD. Exemplo: (11) 91234-5678", campoTelefoneCliente); return; }
+    if (clientes.some(c => c.telefone === telefone)) {
+      mostrarErroForm(formCliente, "Já existe um cliente cadastrado com esse telefone.", campoTelefoneCliente);
+      return;
+    }
+    if (!API_CONFIG.token) {
+      mostrarErroForm(formCliente, "O login do colaborador ainda não está ligado à API: o cliente não pode ser salvo no banco.", null);
+      return;
+    }
+    limparErroForm(formCliente);
+
+    btnSalvarCliente.disabled = true;
+    let criado = null;
+    try {
+      // >>> API: POST /Clientes. O DonoId vem do token, por isso não é enviado.
+      criado = await apiRequest("CLIENTES", { method: "POST", body: { nome, telefone } });
+    } catch (erro) {
+      console.warn(erro.message);
+      mostrarErroForm(formCliente, mensagemErroApiComum(erro, "Não foi possível cadastrar o cliente."), null);
+      btnSalvarCliente.disabled = false;
+      return;
+    }
+    btnSalvarCliente.disabled = false;
+
+    const novo = normalizarCliente(criado && typeof criado === "object" ? criado : null) || { id: null, nome, telefone };
+    novo.nome = nome; novo.telefone = telefone; // vale o que foi digitado
+    clientes.push(novo);
+    salvarClientesLocal();
+    atualizarListaClientes();
+
+    // Se o cadastro foi aberto de dentro do agendamento, já deixa o cliente escolhido lá
+    if (!modal.hidden && campoClienteAgend) {
+      campoClienteAgend.value = nome;
+      if (campoWhatsappAgend) campoWhatsappAgend.value = formatarTelefone(telefone);
+    }
+    fecharModalCliente();
   });
 
   // --- SUPORTE ---
@@ -510,6 +1031,17 @@ function iniciarColaborador() {
 
   // Atualiza sozinho quando o dono/outro colaborador mexe nos dados em outra aba
   window.addEventListener("storage", function (e) {
+    if (e.key === chaveServicosDoBanco() && !API_CONFIG.token) { // o dono atualizou os serviços em outra aba
+      servicos = lerServicosCopiaDoBanco();
+      erroCarregarServicos = servicos.length ? "" : "Nenhum serviço disponível. Peça ao dono para abrir a agenda dele e conferir se há serviços cadastrados.";
+      atualizarServicosAgendamento();
+      return;
+    }
+    if (e.key === chaveClientes()) { // o dono cadastrou/alterou cliente em outra aba
+      clientes = lerJsonLocal(chaveClientes(), []).map(normalizarCliente).filter(Boolean);
+      atualizarListaClientes();
+      return;
+    }
     if (e.key !== CHAVE_AGENDAMENTOS && e.key !== CHAVE_COLABORADORES) return;
     agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
     colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
@@ -525,6 +1057,8 @@ function iniciarColaborador() {
   filtro.value = "minha";
   renderizarEquipe();
   renderizarAgenda();
+  carregarClientes();
+  recarregarServicosDoBanco();
 }
 
 document.addEventListener("DOMContentLoaded", iniciarColaborador);

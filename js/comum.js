@@ -29,7 +29,7 @@ const API_CONFIG = {
     PLANO: "/plano",
     // Rotas que já existem na API (Azure Functions)
     CLIENTES: "/Clientes",                    // POST
-    SERVICOS: "/Servicos",                    // POST
+    SERVICOS: "/Servicos",                    // GET (lista), POST (cadastra); PUT/DELETE em /Servicos/{id}
     VALIDAR_TOKEN: "/ValidarToken",           // GET (usa o token do login no cabeçalho Authorization)
   },
 
@@ -278,6 +278,18 @@ const NOME_COMPLETO_REGEX = /^\p{Lu}\p{Ll}+(\s(da|de|do|das|dos|e|\p{Lu}\p{Ll}+)
 // Nome do cliente: só letras (com acento), espaço, hífen e apóstrofo.
 // Começa e termina com letra, e os símbolos nunca ficam repetidos (ex: João Pereira, Maria-Clara, D'Ávila).
 const NOME_CLIENTE_REGEX = /^\p{L}+(?:[ '-]\p{L}+)*$/u;
+
+// Nome do cliente: o nome e cada sobrenome começam com letra maiúscula.
+// Aceita "da", "de", "do", "das", "dos" e "e" em minúsculo no meio (Maria da Silva) e
+// maiúscula depois de hífen ou apóstrofo (Maria-Clara, D'Ávila).
+const NOME_CLIENTE_CONECTORES = ["da", "de", "do", "das", "dos", "e"];
+function nomeClienteComIniciaisMaiusculas(nome) {
+  return String(nome).split(" ").every((palavra, i) => {
+    if (i > 0 && NOME_CLIENTE_CONECTORES.includes(palavra)) return true;
+    return palavra.split(/['-]/).every(parte => parte === "" || /^\p{Lu}/u.test(parte));
+  });
+}
+const MSG_NOME_CLIENTE_MAIUSCULA = "O nome e o sobrenome do cliente devem começar com letra maiúscula. Exemplo: João Pereira";
 
 function criarColetorErros() {
   const erros = [];
