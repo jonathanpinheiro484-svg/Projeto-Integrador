@@ -544,6 +544,27 @@ function iniciarAssinatura() {
     return soma % 10 === 0;
   }
 
+  // Rejeita números "preguiçosos": todos iguais (1111...), blocos repetidos (4242 4242 4242 4242,
+  // 1234 1234 1234 1234) e sequências crescentes/decrescentes (1234 5678 9012 3456)
+  function cartaoSequencial(numero) {
+    const n = soDigitos(numero);
+    if (n.length !== 16) return false;
+    for (const tam of [1, 2, 4, 8]) {
+      if (n === n.slice(0, tam).repeat(16 / tam)) return true;
+    }
+    const passos = [...n].slice(1).map((d, i) => (Number(d) - Number(n[i]) + 10) % 10);
+    return passos.every((p) => p === 1) || passos.every((p) => p === 9);
+  }
+
+  // Validade do cartão novo: não pode estar vencida e não pode passar de 5 anos a partir de hoje
+  function validadeDentroDeCincoAnos(v) {
+    const m = v.match(/^(\d{2})\/(\d{2})$/);
+    if (!m) return false;
+    const limite = new Date();
+    limite.setFullYear(limite.getFullYear() + 5);
+    return new Date(2000 + Number(m[2]), Number(m[1]) - 1, 1) <= limite;
+  }
+
   function validadeValida(v) {
     const m = v.match(/^(\d{2})\/(\d{2})$/);
     if (!m) return false;
@@ -596,13 +617,16 @@ function iniciarAssinatura() {
     const numeroCartao = $("cc-numero").value.trim();
     if (!numeroCartao) falhar("Preencha o número do cartão.", "cc-numero");
     else if (/[^\d\s]/.test(numeroCartao)) falhar("O número do cartão deve ter apenas números.", "cc-numero");
-    else if (soDigitos(numeroCartao).length < 13 || soDigitos(numeroCartao).length > 16) falhar("O número do cartão deve ter de 13 a 16 números.", "cc-numero");
+    else if (soDigitos(numeroCartao).length !== 16) falhar("O número do cartão deve ter exatamente 16 números.", "cc-numero");
+    else if (cartaoSequencial(numeroCartao)) falhar("Número de cartão inválido: não pode ter sequência ou números repetidos.", "cc-numero");
     else if (!cartaoValido(numeroCartao)) falhar("O número do cartão não é válido. Confira os números digitados.", "cc-numero");
     const nomeCartao = $("cc-nome").value.trim();
     if (!nomeCartao) falhar("Preencha o nome impresso no cartão.", "cc-nome");
     else if (/[^\p{L}\s]/u.test(nomeCartao)) falhar("O nome no cartão deve ter apenas letras (sem números, símbolos ou pontuação).", "cc-nome");
     else if (!NOME_REGEX.test(nomeCartao)) falhar("Digite o nome como está impresso no cartão, com nome e sobrenome.", "cc-nome");
-    if (!validadeValida($("cc-validade").value)) falhar("Validade inválida ou vencida. Use o formato MM/AA.", "cc-validade");
+    const validadeCartao = $("cc-validade").value;
+    if (!validadeValida(validadeCartao)) falhar("Validade inválida ou vencida. Use o formato MM/AA.", "cc-validade");
+    else if (!validadeDentroDeCincoAnos(validadeCartao)) falhar("Validade inválida: o cartão não pode vencer em mais de 5 anos.", "cc-validade");
     const cvv = $("cc-cvv").value.trim();
     if (!cvv) falhar("Preencha o CVV do cartão.", "cc-cvv");
     else if (!/^\d{3,4}$/.test(cvv)) falhar("O CVV deve ter 3 ou 4 números.", "cc-cvv");
@@ -762,7 +786,8 @@ function iniciarAssinatura() {
   // Nome: só aceita letras e espaços (descarta o resto enquanto a pessoa digita)
   $("ass-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, ""); });
   // Nome no cartão: só aceita letras e espaços
-  $("cc-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, ""); });
+  // e converte tudo para MAIÚSCULAS enquanto digita
+  $("cc-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, "").toUpperCase(); });
   $("ass-cpf").addEventListener("input", (e) => { e.target.value = mascaraCpf(e.target.value); });
   $("cc-numero").addEventListener("input", (e) => { e.target.value = mascaraCartao(e.target.value); });
   $("cc-validade").addEventListener("input", (e) => { e.target.value = mascaraValidade(e.target.value); });
