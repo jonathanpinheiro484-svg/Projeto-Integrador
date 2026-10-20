@@ -18,6 +18,7 @@ function iniciarDashboard() {
   // a página some e vai para a tela de login. O "replace" não deixa a agenda no histórico.
   // =====================================================
   const PAGINA_LOGIN_DONO = "cadastro.html?modo=entrar";
+  const PAGINA_INICIAL = "index.html"; // tela inicial do site (para onde vai quem cancela a assinatura)
   if (!lerJsonLocal(CHAVE_SESSAO, null)) {
     layoutPrincipal.style.display = "none";
     window.location.replace(PAGINA_LOGIN_DONO);
@@ -284,6 +285,18 @@ function iniciarDashboard() {
   let usuarioLogado = (sessaoSalva && sessaoSalva.perfil === "COLABORADOR")
     ? { perfil: "COLABORADOR", colaboradorId: sessaoSalva.colaboradorId }
     : { perfil: "DONO", colaboradorId: null };
+  // Sem plano: quem cancelou a assinatura sai da conta e, ao entrar de novo, só enxerga a tela de
+  // Planos até escolher um plano. >>> API: quando houver backend, o status do plano deve vir dele.
+  const chaveSemPlano = () => "semPlano:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
+  let semPlano = false;
+  if (usuarioLogado.perfil === "DONO" && localStorage.getItem(chaveSemPlano()) === "1") {
+    if (planoAtual === "BASICO" || planoAtual === "PREMIUM" || planoAtual === "PRO") {
+      localStorage.removeItem(chaveSemPlano()); // já pagou um plano: libera
+    } else {
+      semPlano = true;
+      planoAtual = "NENHUM";
+    }
+  }
   let abaAtiva = "Dashboard";
   let abaOrigemPlanos = "Dashboard";
   let modoVisualizacao = "Dia";
@@ -471,14 +484,24 @@ function iniciarDashboard() {
     FREE: "Grátis",
     BASICO: "Básico",
     PREMIUM: "Premium",
-    PRO: "Premium"
+    PRO: "Premium",
+    NENHUM: "Sem plano"
   };
 
   // Card do plano -> chave do plano, e se esse é o plano que está ativo agora
   const alvoDoCard = btn => (btn.dataset.plano === "Básico" ? "BASICO" : "PREMIUM");
   const planoEhAtual = alvo => planoAtual === alvo || (alvo === "PREMIUM" && planoAtual === "PRO");
 
+  // Escolheu um plano depois de cancelar: volta a ter acesso ao sistema
+  function liberarSemPlano() {
+    semPlano = false;
+    localStorage.removeItem(chaveSemPlano());
+    document.querySelectorAll(".menu-item").forEach(m => { m.style.display = ""; });
+    aplicarPermissoes();
+  }
+
   async function escolherPlano(novoPlano) {
+    if (semPlano) liberarSemPlano();
     planoAtual = novoPlano;
 
     // >>> API: avisar o backend da troca de plano.
@@ -490,6 +513,34 @@ function iniciarDashboard() {
 
     atualizarPlano();
     mudarAba(abaOrigemPlanos);
+  }
+
+  // --- TELA DE ASSINATURA ---
+  // Mostra a assinatura do cliente (ativa e/ou aguardando o pagamento do boleto) com os botões
+  // Ver boleto, Trocar forma de pagamento e Cancelar assinatura. Os cliques seguem nas mesmas
+  // funções de antes, que leem o plano no data-plano de cada botão.
+  function atualizarAssinatura() {
+    const cartaoAtiva = document.getElementById("assinatura-ativa");
+    const cartaoPendente = document.getElementById("assinatura-pendente");
+    const cartaoVazio = document.getElementById("assinatura-vazia");
+    if (!cartaoAtiva || !cartaoPendente || !cartaoVazio) return;
+
+    const pagos = ["BASICO", "PREMIUM"];
+    const ativo = normalizarPlanoBoleto(planoAtual);
+    const planoAtivo = pagos.includes(ativo) ? ativo : null;
+    const pendente = lerJsonLocal("assinaturaPendente", null);
+    let planoPendente = pendente ? normalizarPlanoBoleto(pendente.plano) : null;
+    if (!pagos.includes(planoPendente) || planoPendente === planoAtivo) planoPendente = null;
+
+    const preencher = (cartao, plano) => {
+      cartao.hidden = !plano;
+      if (!plano) return;
+      cartao.querySelector("h3").textContent = nomesPlanos[plano];
+      cartao.querySelectorAll("button[data-plano]").forEach(btn => { btn.dataset.plano = nomesPlanos[plano]; });
+    };
+    preencher(cartaoAtiva, planoAtivo);
+    preencher(cartaoPendente, planoPendente);
+    cartaoVazio.hidden = !!(planoAtivo || planoPendente);
   }
 
   function atualizarPlano() {
@@ -524,6 +575,7 @@ function iniciarDashboard() {
       }
     });
 
+    atualizarAssinatura(); // põe o plano certo nos botões da tela de Assinatura antes de mostrar/esconder
     // Botão "Cancelar assinatura": aparece só no card do plano pago que está ativo
     // "Cancelar assinatura" também aparece no plano que está aguardando o pagamento do boleto.
     // "Trocar forma de pagamento" só aparece no plano que já está ativo.
@@ -574,16 +626,29 @@ function iniciarDashboard() {
     const secAdmin = document.getElementById("secao-administrativo");
     const secSuporte = document.getElementById("secao-suporte");
     const secPlanos = document.getElementById("secao-planos");
+    const secAssinatura = document.getElementById("secao-assinatura");
     const gridCardsFin = document.getElementById("grid-financeiro-cards");
     const avisoBloqueioFin = document.getElementById("aviso-bloqueio-financeiro-pagina");
 
     if (usuarioLogado.perfil === "COLABORADOR" && abaAtiva !== "Suporte") abaAtiva = "Agenda";
+
+    // Sem plano (cancelou a assinatura): só a tela de Planos, com o aviso
+    const avisoSemPlano = document.getElementById("aviso-sem-plano");
+    if (avisoSemPlano) avisoSemPlano.hidden = !semPlano;
+    if (semPlano && abaAtiva !== "Planos") {
+      abaAtiva = "Planos";
+      document.querySelectorAll(".menu-item").forEach(m => m.classList.toggle("ativo", m.dataset.menu === "Planos"));
+    }
 
     secFin.style.display = "none";
     secAgenda.style.display = "none";
     secAdmin.style.display = "none";
     secSuporte.style.display = "none";
     secPlanos.style.display = "none";
+    secAssinatura.style.display = "none";
+
+    // Tabela e gráficos do financeiro só aparecem na aba Financeiro (não no Dashboard junto com a agenda)
+    document.querySelectorAll("#secao-financeiro .so-financeiro").forEach(el => { el.hidden = abaAtiva !== "Financeiro"; });
 
     if (abaAtiva === "Dashboard") {
       if (usuarioLogado.perfil === "DONO" && (planoAtual === "PREMIUM" || planoAtual === "PRO")) {
@@ -618,6 +683,8 @@ function iniciarDashboard() {
       secSuporte.style.display = "block";
     } else if (abaAtiva === "Planos") {
       secPlanos.style.display = "block";
+    } else if (abaAtiva === "Assinatura") {
+      secAssinatura.style.display = "block";
     }
   }
 
@@ -664,7 +731,191 @@ function iniciarDashboard() {
       renderizarAgenda();
     });
 
+  // --- FINANCEIRO: FATURAMENTO POR COLABORADOR ---
+  // Dia = data escolhida na agenda; Semana = segunda a domingo dessa data; Mês = mês dessa data.
+  function limitesDosPeriodos(dataISO) {
+    const [a, m, d] = dataISO.split("-").map(Number);
+    const iso = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    const desdeSegunda = (new Date(a, m - 1, d).getDay() + 6) % 7; // segunda = 0
+    return {
+      Dia: [dataISO, dataISO],
+      Semana: [iso(new Date(a, m - 1, d - desdeSegunda)), iso(new Date(a, m - 1, d - desdeSegunda + 6))],
+      Mês: [iso(new Date(a, m - 1, 1)), iso(new Date(a, m, 0))]
+    };
+  }
+
+  // Soma o valor dos agendamentos de cada colaborador em cada período.
+  // >>> API: quando o endpoint FINANCEIRO existir, estes totais podem vir dele.
+  function calcularFaturamentoPorColaborador() {
+    const limites = limitesDosPeriodos(seletorData.value || obterDataHojeISO());
+    const periodos = ["Dia", "Semana", "Mês"];
+    const linhas = comDono(colaboradores).map(c => {
+      const totais = { Dia: 0, Semana: 0, Mês: 0 };
+      agendamentos.filter(a => a.colaboradorId === c.id).forEach(a => {
+        periodos.forEach(p => {
+          if (a.data >= limites[p][0] && a.data <= limites[p][1]) totais[p] += Number(a.valor) || 0;
+        });
+      });
+      return { colaborador: c, totais };
+    }).filter(l => l.colaborador.ativo !== false || periodos.some(p => l.totais[p] > 0));
+    return { limites, linhas };
+  }
+
+  const corSegura = c => /^#[0-9a-fA-F]{3,8}$/.test(String(c || "")) ? c : "#6c5ce7";
+
+  // Rosca: participação (%) de cada colaborador no faturamento do período escolhido; o total fica no meio
+  function renderizarRosca(linhas) {
+    const svg = document.getElementById("rosca-svg");
+    const legenda = document.getElementById("rosca-legenda");
+    if (!svg || !legenda) return;
+    document.getElementById("titulo-rosca").textContent = `Participação por colaborador (${modoVisualizacao})`;
+
+    const itens = linhas
+      .map(l => ({ nome: l.colaborador.nome, cor: corSegura(l.colaborador.cor), valor: l.totais[modoVisualizacao] }))
+      .filter(i => i.valor > 0)
+      .sort((a, b) => b.valor - a.valor);
+    const total = itens.reduce((soma, i) => soma + i.valor, 0);
+
+    const R = 48, C = 2 * Math.PI * R;
+    let desenho = `<circle cx="60" cy="60" r="${R}" fill="none" stroke-width="16" style="stroke: var(--hover-menu)"></circle>`;
+    let acumulado = 0;
+    itens.forEach(i => {
+      const tamanho = (i.valor / total) * C;
+      const visivel = itens.length > 1 ? Math.max(tamanho - 1.5, 0.5) : tamanho; // pequeno espaço entre as fatias
+      desenho += `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${i.cor}" stroke-width="16" stroke-dasharray="${visivel} ${C - visivel}" stroke-dashoffset="${-acumulado}" transform="rotate(-90 60 60)"></circle>`;
+      acumulado += tamanho;
+    });
+    desenho += `<text x="60" y="58" text-anchor="middle" class="rosca-total">${formatarMoeda(total)}</text><text x="60" y="71" text-anchor="middle">faturado</text>`;
+    svg.innerHTML = desenho;
+
+    legenda.innerHTML = "";
+    if (!itens.length) {
+      const vazio = document.createElement("p");
+      vazio.className = "grafico-colab-vazio";
+      vazio.textContent = "Sem faturamento neste período.";
+      legenda.appendChild(vazio);
+      return;
+    }
+    itens.forEach(i => {
+      const item = document.createElement("div");
+      const pct = document.createElement("span");
+      pct.className = "rosca-pct";
+      pct.style.color = i.cor;
+      pct.textContent = Math.round((i.valor / total) * 100) + "%";
+      const nome = document.createElement("span");
+      nome.className = "rosca-nome";
+      nome.textContent = i.nome;
+      item.append(pct, nome);
+      legenda.appendChild(item);
+    });
+  }
+
+  // Faturamento acumulado dia a dia dentro de um mês (mes0 = 0 a 11), só dos colaboradores em "ids"
+  function acumuladoDoMes(ano, mes0, ids) {
+    const dias = new Date(ano, mes0 + 1, 0).getDate();
+    const porDia = new Array(dias).fill(0);
+    const prefixo = `${ano}-${String(mes0 + 1).padStart(2, "0")}-`;
+    agendamentos.forEach(a => {
+      if (!ids.has(a.colaboradorId) || typeof a.data !== "string" || !a.data.startsWith(prefixo)) return;
+      const dia = parseInt(a.data.slice(8, 10), 10);
+      if (dia >= 1 && dia <= dias) porDia[dia - 1] += Number(a.valor) || 0;
+    });
+    let soma = 0;
+    return porDia.map(v => (soma += v));
+  }
+
+  // Linha com área: faturamento acumulado do mês escolhido (azul) contra o mês anterior (laranja)
+  function renderizarLinhaMes(linhas, limites) {
+    const area = document.getElementById("linha-grafico");
+    const legenda = document.getElementById("linha-legenda");
+    if (!area || !legenda) return;
+
+    const ids = new Set(linhas.map(l => l.colaborador.id));
+    const [ano, mes] = limites.Mês[0].split("-").map(Number);
+    const anterior = new Date(ano, mes - 2, 1);
+    const atual = acumuladoDoMes(ano, mes - 1, ids);
+    const antes = acumuladoDoMes(anterior.getFullYear(), anterior.getMonth(), ids);
+    const rotulo = (a, m) => `${String(m).padStart(2, "0")}/${a}`;
+    const AZUL = "#29a3e8", LARANJA = "#f7b032";
+
+    legenda.innerHTML =
+      `<span><i class="linha-ponto" style="background:${AZUL}"></i>Mês escolhido (${rotulo(ano, mes)})</span>` +
+      `<span><i class="linha-ponto" style="background:${LARANJA}"></i>Mês anterior (${rotulo(anterior.getFullYear(), anterior.getMonth() + 1)})</span>`;
+
+    const maximo = Math.max(atual[atual.length - 1], antes[antes.length - 1], 0);
+    if (maximo <= 0) {
+      area.innerHTML = `<p class="grafico-colab-vazio">Sem faturamento neste período.</p>`;
+      return;
+    }
+
+    const L = 44, T = 10, W = 376, H = 120;
+    const dias = Math.max(atual.length, antes.length);
+    const x = d => L + (dias === 1 ? 0 : ((d - 1) / (dias - 1)) * W);
+    const y = v => T + H - (v / maximo) * H;
+    const pontos = arr => arr.map((v, i) => `${x(i + 1).toFixed(1)},${y(v).toFixed(1)}`);
+
+    let desenho = "";
+    [0, 0.5, 1].forEach(f => {
+      const yy = (T + H - f * H).toFixed(1);
+      desenho += `<line class="linha-grade" x1="${L}" x2="${L + W}" y1="${yy}" y2="${yy}"></line>`;
+      desenho += `<text x="${L - 5}" y="${(Number(yy) + 3).toFixed(1)}" text-anchor="end">${Math.round(maximo * f).toLocaleString("pt-BR")}</text>`;
+    });
+    [1, 5, 10, 15, 20, 25, 30].filter(d => d <= dias).forEach(d => {
+      desenho += `<line class="linha-grade" x1="${x(d).toFixed(1)}" x2="${x(d).toFixed(1)}" y1="${T}" y2="${T + H}"></line>`;
+      desenho += `<text x="${x(d).toFixed(1)}" y="${T + H + 13}" text-anchor="middle">${d}</text>`;
+    });
+
+    const ptsAtual = pontos(atual);
+    desenho += `<path d="M ${ptsAtual.join(" L ")} L ${x(atual.length).toFixed(1)},${T + H} L ${x(1).toFixed(1)},${T + H} Z" fill="${AZUL}" fill-opacity="0.12"></path>`;
+    desenho += `<path d="M ${pontos(antes).join(" L ")}" fill="none" stroke="${LARANJA}" stroke-width="2" stroke-linejoin="round"></path>`;
+    desenho += `<path d="M ${ptsAtual.join(" L ")}" fill="none" stroke="${AZUL}" stroke-width="2" stroke-linejoin="round"></path>`;
+
+    area.innerHTML = `<svg class="linha-svg" viewBox="0 0 430 150" role="img" aria-label="Faturamento acumulado no mês">${desenho}</svg>`;
+  }
+
+  function renderizarTabelaFinanceiro(limites, linhas) {
+    const corpo = document.getElementById("tabela-financeiro-corpo");
+    if (!corpo) return;
+    const periodos = ["Dia", "Semana", "Mês"];
+    const dm = iso => iso.split("-").reverse().slice(0, 2).join("/");
+    const [aMes, mMes] = limites.Mês[0].split("-");
+    document.getElementById("tabela-financeiro-info").textContent =
+      `Dia ${dm(limites.Dia[0])} · Semana ${dm(limites.Semana[0])} a ${dm(limites.Semana[1])} · Mês ${mMes}/${aMes}`;
+
+    corpo.innerHTML = "";
+    linhas.forEach(l => {
+      const tr = document.createElement("tr");
+      const tdNome = document.createElement("td");
+      tdNome.textContent = l.colaborador.nome;
+      tr.appendChild(tdNome);
+      periodos.forEach(p => {
+        const td = document.createElement("td");
+        td.dataset.periodo = p;
+        td.textContent = formatarMoeda(l.totais[p]);
+        tr.appendChild(td);
+      });
+      corpo.appendChild(tr);
+    });
+
+    const totais = { Dia: "total-fat-dia", Semana: "total-fat-semana", Mês: "total-fat-mes" };
+    periodos.forEach(p => {
+      document.getElementById(totais[p]).textContent = formatarMoeda(linhas.reduce((soma, l) => soma + l.totais[p], 0));
+    });
+
+    // destaca a coluna do período escolhido em "Período dos valores"
+    document.querySelectorAll("#tabela-financeiro [data-periodo]").forEach(el => {
+      el.classList.toggle("col-ativa", el.dataset.periodo === modoVisualizacao);
+    });
+  }
+
   function atualizarFinanceiro() {
+    // Receitas e saldo vêm da soma dos agendamentos de cada período (despesas continuam vindo de financeiroPorPeriodo)
+    const { limites, linhas } = calcularFaturamentoPorColaborador();
+    ["Dia", "Semana", "Mês"].forEach(p => {
+      const receitas = linhas.reduce((soma, l) => soma + l.totais[p], 0);
+      financeiroPorPeriodo[p].receitas = receitas;
+      financeiroPorPeriodo[p].saldo = receitas - financeiroPorPeriodo[p].despesas;
+    });
     const d = financeiroPorPeriodo[modoVisualizacao];
     document.getElementById("titulo-receitas").textContent = `Receitas (${modoVisualizacao})`;
     document.getElementById("valor-receitas").textContent = formatarMoeda(d.receitas);
@@ -674,6 +925,9 @@ function iniciarDashboard() {
     document.querySelector(".eixo-meio").textContent = (d.eixoMaximo / 2).toLocaleString("pt-BR");
     document.querySelector('[data-meio="pix"] .barra').style.height = (d.pagamentos.pix / d.eixoMaximo) * 100 + "%";
     document.querySelector('[data-meio="cartao"] .barra').style.height = (d.pagamentos.cartao / d.eixoMaximo) * 100 + "%";
+    renderizarTabelaFinanceiro(limites, linhas);
+    renderizarRosca(linhas);
+    renderizarLinhaMes(linhas, limites);
   }
 
   // --- PAGINAÇÃO DA AGENDA ---
@@ -911,6 +1165,7 @@ function iniciarDashboard() {
 
   function renderizarAgenda() {
     agenda.innerHTML = "";
+    atualizarFinanceiro();
     const colaboradoresPagina = obterColaboradoresPagina();
     const dataSelecionada = seletorData.value;
 
@@ -997,6 +1252,7 @@ function iniciarDashboard() {
     const menuFinanceiro = document.querySelector('.menu-item[data-menu="Financeiro"]');
     const menuAdministracao = document.querySelector('.menu-item[data-menu="Administracao"]');
     const menuPlanos = document.querySelector('.menu-item[data-menu="Planos"]');
+    const menuAssinatura = document.querySelector('.menu-item[data-menu="Assinatura"]');
 
     if (usuarioLogado.perfil === "COLABORADOR") {
       containerPaginacao.style.display = "none";
@@ -1004,6 +1260,7 @@ function iniciarDashboard() {
       if (menuFinanceiro) menuFinanceiro.style.display = "none";
       if (menuAdministracao) menuAdministracao.style.display = "none";
       if (menuPlanos) menuPlanos.style.display = "none";
+      if (menuAssinatura) menuAssinatura.style.display = "none";
 
       // Colaborador: menu lateral só com Agenda e Suporte, sem plano e sem filtro
       abaAtiva = "Agenda";
@@ -1020,6 +1277,10 @@ function iniciarDashboard() {
       if (menuAdministracao) menuAdministracao.style.display = "flex";
       if (menuFinanceiro) menuFinanceiro.style.display = "flex";
       if (menuPlanos) menuPlanos.style.display = "flex";
+      if (menuAssinatura) menuAssinatura.style.display = "flex";
+      if (semPlano) {
+        document.querySelectorAll(".menu-item[data-menu]").forEach(m => { if (m.dataset.menu !== "Planos") m.style.display = "none"; });
+      }
     }
     paginaAtual = 0;
     atualizarNavegacao();
@@ -2170,6 +2431,8 @@ function iniciarDashboard() {
   }
 
   // --- BOTÕES DE PLANOS (antes eram onclick="..." dentro do index.html) ---
+  const btnAssinaturaVerPlanos = document.getElementById("btn-assinatura-ver-planos");
+  if (btnAssinaturaVerPlanos) btnAssinaturaVerPlanos.addEventListener("click", () => irParaTelaPlanos("Assinatura"));
   const btnUpgradeFinanceiro = document.getElementById("btn-upgrade-financeiro");
   if (btnUpgradeFinanceiro) {
     btnUpgradeFinanceiro.addEventListener("click", () => irParaTelaPlanos("Financeiro"));
@@ -2186,7 +2449,7 @@ function iniciarDashboard() {
 
       // Voltar para o Grátis: pede confirmação e cancela a assinatura salva
       if (plano === "FREE") {
-        if (!confirm("Voltar para o plano Grátis? Você perde os recursos do plano atual.")) return;
+        if (!semPlano && !confirm("Voltar para o plano Grátis? Você perde os recursos do plano atual.")) return;
         localStorage.removeItem(CHAVE_ASSINATURA);
         limparBoleto();
         escolherPlano(plano);
@@ -2236,8 +2499,12 @@ function iniciarDashboard() {
         localStorage.removeItem(CHAVE_ASSINATURA);
         limparBoleto();
         fecharCancelamento();
-        abaOrigemPlanos = "Planos";
-        escolherPlano("FREE");
+        // Sem plano: marca a conta, sai e volta para a tela inicial. Para entrar de novo, precisa escolher um plano.
+        localStorage.setItem(chaveSemPlano(), "1"); // antes de sair, enquanto o e-mail da conta ainda está guardado
+        sairDaConta();
+        localStorage.removeItem("apiToken");
+        API_CONFIG.token = null;
+        window.location.replace(PAGINA_INICIAL);
       });
     }
   }

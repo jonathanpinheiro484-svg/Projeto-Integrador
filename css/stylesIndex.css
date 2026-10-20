@@ -433,3 +433,50 @@ main { padding-top: 76px; }
 
 /* Rodapé */
 .rodape { background: #041423; }
+
+
+/* =========================================================
+   TELA DE ABERTURA (INTRO) - teste
+   Para remover: apague este bloco inteiro
+========================================================= */
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #012441; /* mesmo azul do fundo da logo */
+  transition: transform 0.9s ease, opacity 0.9s ease;
+}
+
+.intro img {
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  animation: intro-entrar 1.1s ease both;
+}
+
+/* Celular / tela em pé: aumenta a imagem para a logo aparecer grande, sem cortar */
+@media (max-aspect-ratio: 1/1) {
+  .intro img {
+    width: 250vw;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
+.intro.sair {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+body.intro-ativa { overflow: hidden; }
+
+@keyframes intro-entrar {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}

@@ -55,6 +55,57 @@ function nomeDoToken(token) {
   return "";
 }
 
+// =====================================================
+// ★ COLABORADOR QUE ENTRA PELA API
+// A API aceita o e-mail/senha do colaborador no /Login. Quando as credenciais dele não estão
+// neste navegador (outro navegador, dados apagados...), o login caía na conta de DONO.
+// Estas funções descobrem se quem entrou é colaborador.
+// =====================================================
+function lerPayloadJwt(token) {
+  try {
+    return JSON.parse(decodeURIComponent(escape(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")))));
+  } catch (_) { return {}; }
+}
+
+// Devolve "colaborador", "dono" ou "" (a API não informou o perfil).
+function perfilInformadoPelaApi(resposta) {
+  const fontes = [resposta || {}, lerPayloadJwt((resposta && resposta.Token) || "")];
+  const chaves = ["Perfil", "perfil", "Tipo", "tipo", "Role", "role", "Papel", "papel", "TipoUsuario", "tipoUsuario",
+    "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+  for (const fonte of fontes) {
+    for (const c of chaves) {
+      let v = fonte[c];
+      if (Array.isArray(v)) v = v[0];
+      if (typeof v !== "string") continue;
+      const t = v.trim().toLowerCase();
+      if (t.startsWith("colab") || t.startsWith("func")) return "colaborador";
+      if (t.startsWith("dono") || t.startsWith("admin") || t.startsWith("owner")) return "dono";
+    }
+  }
+  return "";
+}
+
+function idColaboradorDaApi(resposta) {
+  const v = resposta && (resposta.ColaboradorId ?? resposta.colaboradorId ?? resposta.IdColaborador ?? resposta.idColaborador);
+  return Number.isFinite(Number(v)) && v !== null && v !== "" ? Number(v) : null;
+}
+
+// Procura o e-mail na lista de colaboradores (principal e cópias de segurança deste navegador).
+function acharColaboradorLocal(email) {
+  const alvo = String(email || "").trim().toLowerCase();
+  const listas = [lerJsonLocal(CHAVE_COLABORADORES, [])];
+  for (let i = 0; i < localStorage.length; i++) {
+    const chave = localStorage.key(i);
+    if (chave && chave.startsWith("colaboradoresBackup:")) listas.push(lerJsonLocal(chave, []));
+  }
+  for (const lista of listas) {
+    if (!Array.isArray(lista)) continue;
+    const achado = lista.find(c => c && String(c.email || "").trim().toLowerCase() === alvo);
+    if (achado) return achado;
+  }
+  return null;
+}
+
 // Dados da agenda ainda ficam no localStorage e não pertencem a nenhuma conta.
 // Quando entra um dono diferente do último, apaga os dados do anterior e guarda o nome dele.
 function prepararContaDono(email, nome, contaNova) {
@@ -405,10 +456,14 @@ function iniciarAuth() {
       }
       limparErroForm(formLogin);
 
+      // ★ O e-mail do DONO (o último que entrou/cadastrou neste navegador) sempre entra como dono,
+      // mesmo que esse mesmo e-mail também tenha sido cadastrado como colaborador.
+      const ehDonoConhecido = localStorage.getItem("ultimoEmailDono") === email.toLowerCase();
+
       // E-mail cadastrado pelo dono para um colaborador: valida a senha
       const credenciais = lerJsonLocal(CHAVE_CREDENCIAIS, {});
       const cred = credenciais[email.toLowerCase()];
-      if (cred) {
+      if (cred && !ehDonoConhecido) {
         const hashDigitado = await gerarHashSenha(senha);
         const colabs = lerJsonLocal(CHAVE_COLABORADORES, []);
         const colab = colabs.find(c => c.id === cred.colaboradorId);
@@ -425,6 +480,7 @@ function iniciarAuth() {
       const botaoLogin = formLogin.querySelector("button");
       if (botaoLogin) botaoLogin.disabled = true;
       let nomeApi = "";
+      let respostaApi = null;
       try {
         const resposta = await apiRequest("LOGIN", {
           method: "POST",
@@ -432,11 +488,31 @@ function iniciarAuth() {
         });
         if (!resposta || !resposta.Token) throw new Error("Erro na API (401) em LOGIN: sem token");
         salvarTokenApi(resposta.Token);
+        respostaApi = resposta;
         nomeApi = resposta.Nome || resposta.nome || nomeDoToken(resposta.Token);
       } catch (erro) {
         console.warn(erro.message);
         mostrarErroForm(formLogin, mensagemErroApi(erro, "login"), senhaInput);
         if (botaoLogin) botaoLogin.disabled = false;
+        return;
+      }
+
+      // ★ Quem entrou é colaborador? (a API aceita o login dele, mas ele NÃO pode cair na conta do dono)
+      const perfilApi = perfilInformadoPelaApi(respostaApi);
+      const colabLocal = acharColaboradorLocal(email);
+      if (perfilApi === "colaborador" || (perfilApi !== "dono" && !ehDonoConhecido && colabLocal)) {
+        const colabId = colabLocal ? colabLocal.id : idColaboradorDaApi(respostaApi);
+        if (colabId === null || colabId === undefined || (colabLocal && colabLocal.ativo === false)) {
+          mostrarErroForm(formLogin, colabLocal ? "E-mail ou senha inválidos." : "Não foi possível abrir a agenda deste colaborador neste navegador. Peça ao dono para conferir o seu cadastro.", senhaInput);
+          if (botaoLogin) botaoLogin.disabled = false;
+          return;
+        }
+        // Guarda as credenciais aqui para os próximos logins (sem apagar os dados do dono)
+        const credenciaisNovas = lerJsonLocal(CHAVE_CREDENCIAIS, {});
+        credenciaisNovas[email.toLowerCase()] = { colaboradorId: colabId, senhaHash: await gerarHashSenha(senha) };
+        localStorage.setItem(CHAVE_CREDENCIAIS, JSON.stringify(credenciaisNovas));
+        localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "COLABORADOR", colaboradorId: colabId, nome: (colabLocal && colabLocal.nome) || nomeApi }));
+        window.location.href = "colaborador.html";
         return;
       }
 

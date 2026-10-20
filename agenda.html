@@ -245,6 +245,15 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .btn-selecionar-plano { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; }
 .btn-selecionar-plano.atual { background: var(--border); color: var(--muted); cursor: default; }
 
+/* TELA DE ASSINATURA */
+.assinatura-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 420px)); gap: 20px; margin-top: 15px; }
+.card-assinatura { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 24px; }
+.card-assinatura[hidden] { display: none; }
+.card-assinatura h3 { margin: 6px 0 4px; font-size: 20px; }
+.card-assinatura p { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.assinatura-status { font-size: 12px; font-weight: 600; color: var(--roxo); }
+.assinatura-status.pendente { color: #d97706; }
+
 /* BOTÃO CANCELAR ASSINATURA (aparece só no card do plano pago atual) */
 .btn-cancelar-assinatura {
   display: block; width: 100%; margin-top: 10px; padding: 10px;
@@ -280,6 +289,41 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 }
 
 .financeiro-periodo { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
+
+/* Tabela de valores do financeiro */
+.financeiro-tabela-wrap { grid-column: 1 / -1; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
+.tabela-financeiro { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
+.tabela-financeiro th, .tabela-financeiro td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tabela-financeiro th:first-child, .tabela-financeiro td:first-child { text-align: left; }
+.tabela-financeiro th { font-size: 12px; font-weight: 600; color: var(--muted); }
+.tabela-financeiro tbody tr:last-child td { border-bottom: none; }
+.tabela-financeiro .col-ativa { background: var(--hover-menu); font-weight: 600; }
+.tabela-financeiro tfoot td { font-weight: 700; border-top: 1px solid var(--border); border-bottom: none; }
+/* última coluna com folga à direita: o botão flutuante do WhatsApp fica no canto e não pode cobrir o valor */
+.tabela-financeiro th:last-child, .tabela-financeiro td:last-child { padding-right: 88px; }
+.tabela-financeiro-info { padding: 12px 14px 0; font-size: 12px; color: var(--muted); }
+
+/* Tabela e gráficos: só aparecem na aba Financeiro (o JS tira o hidden) */
+.so-financeiro[hidden] { display: none !important; }
+
+/* Aviso de gráfico sem dados */
+.grafico-colab-vazio { margin-top: 10px; font-size: 12px; color: var(--muted); }
+
+/* Rosca (participação) e linha (faturamento acumulado no mês) */
+.financeiro-graficos-par { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 768px) { .financeiro-graficos-par { grid-template-columns: 1fr; } }
+.rosca-conteudo { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 8px; }
+.rosca-svg { width: 130px; height: 130px; flex-shrink: 0; }
+.rosca-svg text { fill: var(--muted); font-size: 9px; }
+.rosca-svg text.rosca-total { fill: var(--texto); font-size: 11px; font-weight: 700; }
+.rosca-legenda { display: flex; flex-direction: column; gap: 8px; max-height: 130px; overflow-y: auto; min-width: 0; }
+.rosca-pct { display: block; font-size: 18px; font-weight: 700; line-height: 1.1; }
+.rosca-nome { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.linha-svg { width: 100%; height: auto; display: block; margin-top: 6px; }
+.linha-svg text { fill: var(--muted); font-size: 8px; }
+.linha-svg .linha-grade { stroke: var(--border); stroke-width: 0.6; }
+.linha-legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 6px; }
+.linha-ponto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
 
 /* ===== WHATSAPP ===== */
 .form-agendamento .campo[hidden] { display: none; }
@@ -345,6 +389,9 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       <a class="menu-item" data-menu="Suporte">Suporte</a>
       <a class="menu-item" data-menu="Planos">
         <span>Planos</span>
+      </a>
+      <a class="menu-item" data-menu="Assinatura">
+        <span>Assinatura</span>
       </a>
       <a class="menu-item" id="btn-sair" role="button" tabindex="0">Sair</a>
     </nav>
@@ -435,6 +482,46 @@ h2 { font-size: 17px; margin: 0 0 12px; }
                 </div>
               </div>
             </div>
+          </div>
+
+          <!-- Rosca: participação de cada colaborador / Linha: faturamento acumulado do mês -->
+          <div class="financeiro-graficos-par so-financeiro" hidden>
+            <div class="stat-card" id="card-rosca">
+              <span class="stat-label" id="titulo-rosca">Participação por colaborador (Dia)</span>
+              <div class="rosca-conteudo">
+                <div class="rosca-legenda" id="rosca-legenda"></div>
+                <svg class="rosca-svg" id="rosca-svg" viewBox="0 0 120 120" role="img" aria-label="Participação de cada colaborador no faturamento"></svg>
+              </div>
+            </div>
+            <div class="stat-card" id="card-linha">
+              <span class="stat-label">Faturamento acumulado no mês</span>
+              <div id="linha-grafico"></div>
+              <div class="linha-legenda" id="linha-legenda"></div>
+            </div>
+          </div>
+
+          <!-- Quanto cada colaborador faturou no dia, na semana e no mês -->
+          <div class="financeiro-tabela-wrap so-financeiro" hidden>
+            <div class="tabela-financeiro-info" id="tabela-financeiro-info"></div>
+            <table class="tabela-financeiro" id="tabela-financeiro">
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th data-periodo="Dia">Faturado no dia</th>
+                  <th data-periodo="Semana">Faturado na semana</th>
+                  <th data-periodo="Mês">Faturado no mês</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-financeiro-corpo"></tbody>
+              <tfoot>
+                <tr>
+                  <td>Total</td>
+                  <td data-periodo="Dia" id="total-fat-dia">R$ 0,00</td>
+                  <td data-periodo="Semana" id="total-fat-semana">R$ 0,00</td>
+                  <td data-periodo="Mês" id="total-fat-mes">R$ 0,00</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
 
         </div>
@@ -700,6 +787,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       <section id="secao-planos" style="display: none;">
         <h2>Planos e Assinaturas</h2>
         <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Escolha o plano ideal para gerenciar o seu negócio.</p>
+        <p id="aviso-sem-plano" hidden style="border: 1px solid var(--roxo); border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 12px 0 0;">Você cancelou a sua assinatura. Escolha um plano para voltar a usar o sistema.</p>
 
         <div class="planos-grid">
 
@@ -737,9 +825,6 @@ h2 { font-size: 17px; margin: 0 0 12px; }
             </div>
             <div>
               <button class="btn-selecionar-plano" id="btn-plano-basico">Escolher Básico</button>
-              <button type="button" class="btn-ver-boleto" data-plano="Básico">📄 Ver boleto</button>
-              <button type="button" class="btn-trocar-pagamento" data-plano="Básico" hidden>💳 Trocar forma de pagamento</button>
-              <button type="button" class="btn-cancelar-assinatura" data-plano="Básico" hidden>Cancelar assinatura</button>
             </div>
           </div>
 
@@ -760,10 +845,47 @@ h2 { font-size: 17px; margin: 0 0 12px; }
             </div>
             <div>
               <button class="btn-selecionar-plano" id="btn-plano-premium">Escolher Premium</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ASSINATURA -->
+      <section id="secao-assinatura" style="display: none;">
+        <h2>Minha assinatura</h2>
+        <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Veja o seu plano e gerencie o pagamento.</p>
+
+        <div class="assinatura-lista">
+
+          <!-- Plano ativo -->
+          <div class="card-assinatura" id="assinatura-ativa" hidden>
+            <span class="assinatura-status">Assinatura ativa</span>
+            <h3>—</h3>
+            <div>
               <button type="button" class="btn-ver-boleto" data-plano="Premium">📄 Ver boleto</button>
               <button type="button" class="btn-trocar-pagamento" data-plano="Premium" hidden>💳 Trocar forma de pagamento</button>
               <button type="button" class="btn-cancelar-assinatura" data-plano="Premium" hidden>Cancelar assinatura</button>
             </div>
+          </div>
+
+          <!-- Plano escolhido que ainda aguarda o pagamento do boleto -->
+          <div class="card-assinatura" id="assinatura-pendente" hidden>
+            <span class="assinatura-status pendente">Aguardando pagamento do boleto</span>
+            <h3>—</h3>
+            <div>
+              <button type="button" class="btn-ver-boleto" data-plano="Premium">📄 Ver boleto</button>
+              <button type="button" class="btn-trocar-pagamento" data-plano="Premium" hidden>💳 Trocar forma de pagamento</button>
+              <button type="button" class="btn-cancelar-assinatura" data-plano="Premium" hidden>Cancelar assinatura</button>
+            </div>
+          </div>
+
+          <!-- Sem assinatura paga -->
+          <div class="card-assinatura" id="assinatura-vazia" hidden>
+            <span class="assinatura-status">Plano atual</span>
+            <h3>Grátis</h3>
+            <p>Você ainda não tem uma assinatura paga. Escolha um plano para liberar mais recursos.</p>
+            <button type="button" class="btn-selecionar-plano" id="btn-assinatura-ver-planos">Ver planos</button>
           </div>
 
         </div>
@@ -933,7 +1055,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
       <h3>Cancelar assinatura?</h3>
       <button type="button" id="btn-fechar-cancelamento" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
     </div>
-    <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px;">Você voltará para o plano Grátis e perderá os recursos do plano atual. Tem certeza?</p>
+    <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px;">Você vai sair da conta e voltar para a tela inicial. Para entrar de novo, vai precisar escolher um plano. Tem certeza?</p>
     <div class="form-botoes">
       <button type="button" class="btn-cancelar" id="manter-plano">Manter plano</button>
       <button type="button" class="btn-salvar btn-perigo" id="confirmar-cancelamento">Sim, cancelar</button>
