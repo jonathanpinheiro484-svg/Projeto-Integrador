@@ -2585,3 +2585,67 @@ function iniciarDashboard() {
 }
 
 document.addEventListener("DOMContentLoaded", iniciarDashboard);
+
+
+
+/* =====================================================================
+   CONTADOR DO TESTE GRATUITO (30 dias)
+   Cole em js/comum.js (ou carregue como js/contador-teste.js).
+   ===================================================================== */
+const DIAS_TESTE = 30;
+const CHAVE_INICIO_TESTE = 'gt_inicio_teste';
+
+/* Chame UMA vez, no momento do cadastro da conta (quando o teste começa). */
+function iniciarTeste() {
+  if (!localStorage.getItem(CHAVE_INICIO_TESTE)) {
+    localStorage.setItem(CHAVE_INICIO_TESTE, new Date().toISOString());
+  }
+}
+
+function meiaNoite(data) {
+  return new Date(data.getFullYear(), data.getMonth(), data.getDate());
+}
+
+/* Calcula quantos dias já passaram e quantos faltam. */
+function calcularTeste() {
+  iniciarTeste(); // garante uma data de início mesmo em contas antigas
+  const inicio = new Date(localStorage.getItem(CHAVE_INICIO_TESTE));
+  const MS_DIA = 24 * 60 * 60 * 1000;
+  // Math.round evita erro de 1 dia na troca de horário de verão
+  const decorridos = Math.round((meiaNoite(new Date()) - meiaNoite(inicio)) / MS_DIA);
+  const usados = Math.min(Math.max(decorridos, 0), DIAS_TESTE);
+  const restantes = DIAS_TESTE - usados;
+  return {
+    restantes,
+    usados,
+    percentual: Math.round((usados / DIAS_TESTE) * 100),
+    expirado: restantes === 0,
+  };
+}
+
+/* Escreve o resultado na tela (card do plano Grátis na aba Assinatura). */
+function atualizarContadorTeste() {
+  const elDias = document.getElementById('trial-dias');
+  const elRotulo = document.getElementById('trial-rotulo');
+  const elBarra = document.getElementById('trial-barra');
+  if (!elDias) return; // a tela ainda não existe
+
+  const t = calcularTeste();
+  elDias.textContent = t.restantes;
+  elRotulo.textContent = t.restantes === 1 ? 'dia restante' : 'dias restantes';
+  elBarra.style.width = t.percentual + '%';
+
+  // cor da barra: verde → âmbar (7 dias ou menos) → vermelho (acabou)
+  elBarra.style.background = t.expirado ? '#d32f2f' : t.restantes <= 7 ? '#ffb020' : '#00c878';
+
+  const aviso = document.getElementById('trial-aviso');
+  if (aviso) {
+    aviso.hidden = !t.expirado;
+    aviso.textContent = 'Seu teste gratuito terminou. Escolha um plano para continuar usando o sistema.';
+  }
+}
+
+/* Atualiza ao carregar a página e sempre que a aba Assinatura for aberta. */
+document.addEventListener('DOMContentLoaded', atualizarContadorTeste);
+// No seu código que troca de aba (data-menu="Assinatura"), chame também:
+//   atualizarContadorTeste();
