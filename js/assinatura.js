@@ -287,7 +287,7 @@ function iniciarAssinatura() {
   const MODO_TESTE = true;
   // Envio de e-mail no modo teste, sem backend, pelo EmailJS (emailjs.com). Deixe vazio para só simular.
   // Só para teste: a chave pública fica visível no navegador. Em produção o envio é pelo backend PHP.
-  const EMAILJS = { servico: "", modelo: "", chavePublica: "" };
+  const EMAILJS = { servico: "service_hyuknnn", modelo: "template_25gznvb", chavePublica: "ujHV-oJdL3QrtE_-X" };
 
   // >>> PREÇOS: Básico, Profissional e Completo seguem os valores da tela de Planos (planos.html).
   // O Premium (usado pelo painel) continua com o valor de exemplo: troque pelo valor real.
@@ -589,14 +589,14 @@ function iniciarAssinatura() {
     if (!nome) falhar("Preencha o nome completo.", "ass-nome");
     else if (nome.length < 5 || nome.length > 60) falhar("O nome deve ter de 5 a 60 caracteres.", "ass-nome");
     else if (/[^\p{L}\s]/u.test(nome)) falhar("O nome deve ter apenas letras (sem números, símbolos ou pontuação).", "ass-nome");
-    else if (!NOME_COMPLETO_REGEX.test(nome)) falhar("Digite o nome completo, sem abreviar: nome e sobrenome, cada um começando com letra maiúscula. Exemplo: Fernanda Lima", "ass-nome");
+    else if (!NOME_REGEX.test(nome)) falhar("Digite o nome completo, sem abreviar: nome e sobrenome. Exemplo: Fernanda Lima", "ass-nome");
 
     const email = $("ass-email").value.trim();
     if (!email) falhar("Preencha o e-mail.", "ass-email");
-    else if (!EMAIL_REGEX.test(email)) falhar("Digite um e-mail válido. Exemplo: nome@gmail.com", "ass-email");
-    else if (cadastro.email && email.toLowerCase() !== cadastro.email.toLowerCase()) falhar("O e-mail precisa ser o mesmo do seu cadastro.", "ass-email");
+
 
     if (!$("ass-cpf").value.trim()) falhar("Preencha o CPF.", "ass-cpf");
+    else if (soDigitos($("ass-cpf").value).length !== 11) falhar("O CPF deve ter 11 números.", "ass-cpf");
     else if (!cpfValido($("ass-cpf").value)) falhar("O CPF informado não é válido.", "ass-cpf");
     else if (cadastro.cpf && soDigitos($("ass-cpf").value) !== cadastro.cpf) falhar("O CPF precisa ser o mesmo do seu cadastro.", "ass-cpf");
 
@@ -992,29 +992,90 @@ function iniciarAssinatura() {
     try { if (window.QRPix) alvo.innerHTML = QRPix.svg($("pix-codigo").value, 180); } catch (e) { /* sem QR: o copia e cola continua valendo */ }
   }
 
+  // MODO TESTE: dados da empresa que aparecem na nota (troque pelos dados reais quando tiver o CNPJ)
+  const EMPRESA = { nome: "Get Time", cnpj: "00.000.000/0001-00 (fictício, só para teste)", email: "jonathanpinheiro484@gmail.com" };
+
   // MODO TESTE: monta a nota que seria enviada por e-mail, só para visualizar
+  // (HTML de e-mail: tabelas e estilos inline, sem imagens externas, para funcionar em Gmail/Outlook)
   function gerarNotaTeste(pedido) {
     const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    // Nome com a inicial maiúscula (o campo aceita maiúscula e minúscula), "da/de/do/das/dos/e" ficam minúsculos
+    const nomeBonito = (n) => n.trim().toLowerCase().split(/\s+/)
+      .map((p, i) => (i > 0 && ["da", "de", "do", "das", "dos", "e"].includes(p)) ? p : p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
     const cpf = pedido.cpf.length === 11 ? "***." + pedido.cpf.slice(3, 6) + "." + pedido.cpf.slice(6, 9) + "-**" : "";
     const pagto = pedido.metodo === "pix" ? "Pix" : (pedido.metodo === "boleto" ? "Boleto bancário" : "Cartão de crédito");
-    const linhas = [
-      ["Nota nº", "TESTE-" + Date.now().toString().slice(-6)],
-      ["Data", new Date().toLocaleString("pt-BR")],
-      ["Cliente", pedido.nome],
-      ["CPF", cpf],
-      ["E-mail", pedido.email],
-      ["Plano", PLANOS[pedido.plano].nome],
-      ["Cobrança", pedido.ciclo === "anual" ? "Anual" : "Mensal"],
-      ["Pagamento", pagto],
-      ["Total", moeda(pedido.total)]
-    ];
-    const tr = linhas.map((l) => '<tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">' + esc(l[0]) +
-      '</td><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:600">' + esc(l[1]) + "</td></tr>").join("");
-    return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Nota de teste</title></head>' +
-      '<body style="font-family:Arial,sans-serif;max-width:560px;margin:30px auto;color:#1f2430">' +
-      '<p style="background:#fff4d6;border:1px solid #f0d58a;padding:8px 12px;border-radius:6px;font-size:12px">MODO TESTE: esta nota é só uma simulação.</p>' +
-      '<h2 style="margin:0 0 16px">Gestão Integrada Pro</h2><h3 style="margin:0 0 10px">Nota da sua compra</h3>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:14px">' + tr + "</table></body></html>";
+    const plano = PLANOS[pedido.plano];
+    const cobranca = pedido.ciclo === "anual" ? "anual" : "mensal";
+    const agora = new Date();
+    const dataEmissao = agora.toLocaleDateString("pt-BR") + " às " + agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const fim = dataRenovacao(pedido.plano, pedido.ciclo);
+    const periodo = agora.toLocaleDateString("pt-BR") + " a " + fim.toLocaleDateString("pt-BR");
+    const numero = "TESTE-" + Date.now().toString().slice(-6);
+    const codigo = "GT-" + Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+
+    // Campo: rótulo pequeno em cima, valor embaixo (funciona bem em telas estreitas)
+    const campo = (rotulo, valor, extra) =>
+      '<tr><td style="padding:10px 16px;border-top:1px solid #eceef3">' +
+      '<div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8">' + esc(rotulo) + "</div>" +
+      '<div style="font-size:15px;font-weight:600;color:#1f2430;margin-top:3px;word-break:break-word;' + (extra || "") + '">' + esc(valor) + "</div></td></tr>";
+    // Bloco com faixa de título, como nos documentos fiscais
+    const secao = (titulo, corpo) =>
+      '<tr><td style="padding:16px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dfe3ec;border-radius:8px;border-collapse:separate;overflow:hidden">' +
+      '<tr><td style="background:#f1f3f9;padding:9px 16px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4b4a6a">' + esc(titulo) + "</td></tr>" +
+      corpo + "</table></td></tr>";
+
+    return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Get Time - Nota da compra</title></head>' +
+      '<body style="margin:0;padding:0;background:#f3f4f8;font-family:Arial,Helvetica,sans-serif;color:#1f2430">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f8"><tr><td align="center" style="padding:24px 12px">' +
+      '<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #dfe3ec;border-radius:12px;overflow:hidden">' +
+
+      // Cabeçalho: marca à esquerda, título e número da nota à direita
+      '<tr><td style="padding:24px 28px 18px;border-bottom:4px solid #6c5ce7"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+      '<td valign="middle"><table role="presentation" cellpadding="0" cellspacing="0"><tr>' +
+      '<td style="background:#6c5ce7;color:#ffffff;font-size:18px;font-weight:800;width:44px;height:44px;text-align:center;border-radius:10px;letter-spacing:.5px">GT</td>' +
+      '<td style="padding-left:12px;font-size:24px;font-weight:800;color:#1f2430">Get Time</td></tr></table></td>' +
+      '<td valign="middle" align="right"><div style="font-size:15px;font-weight:800;letter-spacing:1px;color:#6c5ce7">NOTA FISCAL</div>' +
+      '<div style="font-size:13px;color:#475569;margin-top:4px">Nº <b>' + esc(numero) + "</b></div></td>" +
+      "</tr></table></td></tr>" +
+
+      // Aviso de teste
+      '<tr><td style="padding:16px 28px 0"><div style="background:#fff4d6;border:1px solid #f0d58a;padding:8px 12px;border-radius:6px;font-size:12px;color:#7a5b00">' +
+      "MODO TESTE: esta nota é só uma simulação e não tem valor fiscal.</div></td></tr>" +
+
+      // Emissão
+      secao("Emissão", campo("Data e hora de emissão", dataEmissao)) +
+
+      // Prestador
+      secao("Prestador do serviço", campo("Nome", EMPRESA.nome) + campo("CNPJ", EMPRESA.cnpj) + campo("E-mail", EMPRESA.email)) +
+
+      // Tomador
+      secao("Tomador do serviço (cliente)", campo("Nome", nomeBonito(pedido.nome)) + campo("CPF", cpf) + campo("E-mail", pedido.email)) +
+
+      // Discriminação do serviço
+      secao("Discriminação do serviço",
+        '<tr><td style="padding:14px 16px;border-top:1px solid #eceef3"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+        '<td valign="top"><div style="font-size:15px;font-weight:700">Assinatura do sistema Get Time, plano ' + esc(plano.nome) + "</div>" +
+        '<div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.5">Cobrança ' + esc(cobranca) + " · Quantidade: 1<br>Período: " + esc(periodo) + "</div></td>" +
+        '<td valign="top" align="right" style="padding-left:16px;font-size:15px;font-weight:700;white-space:nowrap">' + esc(moeda(pedido.total)) + "</td></tr></table></td></tr>" +
+        '<tr><td style="background:#efeaff;padding:14px 16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+        '<td style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4b4a6a">Valor total da nota</td>' +
+        '<td align="right" style="padding-left:16px;font-size:22px;font-weight:800;color:#3b2fa0;white-space:nowrap">' + esc(moeda(pedido.total)) + "</td></tr></table></td></tr>") +
+
+      // Pagamento
+      secao("Pagamento",
+        campo("Forma de pagamento", pagto) +
+        campo("Situação", "Pagamento confirmado", "color:#15803d") +
+        campo("Próxima cobrança", fim.toLocaleDateString("pt-BR"))) +
+
+      // Código de verificação
+      secao("Código de verificação (simulado)", campo("Código", codigo, "font-family:Consolas,Menlo,monospace;letter-spacing:1px")) +
+
+      // Rodapé
+      '<tr><td style="padding:22px 28px 28px"><p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8;text-align:center">' +
+      "Guarde esta nota. Em caso de dúvida, é só responder este e-mail.<br>Get Time · Obrigado por escolher a gente!</p></td></tr>" +
+
+      "</table></td></tr></table></body></html>";
   }
 
   // MODO TESTE: envia a nota de teste por e-mail usando o EmailJS (sem backend)
@@ -1031,7 +1092,7 @@ function iniciarAssinatura() {
           template_params: {
             to_email: pedido.email,
             to_name: pedido.nome,
-            assunto: "Nota da sua compra (TESTE)",
+            assunto: "Get Time - Nota da sua compra (TESTE)",
             nota_html: html
           }
         })

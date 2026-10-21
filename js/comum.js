@@ -105,6 +105,30 @@ function salvarTokenApi(token) {
   localStorage.setItem("apiToken", token);
 }
 
+// Edita um serviço no banco: PUT /Servicos/{id}. Só o dono pode editar (a API confere pelo token).
+// Depois de editar, a tela deve recarregar a lista da API (GET /Servicos) para mostrar o que está no banco,
+// em vez de alterar a lista local.
+// Erros: o apiRequest lança "Erro na API (STATUS) ..."; use mensagemErroApiComum(erro) para mostrar na tela
+// (404 = serviço não encontrado ou não é desse dono; 400 = dado inválido, com a mensagem da API).
+async function editarServicoApi(id, nome, duracaoMinutos, preco) {
+  await apiRequest("SERVICOS", { method: "PUT", body: { nome, duracaoMinutos, preco } }, "/" + id);
+}
+
+// Edita um cliente no banco: PUT /Clientes/{id}. Dono e colaborador podem editar (a API confere pelo token).
+// Depois de editar, a tela deve recarregar a lista da API (GET /Clientes) para mostrar o que está no banco,
+// em vez de alterar a lista local.
+// Erros: use mensagemErroApiComum(erro) para mostrar na tela
+// (404 = cliente não encontrado ou não é desse dono; 400 = dado inválido, com a mensagem da API).
+async function editarClienteApi(id, nome, telefone) {
+  await apiRequest("CLIENTES", { method: "PUT", body: { nome, telefone } }, "/" + id);
+}
+
+// Remove um cliente: DELETE /Clientes/{id}. No banco o cliente só fica inativo (Status = 0), a linha não é apagada.
+// Depois de remover, a tela deve recarregar a lista da API (GET /Clientes), que já não traz os inativos.
+async function removerClienteApi(id) {
+  await apiRequest("CLIENTES", { method: "DELETE" }, "/" + id);
+}
+
 // --- LOGIN DE COLABORADORES (simulação no front até o backend PHP existir) ---
 // O dono cadastra e-mail + senha do colaborador na Administração; depois o
 // colaborador entra em login.html com esses dados.

@@ -1599,6 +1599,7 @@ function iniciarDashboard() {
     clientes.push(novo);
     salvarClientesLocal();
     atualizarListaClientes();
+    await carregarClientes(); // pega o id real do banco (necessário para Editar/Remover e quando o cliente foi reativado)
 
     // Se o cadastro foi aberto de dentro do agendamento, já deixa o cliente escolhido lá
     if (!modalAgendamento.hidden && campoClienteAgend) {
@@ -1934,11 +1935,23 @@ function iniciarDashboard() {
       limparErroForm(formClienteAdmin);
 
       if (clienteEditandoTel !== null) {
-        // >>> API: PUT /Clientes/{id} quando o endpoint existir.
         const existente = clientes.find(c => c.telefone === clienteEditandoTel);
-        if (existente) { existente.nome = nome; existente.telefone = telefone; }
-        salvarClientesLocal();
-        atualizarListaClientes();
+        if (!existente || existente.id === null || existente.id === undefined) {
+          mostrarErroForm(formClienteAdmin, "Não foi possível identificar o cliente. Recarregue a página e tente de novo.", null);
+          return;
+        }
+        btnSalvarAdm.disabled = true;
+        try {
+          // >>> API: PUT /Clientes/{id}. O DonoId vem do token, por isso não é enviado.
+          await editarClienteApi(existente.id, nome, telefone);
+        } catch (erro) {
+          console.warn(erro.message);
+          mostrarErroForm(formClienteAdmin, mensagemErroApiComum(erro, "Não foi possível editar o cliente."), null);
+          btnSalvarAdm.disabled = false;
+          return;
+        }
+        btnSalvarAdm.disabled = false;
+        await carregarClientes(); // recarrega da API o que está no banco (não altera a lista local)
         sairModoEdicaoCliente();
         formClienteAdmin.reset();
         return;
@@ -1961,6 +1974,7 @@ function iniciarDashboard() {
       clientes.push(novo);
       salvarClientesLocal();
       atualizarListaClientes();
+      await carregarClientes(); // pega o id real do banco (necessário para Editar/Remover e quando o cliente foi reativado)
       formClienteAdmin.reset();
     });
 
@@ -1968,18 +1982,27 @@ function iniciarDashboard() {
   }
 
   if (listaClientesAdmin) {
-    listaClientesAdmin.addEventListener("click", function (e) {
+    listaClientesAdmin.addEventListener("click", async function (e) {
       const botao = e.target.closest("button[data-acao]");
       if (!botao) return;
       const cliente = clientes.find(c => c.telefone === botao.dataset.tel);
       if (!cliente) return;
       if (botao.dataset.acao === "remover") {
         if (!confirm(`Remover o cliente "${cliente.nome}"?`)) return;
-        // >>> API: DELETE /Clientes/{id} quando o endpoint existir.
-        clientes = clientes.filter(c => c !== cliente);
-        salvarClientesLocal();
+        if (cliente.id === null || cliente.id === undefined) {
+          mostrarErroForm(formClienteAdmin, "Não foi possível identificar o cliente. Recarregue a página e tente de novo.", null);
+          return;
+        }
+        try {
+          // >>> API: DELETE /Clientes/{id}. No banco o cliente fica inativo (Status = 0).
+          await removerClienteApi(cliente.id);
+        } catch (erro) {
+          console.warn(erro.message);
+          mostrarErroForm(formClienteAdmin, mensagemErroApiComum(erro, "Não foi possível remover o cliente."), null);
+          return;
+        }
         if (clienteEditandoTel === cliente.telefone) formClienteAdmin.reset();
-        atualizarListaClientes();
+        await carregarClientes(); // recarrega da API: o cliente inativo não vem mais na lista
       } else {
         document.getElementById("cliadm-nome").value = cliente.nome;
         document.getElementById("cliadm-telefone").value = formatarTelefone(cliente.telefone);
