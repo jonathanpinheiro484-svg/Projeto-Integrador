@@ -1,1068 +1,1401 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gestão Integrada Pro - Painel Central</title>
-<!-- Todo o JavaScript do site está reunido em um único arquivo -->
-<script src="js/comum.js"></script>
-<script src="js/whatsapp.js"></script>
-<script src="js/agenda.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestão Integrada Pro - Painel Central</title>
 
-<style>
-:root {
-  --roxo: #6c5ce7;
-  --bg: #f5f6f8;
-  --card: #ffffff;
-  --border: #e2e8f0;
-  --texto: #1f2430;
-  --muted: #94a3b8;
-  --input-bg: #ffffff;
-  --hover-menu: #f5f6f8;
-}
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/stylesAgenda.css" />
 
-[data-theme="dark"] {
-  --bg: #121319;
-  --card: #1c1e26;
-  --border: #2d313e;
-  --texto: #f1f3f9;
-  --muted: #9aa1b1;
-  --input-bg: #252833;
-  --hover-menu: #252833;
-}
-
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: var(--texto);
-  background: var(--bg);
-  transition: background 0.3s ease, color 0.3s ease;
-}
-
-/* BARRA SUPERIOR DE SIMULAÇÃO */
-.bar-simulacao {
-  background: #1f2430; color: #fff; padding: 10px 20px; font-size: 13px;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
-}
-.bar-simulacao-controles { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.bar-simulacao select { padding: 4px 8px; border-radius: 4px; border: none; font-size: 12px; background: #fff; color: #000; font-weight: 600; }
-
-.btn-tema {
-  background: #2d313e; color: #fff; border: 1px solid #454c5e; border-radius: 6px;
-  padding: 5px 10px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px;
-  transition: all 0.2s ease;
-}
-.btn-tema:hover { background: #3b4052; }
-
-.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 40px); }
-
-.logo {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
-  cursor: pointer;
-  user-select: none;
-}
-.logo:hover { opacity: 0.85; }
-
-.sidebar.oculta {
-  display: none !important;
-}
-
-.layout.sidebar-oculta {
-  grid-template-columns: 1fr;
-}
-.layout.sidebar-oculta .main {
-  width: 100%;
-}
-
-.btn-mostrar-sidebar {
-  display: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: var(--roxo);
-  color: #fff;
-  border: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.btn-mostrar-sidebar:hover { opacity: 0.9; }
-.btn-mostrar-sidebar.mostrar {
-  display: flex;
-}
-
-/* SIDEBAR */
-.sidebar { background: var(--card); border-right: 1px solid var(--border); padding: 18px 14px; }
-.logo-icone { width: 32px; height: 32px; border-radius: 8px; background: var(--roxo); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
-.menu { display: flex; flex-direction: column; gap: 2px; }
-.menu-item { padding: 9px 10px; border-radius: 8px; color: var(--texto); text-decoration: none; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
-.menu-item:hover { background: var(--hover-menu); }
-.menu-item.ativo { background: #efeaff; color: var(--roxo); font-weight: 600; }
-[data-theme="dark"] .menu-item.ativo { background: #2d264e; color: #a29bfe; }
-
-/* CONTEÚDO PRINCIPAL */
-.conteudo { padding: 22px 24px; display: flex; flex-direction: column; gap: 26px; }
-h2 { font-size: 17px; margin: 0 0 12px; }
-
-/* CARDS FINANCEIRO */
-.financeiro-grid { display: grid; grid-template-columns: repeat(3, 1fr) 1.4fr; gap: 14px; }
-.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; position: relative; overflow: hidden; min-height: 100px; }
-.stat-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-.stat-valor { font-size: 18px; font-weight: 700; }
-
-.stat-card.bloqueado .conteudo-bloqueavel { visibility: hidden; opacity: 0; }
-
-.overlay-bloqueio[hidden] { display: none !important; }
-
-.overlay-bloqueio {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: var(--card);
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 6px; z-index: 5; text-align: center; padding: 10px;
-}
-.overlay-bloqueio .box-cadeado {
-  background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 6px 12px;
-  display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-}
-[data-theme="dark"] .overlay-bloqueio .box-cadeado { background: #252833; }
-.overlay-bloqueio .icone-cadeado { font-size: 20px; }
-.overlay-bloqueio .tag-pro { font-size: 11px; font-weight: 600; color: var(--texto); background: var(--card); padding: 2px 8px; border-radius: 12px; border: 1px solid var(--border); }
-
-.grafico-pagamentos { display: flex; gap: 10px; height: 80px; margin-top: 6px; }
-.eixo-y { display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; color: var(--muted); text-align: right; }
-.barras { display: flex; align-items: flex-end; gap: 16px; flex: 1; }
-.barra-col { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; flex: 1; }
-.barra { width: 100%; max-width: 24px; border-radius: 4px 4px 0 0; height: 0; background: var(--roxo); transition: height 0.3s ease; }
-.barra-col label { font-size: 10px; margin-top: 4px; color: var(--muted); }
-
-/* AGENDA */
-.agenda-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px; }
-.agenda-titulo-data { display: flex; align-items: center; gap: 12px; }
-.input-data-seletor, .select-colunas { border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: inherit; color: var(--texto); background: var(--input-bg); cursor: pointer; }
-.agenda-controles { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.agenda-controles button { border: 1px solid var(--border); background: var(--card); color: var(--texto); border-radius: 6px; padding: 6px 12px; font-size: 12px; cursor: pointer; }
-.btn-novo-agendamento { background: var(--roxo) !important; color: #fff !important; border-color: var(--roxo) !important; font-weight: 600; }
-
-.paginacao { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-.paginacao button { width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center; }
-
-.toggle-view { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--card); }
-.toggle-view button { border: none; border-radius: 0; padding: 6px 12px; font-size: 12px; background: transparent; color: var(--texto); cursor: pointer; }
-.toggle-view button.ativo { background: #1b1f3b; color: #fff; font-weight: 600; }
-[data-theme="dark"] .toggle-view button.ativo { background: var(--roxo); }
-
-.agenda-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
-.agenda { display: flex; flex-direction: column; min-width: 600px; }
-.agenda-cabecalho { display: grid; grid-template-columns: 50px repeat(var(--n-colab), minmax(160px, 1fr)); }
-.cab { padding: 10px 8px; font-size: 12px; font-weight: 600; text-align: center; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-.cab-avatar { width: 16px; height: 16px; border-radius: 50%; background: rgba(255,255,255,.6); margin-bottom: 2px; }
-.cab-nome { font-size: 12px; font-weight: 700; }
-.cab-cargo { font-size: 10px; opacity: 0.9; font-weight: 400; }
-
-.agenda-corpo { display: grid; grid-template-columns: 50px repeat(var(--n-colab), minmax(160px, 1fr)); position: relative; }
-.col-horarios { display: flex; flex-direction: column; }
-.hora-label { height: 48px; font-size: 11px; color: var(--muted); text-align: right; padding-right: 6px; border-top: 1px solid var(--border); box-sizing: border-box; display: flex; align-items: center; justify-content: flex-end; }
-.col-colab { position: relative; border-left: 1px solid var(--border); height: calc(var(--n-horas) * 48px); }
-.linha-hora { height: 48px; border-top: 1px solid var(--border); box-sizing: border-box; }
-
-.agendamento {
-  position: absolute; border-radius: 6px; padding: 4px 34px 4px 8px; font-size: 11px; color: #fff; overflow: hidden; box-sizing: border-box; z-index: 10;
-  display: flex; flex-direction: column; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.12); cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0.2s ease; transform-origin: right top;
-}
-.agendamento:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 12px rgba(0,0,0,0.25); z-index: 50; }
-.agendamento strong { display: block; font-size: 11px; font-weight: 700; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.agendamento span { opacity: .9; font-size: 10px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
-.agendamento .remover { position: absolute; top: 5px; right: 6px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.22); border: none; border-radius: 50%; color: #fff; cursor: pointer; font-size: 11px; font-weight: bold; padding: 0; z-index: 2; }
-.agendamento .remover:hover { background: rgba(0,0,0,0.45); }
-
-/* ADMINISTRATIVO */
-.admin-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; align-items: start; }
-.admin-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-.admin-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.admin-card-header h3 { margin: 0; }
-.colaboradores-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
-.colaborador-item { position: relative; border: 1px solid var(--border); border-radius: 8px; padding: 10px; display: flex; gap: 10px; align-items: center; background: var(--card); }
-.colaborador-avatar { width: 32px; height: 32px; border-radius: 50%; background: #e5e7eb; flex-shrink: 0; }
-.colaborador-info strong { display: block; font-size: 12.5px; }
-.colaborador-info small { color: var(--muted); font-size: 11px; }
-.status-ativo { display: inline-block; margin-top: 3px; background: #d1fae5; color: #059669; font-size: 10px; padding: 1px 8px; border-radius: 10px; }
-.status-inativo { display: inline-block; margin-top: 3px; background: #fee2e2; color: #dc2626; font-size: 10px; padding: 1px 8px; border-radius: 10px; }
-.colaborador-remover { position: absolute; top: 6px; right: 6px; background: none; border: none; color: #b0b4bd; cursor: pointer; font-size: 11px; padding: 2px; }
-.colaborador-remover:hover { color: #e11d48; }
-
-.tabela-contratos { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.tabela-contratos th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
-.tabela-contratos td { padding: 8px 0; border-bottom: 1px solid var(--border); }
-
-/* FORMULÁRIO */
-.form-agendamento { display: grid; gap: 12px; }
-.form-agendamento .campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-.form-agendamento input, .form-agendamento select { border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
-.form-agendamento .dica-campo { font-size: 11px; color: var(--muted); }
-.form-agendamento .obrigatorio { color: #e11d48; }
-.form-agendamento input:user-invalid { border-color: #e11d48; }
-.form-botoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
-.btn-salvar { background: var(--roxo); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; }
-.btn-cancelar { background: none; border: 1px solid var(--border); color: var(--texto); border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; }
-.btn-whatsapp-detalhes { background: #25d366; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 600; margin-right: auto; }
-.btn-whatsapp-detalhes:hover { background: #1ebe5b; }
-.btn-whatsapp-detalhes[hidden] { display: none; }
-
-/* MODAL */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-.modal-overlay[hidden] { display: none; }
-.modal-card { background: var(--card); color: var(--texto); border-radius: 12px; width: 100%; max-width: 450px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid var(--border); }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.modal-header h3 { margin: 0; font-size: 16px; }
-
-/* CARD DE BLOQUEIO */
-.card-bloqueio-plano {
-  background: var(--card); border: 1px dashed var(--border); border-radius: 12px;
-  padding: 40px; text-align: center; margin-top: 20px;
-}
-.card-bloqueio-plano h3 { font-size: 18px; margin-bottom: 8px; }
-.card-bloqueio-plano p { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
-
-/* TELA DE SELEÇÃO DE PLANOS */
-.planos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 15px; }
-.card-plano {
-  background: var(--card); border: 2px solid var(--border); border-radius: 12px;
-  padding: 24px; display: flex; flex-direction: column; justify-content: space-between;
-  position: relative; transition: border-color 0.2s, transform 0.2s;
-}
-.card-plano:hover { transform: translateY(-3px); }
-.card-plano.destaque { border-color: var(--roxo); }
-.card-plano .badge { position: absolute; top: 12px; right: 12px; background: var(--roxo); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
-.card-plano h3 { margin: 0 0 10px; font-size: 20px; }
-.card-plano .preco { font-size: 24px; font-weight: 800; margin-bottom: 15px; }
-.card-plano .preco span { font-size: 12px; color: var(--muted); font-weight: 400; }
-.card-plano ul { list-style: none; padding: 0; margin: 0 0 20px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
-.card-plano ul li { display: flex; align-items: center; gap: 6px; }
-.btn-selecionar-plano { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 10px; font-weight: 600; cursor: pointer; width: 100%; text-align: center; }
-.btn-selecionar-plano.atual { background: var(--border); color: var(--muted); cursor: default; }
-
-/* TELA DE ASSINATURA */
-.assinatura-lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 420px)); gap: 20px; margin-top: 15px; }
-.card-assinatura { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 24px; }
-.card-assinatura[hidden] { display: none; }
-.card-assinatura h3 { margin: 6px 0 4px; font-size: 20px; }
-.card-assinatura p { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
-.assinatura-status { font-size: 12px; font-weight: 600; color: var(--roxo); }
-.assinatura-status.pendente { color: #d97706; }
-
-/* BOTÃO CANCELAR ASSINATURA (aparece só no card do plano pago atual) */
-.btn-cancelar-assinatura {
-  display: block; width: 100%; margin-top: 10px; padding: 10px;
-  background: transparent; color: #d32f2f; border: 1px solid #d32f2f;
-  border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; text-align: center;
-  transition: background 0.2s, color 0.2s;
-}
-.btn-cancelar-assinatura[hidden] { display: none; }
-.btn-cancelar-assinatura:hover { background: #d32f2f; color: #fff; }
-.btn-perigo { background: #d32f2f; }
-.btn-perigo:hover { opacity: 0.9; }
-
-/* RESPONSIVO (celular e tablet) */
-.main { min-width: 0; } /* sem isto a coluna principal estica até o tamanho da agenda e a página rola para o lado */
-@media (max-width: 768px) {
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--border); padding: 10px 12px; }
-  .logo { margin-bottom: 10px; }
-  .menu { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
-  .menu-item { white-space: nowrap; flex-shrink: 0; }
-  .conteudo { padding: 16px 12px; gap: 20px; }
-  .financeiro-grid { grid-template-columns: 1fr 1fr; }
-  .admin-grid { grid-template-columns: 1fr; }
-  .agenda { min-width: 0; }
-  .agenda-cabecalho, .agenda-corpo { grid-template-columns: 44px repeat(var(--n-colab), minmax(0, 1fr)); }
-  .agenda-controles { width: 100%; }
-  .modal-overlay { padding: 12px; }
-  .modal-card { max-height: 92vh; overflow-y: auto; }
-}
-@media (max-width: 480px) {
-  .financeiro-grid { grid-template-columns: 1fr; }
-  .bar-simulacao { padding: 8px 12px; }
-}
-
-.financeiro-periodo { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); }
-
-/* Tabela de valores do financeiro */
-.financeiro-tabela-wrap { grid-column: 1 / -1; background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; }
-.tabela-financeiro { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 420px; }
-.tabela-financeiro th, .tabela-financeiro td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.tabela-financeiro th:first-child, .tabela-financeiro td:first-child { text-align: left; }
-.tabela-financeiro th { font-size: 12px; font-weight: 600; color: var(--muted); }
-.tabela-financeiro tbody tr:last-child td { border-bottom: none; }
-.tabela-financeiro .col-ativa { background: var(--hover-menu); font-weight: 600; }
-.tabela-financeiro tfoot td { font-weight: 700; border-top: 1px solid var(--border); border-bottom: none; }
-/* última coluna com folga à direita: o botão flutuante do WhatsApp fica no canto e não pode cobrir o valor */
-.tabela-financeiro th:last-child, .tabela-financeiro td:last-child { padding-right: 88px; }
-.tabela-financeiro-info { padding: 12px 14px 0; font-size: 12px; color: var(--muted); }
-
-/* Tabela e gráficos: só aparecem na aba Financeiro (o JS tira o hidden) */
-.so-financeiro[hidden] { display: none !important; }
-
-/* Aviso de gráfico sem dados */
-.grafico-colab-vazio { margin-top: 10px; font-size: 12px; color: var(--muted); }
-
-/* Rosca (participação) e linha (faturamento acumulado no mês) */
-.financeiro-graficos-par { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 768px) { .financeiro-graficos-par { grid-template-columns: 1fr; } }
-.rosca-conteudo { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 8px; }
-.rosca-svg { width: 130px; height: 130px; flex-shrink: 0; }
-.rosca-svg text { fill: var(--muted); font-size: 9px; }
-.rosca-svg text.rosca-total { fill: var(--texto); font-size: 11px; font-weight: 700; }
-.rosca-legenda { display: flex; flex-direction: column; gap: 8px; max-height: 130px; overflow-y: auto; min-width: 0; }
-.rosca-pct { display: block; font-size: 18px; font-weight: 700; line-height: 1.1; }
-.rosca-nome { display: block; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.linha-svg { width: 100%; height: auto; display: block; margin-top: 6px; }
-.linha-svg text { fill: var(--muted); font-size: 8px; }
-.linha-svg .linha-grade { stroke: var(--border); stroke-width: 0.6; }
-.linha-legenda { display: flex; gap: 14px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 6px; }
-.linha-ponto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
-
-/* ===== WHATSAPP ===== */
-.form-agendamento .campo[hidden] { display: none; }
-.btn-tema.whatsapp-on { background: #25d366; border-color: #25d366; color: #fff; }
-.btn-tema.whatsapp-on:hover { background: #1ebe5b; }
-.agendamento .btn-whatsapp-card { position: absolute; bottom: 5px; right: 6px; width: 26px; height: 22px; display: flex; align-items: center; justify-content: center; background: #25d366; border: none; color: #fff; cursor: pointer; font-size: 12px; line-height: 1; padding: 0; border-radius: 6px; z-index: 2; }
-.agendamento .btn-whatsapp-card:hover { background: #1ebe5b; }
-
-/* Serviços em caixinhas (cadastro de colaborador) e botão de boleto */
-.servicos-grupo { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; max-height:190px; overflow-y:auto; padding:10px; border:1px solid var(--border); border-radius:7px; background:var(--input-bg); outline:none; }
-.servicos-grupo label { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--texto); cursor:pointer; }
-.servicos-grupo input[type="checkbox"] { width:16px; height:16px; padding:0; margin:0; flex-shrink:0; cursor:pointer; accent-color:#6c5ce7; }
-.form-agendamento input[hidden] { display:none; }
-@media (max-width:480px) { .servicos-grupo { grid-template-columns:1fr; } }
-.btn-ver-boleto { display:block; width:100%; margin-top:10px; padding:10px; background:transparent; color:var(--roxo); border:1px solid var(--roxo); border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; text-align:center; transition:background .2s,color .2s; }
-.btn-ver-boleto[hidden] { display:none; }
-.btn-ver-boleto:hover { background:var(--roxo); color:#fff; }
-.btn-trocar-pagamento { display:block; width:100%; margin-top:10px; padding:10px; background:transparent; color:var(--texto); border:1px solid var(--border); border-radius:8px; font-weight:600; font-size:13px; cursor:pointer; text-align:center; transition:background .2s; }
-.btn-trocar-pagamento[hidden] { display:none; }
-.btn-trocar-pagamento:hover { background:var(--hover-menu); }
-.form-agendamento input[readonly] { background: var(--hover-menu); color: var(--muted); cursor: not-allowed; }
-.boleto-linha { display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border); }
-.boleto-linha span:first-child { color:var(--muted); }
-.boleto-codigo { font-family:monospace; font-size:12px; word-break:break-all; background:var(--input-bg); border:1px solid var(--border); border-radius:7px; padding:8px 10px; margin-top:10px; }
-.btn-link { align-self:flex-start; background:none; border:none; padding:0; color:var(--roxo); font-size:12px; font-weight:600; cursor:pointer; }
-.btn-link:hover { text-decoration:underline; }
-</style>
-</head>
-<body>
-
-<div class="bar-simulacao">
-  <button type="button" id="btn-mostrar-sidebar" class="btn-mostrar-sidebar" title="Mostrar menu lateral">☰</button>
-  <span><strong>Simulador de Permissões:</strong></span>
-  <div class="bar-simulacao-controles">
-    <div>
-      <label>Plano contratado: </label>
-      <strong id="texto-plano">Grátis</strong>
-    </div>
-    <div>
-      <label>Perfil do Usuário: </label>
-      <strong id="texto-perfil">Admin</strong>
-    </div>
-    <button type="button" id="btn-toggle-tema" class="btn-tema">🌙 Modo Noturno</button>
-  </div>
-</div>
-
-<div class="layout" id="layout-principal">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar-principal">
-    <div class="logo" id="btn-gestao" title="Ocultar menu lateral" role="button" tabindex="0">
-      <span class="logo-icone">G</span>
-      <div><strong>Gestão Integrada Pro</strong></div>
-    </div>
-    <nav class="menu">
-      <a class="menu-item ativo" data-menu="Dashboard">Dashboard</a>
-      <a class="menu-item" data-menu="Agenda">Agenda</a>
-      <a class="menu-item" data-menu="Financeiro">
-        <span>Financeiro</span>
-        <span id="tag-lock-fin" style="font-size:12px;" hidden>🔒</span>
-      </a>
-      <a class="menu-item" data-menu="Administracao">Administração</a>
-      <a class="menu-item" data-menu="Suporte">Suporte</a>
-      <a class="menu-item" data-menu="Planos">
-        <span>Planos</span>
-      </a>
-      <a class="menu-item" data-menu="Assinatura">
-        <span>Assinatura</span>
-      </a>
-      <a class="menu-item" id="btn-sair" role="button" tabindex="0">Sair</a>
-    </nav>
-  </aside>
-
-  <!-- ÁREA PRINCIPAL -->
-  <div class="main">
-    <main class="conteudo">
-
-      <!-- FINANCEIRO -->
-      <section id="secao-financeiro">
-        <h2>Financeiro</h2>
-
-        <div id="aviso-bloqueio-financeiro-pagina" class="card-bloqueio-plano" hidden>
-          <div style="font-size: 40px; margin-bottom: 10px;">🔒</div>
-          <h3>Recurso disponível apenas no Plano Premium</h3>
-          <p>Faça upgrade para o Plano Premium para ter acesso aos relatórios financeiros e aos recursos avançados.</p>
-          <button class="btn-salvar" id="btn-upgrade-financeiro">Fazer Upgrade do Plano</button>
+    <!-- JavaScript do site -->
+    <script src="js/comum.js"></script>
+    <script src="js/whatsapp.js"></script>
+    <script src="js/agenda.js"></script>
+  </head>
+  <body>
+    <div class="bar-simulacao">
+      <button
+        type="button"
+        id="btn-mostrar-sidebar"
+        class="btn-mostrar-sidebar"
+        title="Mostrar menu lateral"
+      >
+        ☰
+      </button>
+      <span><strong>Simulador de Permissões:</strong></span>
+      <div class="bar-simulacao-controles">
+        <div>
+          <label>Plano contratado: </label>
+          <strong id="texto-plano">Grátis</strong>
         </div>
+        <div>
+          <label>Perfil do Usuário: </label>
+          <strong id="texto-perfil">Admin</strong>
+        </div>
+        <button type="button" id="btn-toggle-tema" class="btn-tema">
+          🌙 Modo Noturno
+        </button>
+      </div>
+    </div>
 
-        <div class="financeiro-grid" id="grid-financeiro-cards">
+    <div class="layout" id="layout-principal">
+      <!-- SIDEBAR -->
+      <aside class="sidebar" id="sidebar-principal">
+        <div
+          class="logo"
+          id="btn-gestao"
+          title="Ocultar menu lateral"
+          role="button"
+          tabindex="0"
+        >
+          <span class="logo-icone">G</span>
+          <div><strong>Gestão Integrada Pro</strong></div>
+        </div>
+        <nav class="menu">
+          <a class="menu-item ativo" data-menu="Dashboard">Dashboard</a>
+          <a class="menu-item" data-menu="Agenda">Agenda</a>
+          <a class="menu-item" data-menu="Financeiro">
+            <span>Financeiro</span>
+            <span id="tag-lock-fin" style="font-size: 12px" hidden>🔒</span>
+          </a>
+          <a class="menu-item" data-menu="Administracao">Administração</a>
+          <a class="menu-item" data-menu="Suporte">Suporte</a>
+          <a class="menu-item" data-menu="Planos">
+            <span>Planos</span>
+          </a>
+          <a class="menu-item" data-menu="Assinatura">
+            <span>Assinatura</span>
+          </a>
+          <a class="menu-item" id="btn-sair" role="button" tabindex="0">Sair</a>
+        </nav>
+      </aside>
 
-          <!-- Período dos valores abaixo (antes ficava na agenda, mas só mudava o financeiro) -->
-          <div class="financeiro-periodo">
-            <span>Período dos valores:</span>
-            <div class="toggle-view">
-              <button type="button" id="btn-modo-dia" class="ativo">Dia</button>
-              <button type="button" id="btn-modo-semana">Semana</button>
-              <button type="button" id="btn-modo-mes">Mês</button>
-            </div>
-          </div>
+      <!-- ÁREA PRINCIPAL -->
+      <div class="main">
+        <main class="conteudo">
 
-          <div class="stat-card" id="card-receitas">
-            <div class="overlay-bloqueio" hidden>
-              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Premium</span>
-            </div>
-            <div class="conteudo-bloqueavel">
-              <span class="stat-label" id="titulo-receitas">Receitas (Dia)</span>
-              <strong class="stat-valor" id="valor-receitas">R$ 0,00</strong>
-            </div>
-          </div>
+          <!-- FINANCEIRO -->
+          <section id="secao-financeiro">
+            <h2>Financeiro</h2>
 
-          <div class="stat-card" id="card-despesas">
-            <div class="overlay-bloqueio" hidden>
-              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Premium</span>
+            <div
+              id="aviso-bloqueio-financeiro-pagina"
+              class="card-bloqueio-plano"
+              hidden
+            >
+              <div style="font-size: 40px; margin-bottom: 10px">🔒</div>
+              <h3>Recurso disponível apenas no Plano Premium</h3>
+              <p>
+                Faça upgrade para o Plano Premium para ter acesso aos relatórios
+                financeiros e aos recursos avançados.
+              </p>
+              <button class="btn-salvar" id="btn-upgrade-financeiro">
+                Fazer Upgrade do Plano
+              </button>
             </div>
-            <div class="conteudo-bloqueavel">
-              <span class="stat-label">Despesas</span>
-              <strong class="stat-valor" id="valor-despesas">R$ 0,00</strong>
-            </div>
-          </div>
 
-          <div class="stat-card" id="card-saldo">
-            <div class="overlay-bloqueio" hidden>
-              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Premium</span>
-            </div>
-            <div class="conteudo-bloqueavel">
-              <span class="stat-label">Saldo Final</span>
-              <strong class="stat-valor" id="valor-saldo">R$ 0,00</strong>
-            </div>
-          </div>
+            <div class="financeiro-grid" id="grid-financeiro-cards">
 
-          <div class="stat-card grafico-card" id="card-grafico">
-            <div class="overlay-bloqueio" hidden>
-              <div class="box-cadeado"><span class="icone-cadeado">🔒</span></div>
-              <span class="tag-pro">Exclusivo Premium</span>
-            </div>
-            <div class="conteudo-bloqueavel">
-              <span class="stat-label">Meios de Pagamento</span>
-              <div class="grafico-pagamentos">
-                <div class="eixo-y">
-                  <span class="eixo-max">6.000</span>
-                  <span class="eixo-meio">3.000</span>
-                  <span class="eixo-min">0</span>
+              <!-- Período dos valores abaixo (antes ficava na agenda, mas só mudava o financeiro) -->
+
+              <div class="financeiro-periodo">
+                <span>Período dos valores:</span>
+                <div class="toggle-view">
+                  <button type="button" id="btn-modo-dia" class="ativo">
+                    Dia
+                  </button>
+                  <button type="button" id="btn-modo-semana">Semana</button>
+                  <button type="button" id="btn-modo-mes">Mês</button>
                 </div>
-                <div class="barras">
-                  <div class="barra-col" data-meio="pix">
-                    <div class="barra"></div>
-                    <label>Pix</label>
+              </div>
+
+              <div class="stat-card" id="card-receitas">
+                <div class="overlay-bloqueio" hidden>
+                  <div class="box-cadeado">
+                    <span class="icone-cadeado">🔒</span>
                   </div>
-                  <div class="barra-col" data-meio="cartao">
-                    <div class="barra"></div>
-                    <label>Cartão de Crédito</label>
+                  <span class="tag-pro">Exclusivo Premium</span>
+                </div>
+                <div class="conteudo-bloqueavel">
+                  <span class="stat-label" id="titulo-receitas"
+                    >Receitas (Dia)</span
+                  >
+                  <strong class="stat-valor" id="valor-receitas"
+                    >R$ 0,00</strong
+                  >
+                </div>
+              </div>
+
+              <div class="stat-card" id="card-despesas">
+                <div class="overlay-bloqueio" hidden>
+                  <div class="box-cadeado">
+                    <span class="icone-cadeado">🔒</span>
+                  </div>
+                  <span class="tag-pro">Exclusivo Premium</span>
+                </div>
+                <div class="conteudo-bloqueavel">
+                  <span class="stat-label">Despesas</span>
+                  <strong class="stat-valor" id="valor-despesas"
+                    >R$ 0,00</strong
+                  >
+                </div>
+              </div>
+
+              <div class="stat-card" id="card-saldo">
+                <div class="overlay-bloqueio" hidden>
+                  <div class="box-cadeado">
+                    <span class="icone-cadeado">🔒</span>
+                  </div>
+                  <span class="tag-pro">Exclusivo Premium</span>
+                </div>
+                <div class="conteudo-bloqueavel">
+                  <span class="stat-label">Saldo Final</span>
+                  <strong class="stat-valor" id="valor-saldo">R$ 0,00</strong>
+                </div>
+              </div>
+
+              <div class="stat-card grafico-card" id="card-grafico">
+                <div class="overlay-bloqueio" hidden>
+                  <div class="box-cadeado">
+                    <span class="icone-cadeado">🔒</span>
+                  </div>
+                  <span class="tag-pro">Exclusivo Premium</span>
+                </div>
+                <div class="conteudo-bloqueavel">
+                  <span class="stat-label">Meios de Pagamento</span>
+                  <div class="grafico-pagamentos">
+                    <div class="eixo-y">
+                      <span class="eixo-max">6.000</span>
+                      <span class="eixo-meio">3.000</span>
+                      <span class="eixo-min">0</span>
+                    </div>
+                    <div class="barras">
+                      <div class="barra-col" data-meio="pix">
+                        <div class="barra"></div>
+                        <label>Pix</label>
+                      </div>
+                      <div class="barra-col" data-meio="cartao">
+                        <div class="barra"></div>
+                        <label>Cartão de Crédito</label>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- Rosca: participação de cada colaborador / Linha: faturamento acumulado do mês -->
-          <div class="financeiro-graficos-par so-financeiro" hidden>
-            <div class="stat-card" id="card-rosca">
-              <span class="stat-label" id="titulo-rosca">Participação por colaborador (Dia)</span>
-              <div class="rosca-conteudo">
-                <div class="rosca-legenda" id="rosca-legenda"></div>
-                <svg class="rosca-svg" id="rosca-svg" viewBox="0 0 120 120" role="img" aria-label="Participação de cada colaborador no faturamento"></svg>
+              <!-- Rosca: participação de cada colaborador / Linha: faturamento acumulado do mês -->
+
+              <div class="financeiro-graficos-par so-financeiro" hidden>
+                <div class="stat-card" id="card-rosca">
+                  <span class="stat-label" id="titulo-rosca"
+                    >Participação por colaborador (Dia)</span
+                  >
+                  <div class="rosca-conteudo">
+                    <div class="rosca-legenda" id="rosca-legenda"></div>
+                    <svg
+                      class="rosca-svg"
+                      id="rosca-svg"
+                      viewBox="0 0 120 120"
+                      role="img"
+                      aria-label="Participação de cada colaborador no faturamento"
+                    ></svg>
+                  </div>
+                </div>
+                <div class="stat-card" id="card-linha">
+                  <span class="stat-label">Faturamento acumulado no mês</span>
+                  <div id="linha-grafico"></div>
+                  <div class="linha-legenda" id="linha-legenda"></div>
+                </div>
+              </div>
+
+              <!-- Quanto cada colaborador faturou no dia, na semana e no mês -->
+              <div class="financeiro-tabela-wrap so-financeiro" hidden>
+                <div
+                  class="tabela-financeiro-info"
+                  id="tabela-financeiro-info"
+                ></div>
+                <table class="tabela-financeiro" id="tabela-financeiro">
+                  <thead>
+                    <tr>
+                      <th>Colaborador</th>
+                      <th data-periodo="Dia">Faturado no dia</th>
+                      <th data-periodo="Semana">Faturado na semana</th>
+                      <th data-periodo="Mês">Faturado no mês</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabela-financeiro-corpo"></tbody>
+                  <tfoot>
+                    <tr>
+                      <td>Total</td>
+                      <td data-periodo="Dia" id="total-fat-dia">R$ 0,00</td>
+                      <td data-periodo="Semana" id="total-fat-semana">
+                        R$ 0,00
+                      </td>
+                      <td data-periodo="Mês" id="total-fat-mes">R$ 0,00</td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
             </div>
-            <div class="stat-card" id="card-linha">
-              <span class="stat-label">Faturamento acumulado no mês</span>
-              <div id="linha-grafico"></div>
-              <div class="linha-legenda" id="linha-legenda"></div>
-            </div>
-          </div>
+          </section>
 
-          <!-- Quanto cada colaborador faturou no dia, na semana e no mês -->
-          <div class="financeiro-tabela-wrap so-financeiro" hidden>
-            <div class="tabela-financeiro-info" id="tabela-financeiro-info"></div>
-            <table class="tabela-financeiro" id="tabela-financeiro">
-              <thead>
-                <tr>
-                  <th>Colaborador</th>
-                  <th data-periodo="Dia">Faturado no dia</th>
-                  <th data-periodo="Semana">Faturado na semana</th>
-                  <th data-periodo="Mês">Faturado no mês</th>
-                </tr>
-              </thead>
-              <tbody id="tabela-financeiro-corpo"></tbody>
-              <tfoot>
-                <tr>
-                  <td>Total</td>
-                  <td data-periodo="Dia" id="total-fat-dia">R$ 0,00</td>
-                  <td data-periodo="Semana" id="total-fat-semana">R$ 0,00</td>
-                  <td data-periodo="Mês" id="total-fat-mes">R$ 0,00</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <!-- AGENDA -->
+          <section id="secao-agenda">
+            <div class="agenda-header">
+              <div class="agenda-titulo-data">
+                <h2 id="agenda-data-texto" style="margin: 0">Data:</h2>
+                <input
+                  type="date"
+                  id="seletor-data"
+                  class="input-data-seletor"
+                  value="2026-09-25"
+                />
+              </div>
 
-        </div>
-      </section>
+              <div class="agenda-controles">
+                <div class="paginacao" id="container-paginacao">
+                  <button type="button" id="btn-pag-anterior">‹</button>
+                  <span id="pag-info">1 de 1</span>
+                  <button type="button" id="btn-pag-proxima">›</button>
+                </div>
 
-      <!-- AGENDA -->
-      <section id="secao-agenda">
-        <div class="agenda-header">
-          <div class="agenda-titulo-data">
-            <h2 id="agenda-data-texto" style="margin:0;">Data:</h2>
-            <input type="date" id="seletor-data" class="input-data-seletor" value="2026-09-25">
-          </div>
+                <div hidden>
+                  <label
+                    for="seletor-colunas"
+                    style="font-size: 12px; color: var(--muted)"
+                    >Colunas:</label
+                  >
+                  <select id="seletor-colunas" class="select-colunas"></select>
+                </div>
 
-          <div class="agenda-controles">
-            <div class="paginacao" id="container-paginacao">
-              <button type="button" id="btn-pag-anterior">‹</button>
-              <span id="pag-info">1 de 1</span>
-              <button type="button" id="btn-pag-proxima">›</button>
-            </div>
+                <div>
+                  <label for="filtro-colaborador">Procurar colaborador:</label>
+                  <select id="filtro-colaborador" class="select-colunas">
+                    <option value="todos">Procurar colaborador...</option>
+                  </select>
+                </div>
 
-            <div hidden>
-              <label for="seletor-colunas" style="font-size: 12px; color: var(--muted);">Colunas:</label>
-              <select id="seletor-colunas" class="select-colunas"></select>
+                <button type="button" id="btn-abrir-cliente">
+                  👤 Cadastrar Cliente
+                </button>
+                <button
+                  type="button"
+                  id="btn-abrir-agendamento"
+                  class="btn-novo-agendamento"
+                >
+                  + Novo Agendamento
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label for="filtro-colaborador">Procurar colaborador:</label>
-              <select id="filtro-colaborador" class="select-colunas">
-                <option value="todos">Procurar colaborador...</option>
-              </select>
+            <div class="agenda-wrap">
+              <div class="agenda" id="agenda"></div>
             </div>
+          </section>
 
-            <button type="button" id="btn-abrir-cliente">👤 Cadastrar Cliente</button>
-            <button type="button" id="btn-abrir-agendamento" class="btn-novo-agendamento">+ Novo Agendamento</button>
+          <!-- ADMINISTRATIVO -->
+          <section id="secao-administrativo">
+            <h2>Administrativo</h2>
+            <div class="admin-grid">
+              <div class="admin-card">
+                <div class="admin-card-header">
+                  <h3>Cadastrar Novo Colaborador</h3>
+                </div>
 
-          </div>
-        </div>
-
-        <div class="agenda-wrap">
-          <div class="agenda" id="agenda"></div>
-        </div>
-      </section>
-
-      <!-- ADMINISTRATIVO -->
-      <section id="secao-administrativo">
-        <h2>Administrativo</h2>
-        <div class="admin-grid">
-
-          <div class="admin-card">
-            <div class="admin-card-header">
-              <h3>Cadastrar Novo Colaborador</h3>
-            </div>
-
-            <!-- Validações feitas só com atributos HTML (required, minlength, maxlength, pattern, title).
+                <!-- Validações feitas só com atributos HTML (required, minlength, maxlength, pattern, title).
                  O navegador bloqueia o envio e mostra o texto do "title" quando o campo está errado. -->
-            <form id="form-colaborador" class="form-agendamento" style="border:1px solid var(--border); padding:20px; border-radius:10px; background: var(--card); margin-bottom: 20px;">
-              <div class="campo">
-                <label for="colab-nome">Nome Completo <span class="obrigatorio">*</span></label>
-                <input type="text" id="colab-nome" placeholder="Ex: Fernanda Lima" required
-                       minlength="5" maxlength="60"
-                       pattern="[A-ZÀ-Ý][a-zà-ÿ]{1,}(\s(da|de|do|das|dos|e|[A-ZÀ-Ý][a-zà-ÿ]{1,}))*\s[A-ZÀ-Ý][a-zà-ÿ]{1,}"
-                       title="Digite o nome completo, sem abreviar: nome e sobrenome, cada um começando com letra maiúscula (ex: Fernanda Lima). Não use apenas iniciais nem pontos.">
-                <small class="dica-campo">Nome e sobrenome, sem abreviar e com a primeira letra maiúscula.</small>
+                <form
+                  id="form-colaborador"
+                  class="form-agendamento"
+                  style="
+                    border: 1px solid var(--border);
+                    padding: 20px;
+                    border-radius: 10px;
+                    background: var(--card);
+                    margin-bottom: 20px;
+                  "
+                >
+                  <div class="campo">
+                    <label for="colab-nome"
+                      >Nome Completo <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="text"
+                      id="colab-nome"
+                      placeholder="Ex: Fernanda Lima"
+                      required
+                      minlength="5"
+                      maxlength="60"
+                      pattern="[A-ZÀ-Ý][a-zà-ÿ]{1,}(\s(da|de|do|das|dos|e|[A-ZÀ-Ý][a-zà-ÿ]{1,}))*\s[A-ZÀ-Ý][a-zà-ÿ]{1,}"
+                      title="Digite o nome completo, sem abreviar: nome e sobrenome, cada um começando com letra maiúscula (ex: Fernanda Lima). Não use apenas iniciais nem pontos."
+                    />
+                    <small class="dica-campo"
+                      >Nome e sobrenome, sem abreviar e com a primeira letra
+                      maiúscula.</small
+                    >
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-cargo"
+                      >Cargo / Especialidade
+                      <span class="obrigatorio">*</span></label
+                    >
+                    <select
+                      id="colab-cargo"
+                      required
+                      title="Escolha o serviço que o colaborador realiza."
+                    >
+                      <option value="">Selecione o serviço...</option>
+                      <option value="Manicure">Manicure</option>
+                      <option value="Pedicure">Pedicure</option>
+                      <option value="Cabeleireiro">Cabeleireiro</option>
+                      <option value="Barbeiro">Barbeiro</option>
+                      <option value="Spa">Spa</option>
+                      <option value="Esteticista">Esteticista</option>
+                      <option value="Massagista">Massagista</option>
+                      <option value="Maquiador">Maquiador</option>
+                      <option value="Depilador">Depilador</option>
+                      <option value="Designer de Sobrancelhas">
+                        Designer de Sobrancelhas
+                      </option>
+                      <option value="__outros__">Outros</option>
+                    </select>
+                    <input
+                      type="text"
+                      id="colab-cargo-outros"
+                      placeholder="Digite o serviço do colaborador"
+                      maxlength="60"
+                      hidden
+                    />
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-email"
+                      >E-mail (Acesso ao Sistema)
+                      <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="email"
+                      id="colab-email"
+                      placeholder="Fernanda@agendaexpress.com"
+                      required
+                      maxlength="80"
+                      autocomplete="off"
+                    />
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-senha"
+                      >Senha de Acesso <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="password"
+                      id="colab-senha"
+                      placeholder="Digite a senha"
+                      required
+                      autocomplete="new-password"
+                      minlength="8"
+                      maxlength="20"
+                      pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,20}"
+                      title="A senha deve ter de 8 a 20 caracteres, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !)."
+                    />
+                    <small class="dica-campo"
+                      >De 8 a 20 caracteres, com 1 maiúscula, 1 minúscula e 1
+                      símbolo (@ # $ !).</small
+                    >
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-senha-confirmar"
+                      >Confirmar Senha <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="password"
+                      id="colab-senha-confirmar"
+                      placeholder="Digite a senha novamente"
+                      required
+                      maxlength="20"
+                      autocomplete="new-password"
+                    />
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-telefone"
+
+                      >Telefone do Colaborador
+
+                      <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="tel"
+                      id="colab-telefone"
+                      placeholder="123456789"
+                      required
+                      maxlength="13"
+                    />
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-cpf"
+                      >CPF do Funcionario<span class="obrigatorio"
+                        >*</span
+                      ></label
+                    >
+                    <input
+                      type="text"
+                      id="colab-cpf"
+                      placeholder="778.235.029-33"
+                      required
+                      maxlength="14"
+                    />
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-data-admissao"
+                      >Data de admissão do Funcionario<span class="obrigatorio"
+                        >*</span
+                      ></label
+                    >
+                    <input type="date" id="colab-data-admissao" required />
+                  </div>
+
+                  <div class="campo">
+                    <label for="colab-cor"
+                      >Cor do Cabeçalho
+                      <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="color"
+                      id="colab-cor"
+                      value="#00c0ef"
+                      required
+                      style="
+                        height: 38px;
+                        width: 60px;
+                        padding: 2px;
+                        cursor: pointer;
+                        border-radius: 6px;
+                        border: 1px solid var(--border);
+                      "
+                    />
+                  </div>
+
+                  <div
+                    class="form-botoes"
+                    style="
+                      display: flex;
+                      justify-content: flex-end;
+                      gap: 10px;
+                      margin-top: 15px;
+                    "
+                  >
+                    <button type="submit" class="btn-salvar">
+                      Salvar Colaborador
+                    </button>
+                    <button type="reset" class="btn-cancelar">Limpar</button>
+                  </div>
+                </form>
               </div>
 
-              <div class="campo">
-                <label for="colab-cargo">Cargo / Especialidade <span class="obrigatorio">*</span></label>
-                <select id="colab-cargo" required title="Escolha o serviço que o colaborador realiza.">
-                  <option value="">Selecione o serviço...</option>
-                  <option value="Manicure">Manicure</option>
-                  <option value="Pedicure">Pedicure</option>
-                  <option value="Cabeleireiro">Cabeleireiro</option>
-                  <option value="Barbeiro">Barbeiro</option>
-                  <option value="Spa">Spa</option>
-                  <option value="Esteticista">Esteticista</option>
-                  <option value="Massagista">Massagista</option>
-                  <option value="Maquiador">Maquiador</option>
-                  <option value="Depilador">Depilador</option>
-                  <option value="Designer de Sobrancelhas">Designer de Sobrancelhas</option>
-                  <option value="__outros__">Outros</option>
-                </select>
-                <input type="text" id="colab-cargo-outros" placeholder="Digite o serviço do colaborador" maxlength="60" hidden>
+              <!-- EQUIPE CADASTRADA (no lugar do antigo card de contratos) -->
+              <div class="admin-card">
+                <h3 style="margin-top: 0">Equipe Cadastrada</h3>
+                <div class="colaboradores-lista" id="colaboradores-lista"></div>
               </div>
-
-              <div class="campo">
-                <label for="colab-email">E-mail (Acesso ao Sistema) <span class="obrigatorio">*</span></label>
-                <input type="email" id="colab-email" placeholder="Fernanda@agendaexpress.com" required maxlength="80" autocomplete="off">
-              </div>
-
-              <div class="campo">
-                <label for="colab-senha">Senha de Acesso <span class="obrigatorio">*</span></label>
-                <input type="password" id="colab-senha" placeholder="Digite a senha" required autocomplete="new-password"
-                       minlength="8" maxlength="20"
-                       pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,20}"
-                       title="A senha deve ter de 8 a 20 caracteres, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !).">
-                <small class="dica-campo">De 8 a 20 caracteres, com 1 maiúscula, 1 minúscula e 1 símbolo (@ # $ !).</small>
-              </div>
-
-              <div class="campo">
-                <label for="colab-senha-confirmar">Confirmar Senha <span class="obrigatorio">*</span></label>
-                <input type="password" id="colab-senha-confirmar" placeholder="Digite a senha novamente" required maxlength="20" autocomplete="new-password">
-              </div>
-
-              <div class="campo">
-                <label for="colab-telefone">Telefone do Colaborador <span class="obrigatorio">*</span></label>
-                <input type="tel" id="colab-telefone" placeholder="123456789" required maxlength="13">
-              </div>
-
-              <div class="campo">
-              <label for="colab-cpf">CPF do Funcionario<span class="obrigatorio">*</span></label>
-              <input type="text" id="colab-cpf" placeholder="778.235.029-33" required maxlength="14">
-              </div>
-
-              <div class="campo">
-              <label for="colab-data-admissao">Data de admissão do Funcionario<span class="obrigatorio">*</span></label>
-              <input type="date" id="colab-data-admissao" required>
-
-              </div>
-
-              <div class="campo">
-                <label for="colab-cor">Cor do Cabeçalho <span class="obrigatorio">*</span></label>
-                <input type="color" id="colab-cor" value="#00c0ef" required style="height:38px; width:60px; padding:2px; cursor:pointer; border-radius:6px; border:1px solid var(--border);">
-              </div>
-
-              <div class="form-botoes" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px;">
-                <button type="submit" class="btn-salvar">Salvar Colaborador</button>
-                <button type="reset" class="btn-cancelar">Limpar</button>
-              </div>
-            </form>
-          </div>
-
-          <!-- EQUIPE CADASTRADA (no lugar do antigo card de contratos) -->
-          <div class="admin-card">
-            <h3 style="margin-top:0;">Equipe Cadastrada</h3>
-            <div class="colaboradores-lista" id="colaboradores-lista"></div>
-          </div>
-
-        </div>
-
-        <!-- SERVIÇOS: só o dono cadastra (nome, valor fixo e duração) -->
-        <h2 style="margin-top:26px;">Serviços</h2>
-        <div class="admin-grid">
-          <div class="admin-card">
-            <div class="admin-card-header">
-              <h3>Cadastrar Serviço</h3>
             </div>
-            <form id="form-servico" class="form-agendamento" novalidate>
-              <div class="campo">
-                <label for="serv-nome-lista">Nome do serviço <span class="obrigatorio">*</span></label>
-                <!-- As opções são colocadas pelo agenda.js (SERVICOS_PADRAO), a mesma lista do cargo do colaborador -->
-                <select id="serv-nome-lista">
-                  <option value="">Selecione o serviço...</option>
-                  <option value="__outros__">Outros</option>
-                </select>
-                <input type="text" id="serv-nome" placeholder="Digite o nome do serviço" maxlength="60" autocomplete="off" hidden>
-              </div>
-              <div class="campo">
-                <label for="serv-valor">Valor (R$) <span class="obrigatorio">*</span></label>
-                <input type="number" id="serv-valor" placeholder="Ex: 45,00" min="0" step="0.01" inputmode="decimal">
-                <small class="dica-campo">Valor fixo, definido só pelo dono.</small>
-              </div>
-              <div class="campo">
-                <label for="serv-duracao">Duração (minutos) <span class="obrigatorio">*</span></label>
-                <!-- As opções de tempo são colocadas pelo agenda.js -->
-                <select id="serv-duracao">
-                  <option value="">Selecione a duração...</option>
-                </select>
-              </div>
-              <div class="form-botoes">
-                <button type="submit" class="btn-salvar" id="btn-salvar-servico">Salvar Serviço</button>
-                <button type="reset" class="btn-cancelar">Limpar</button>
-              </div>
-            </form>
-          </div>
 
-          <div class="admin-card">
-            <h3 style="margin-top:0;">Serviços Cadastrados</h3>
-            <div id="servicos-lista"></div>
-          </div>
-        </div>
+            <!-- SERVIÇOS: só o dono cadastra (nome, valor fixo e duração) -->
+            <h2 style="margin-top: 26px">Serviços</h2>
+            <div class="admin-grid">
+              <div class="admin-card">
+                <div class="admin-card-header">
+                  <h3>Cadastrar Serviço</h3>
+                </div>
+                <form id="form-servico" class="form-agendamento" novalidate>
+                  <div class="campo">
+                    <label for="serv-nome-lista"
+                      >Nome do serviço <span class="obrigatorio">*</span></label
+                    >
+                    <!-- As opções são colocadas pelo agenda.js (SERVICOS_PADRAO), a mesma lista do cargo do colaborador -->
+                    <select id="serv-nome-lista">
+                      <option value="">Selecione o serviço...</option>
+                      <option value="__outros__">Outros</option>
+                    </select>
+                    <input
+                      type="text"
+                      id="serv-nome"
+                      placeholder="Digite o nome do serviço"
+                      maxlength="60"
+                      autocomplete="off"
+                      hidden
+                    />
+                  </div>
+                  <div class="campo">
+                    <label for="serv-valor"
+                      >Valor (R$) <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="number"
+                      id="serv-valor"
+                      placeholder="Ex: 45,00"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                    />
+                    <small class="dica-campo"
+                      >Valor fixo, definido só pelo dono.</small
+                    >
+                  </div>
+                  <div class="campo">
+                    <label for="serv-duracao"
+                      >Duração (minutos)
+                      <span class="obrigatorio">*</span></label
+                    >
+                    <!-- As opções de tempo são colocadas pelo agenda.js -->
+                    <select id="serv-duracao">
+                      <option value="">Selecione a duração...</option>
+                    </select>
+                  </div>
+                  <div class="form-botoes">
+                    <button
+                      type="submit"
+                      class="btn-salvar"
+                      id="btn-salvar-servico"
+                    >
+                      Salvar Serviço
+                    </button>
+                    <button type="reset" class="btn-cancelar">Limpar</button>
+                  </div>
+                </form>
+              </div>
 
-        <!-- CLIENTES: mesmo formato dos serviços (formulário + lista) -->
-        <h2 style="margin-top:26px;">Clientes</h2>
-        <div class="admin-grid">
-          <div class="admin-card">
-            <div class="admin-card-header">
-              <h3>Cadastrar Cliente</h3>
+              <div class="admin-card">
+                <h3 style="margin-top: 0">Serviços Cadastrados</h3>
+                <div id="servicos-lista"></div>
+              </div>
             </div>
-            <form id="form-cliente-admin" class="form-agendamento" novalidate>
-              <div class="campo">
-                <label for="cliadm-nome">Nome do cliente <span class="obrigatorio">*</span></label>
-                <input type="text" id="cliadm-nome" placeholder="Ex: João Pereira" maxlength="60" autocomplete="off">
-              </div>
-              <div class="campo">
-                <label for="cliadm-telefone">Telefone / WhatsApp <span class="obrigatorio">*</span></label>
-                <input type="tel" id="cliadm-telefone" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
-                <small class="dica-campo">Com DDD. Também é usado para o lembrete pelo WhatsApp.</small>
-              </div>
-              <div class="form-botoes">
-                <button type="submit" class="btn-salvar" id="btn-salvar-cliente-admin">Salvar Cliente</button>
-                <button type="reset" class="btn-cancelar">Limpar</button>
-              </div>
-            </form>
-          </div>
 
-          <div class="admin-card">
-            <h3 style="margin-top:0;">Clientes Cadastrados</h3>
-            <div id="clientes-lista"></div>
-          </div>
-        </div>
+            <!-- CLIENTES: mesmo formato dos serviços (formulário + lista) -->
+            <h2 style="margin-top: 26px">Clientes</h2>
+            <div class="admin-grid">
+              <div class="admin-card">
+                <div class="admin-card-header">
+                  <h3>Cadastrar Cliente</h3>
+                </div>
+                <form
+                  id="form-cliente-admin"
+                  class="form-agendamento"
+                  novalidate
+                >
+                  <div class="campo">
+                    <label for="cliadm-nome"
+                      >Nome do cliente <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="text"
+                      id="cliadm-nome"
+                      placeholder="Ex: João Pereira"
+                      maxlength="60"
+                      autocomplete="off"
+                    />
+                  </div>
+                  <div class="campo">
+                    <label for="cliadm-telefone"
+                      >Telefone / WhatsApp
+                      <span class="obrigatorio">*</span></label
+                    >
+                    <input
+                      type="tel"
+                      id="cliadm-telefone"
+                      placeholder="(11) 91234-5678"
+                      inputmode="tel"
+                      maxlength="15"
+                      autocomplete="off"
+                    />
+                    <small class="dica-campo"
+                      >Com DDD. Também é usado para o lembrete pelo
+                      WhatsApp.</small
+                    >
+                  </div>
+                  <div class="form-botoes">
+                    <button
+                      type="submit"
+                      class="btn-salvar"
+                      id="btn-salvar-cliente-admin"
+                    >
+                      Salvar Cliente
+                    </button>
+                    <button type="reset" class="btn-cancelar">Limpar</button>
+                  </div>
+                </form>
+              </div>
 
-        <!-- Elemento oculto: o script.js ainda escreve nele (renderizarContratos).
+              <div class="admin-card">
+                <h3 style="margin-top: 0">Clientes Cadastrados</h3>
+                <div id="clientes-lista"></div>
+              </div>
+            </div>
+
+            <!-- Elemento oculto: o script.js ainda escreve nele (renderizarContratos).
              Se ele não existir, o script dá erro e a agenda não carrega. -->
-        <table hidden aria-hidden="true">
-          <tbody id="contratos-lista"></tbody>
-        </table>
-      </section>
+            <table hidden aria-hidden="true">
+              <tbody id="contratos-lista"></tbody>
+            </table>
+          </section>
 
       <!-- SUPORTE -->
       <section id="secao-suporte" style="display: none;">
-        <h2>Suporte</h2>
-        <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Envie uma mensagem para a nossa equipe. A conversa continua por e-mail.</p>
+        <div class="sup-pagina">
 
-        <div class="admin-card" style="max-width: 560px;">
-          <form id="form-suporte" class="form-agendamento">
-            <input type="hidden" name="_subject" value="Nova mensagem de Suporte - Gestão Integrada Pro">
-            <input type="hidden" name="_captcha" value="false">
+          <div class="sup-hero">
+            <p class="sup-eyebrow">SUPORTE</p>
+            <h2>Como podemos ajudar?</h2>
+            <p>Mande sua mensagem e respondemos no seu e-mail.</p>
+          </div>
 
-            <div class="campo">
-              <label for="suporte-email">Seu e-mail</label>
-              <input type="email" name="email" id="suporte-email" placeholder="Ex: cliente@email.com" required>
+          <div class="sup-corpo">
+
+            <!-- Formulário -->
+            <div class="sup-form-card">
+              <form id="form-suporte" class="form-agendamento">
+                <input type="hidden" name="_subject" value="Nova mensagem de Suporte - Gestão Integrada Pro">
+                <input type="hidden" name="_captcha" value="false">
+
+                <div class="campo">
+                  <label for="suporte-email">Seu e-mail</label>
+                  <input type="email" name="email" id="suporte-email" placeholder="Ex: cliente@email.com" required>
+                </div>
+
+                <div class="campo">
+                  <label for="suporte-assunto">Assunto</label>
+                  <input type="text" name="Assunto" id="suporte-assunto" placeholder="Ex: Dúvida sobre o plano Premium" required>
+                </div>
+
+                <div class="campo sup-campo-msg">
+                  <label for="suporte-mensagem">Mensagem</label>
+                  <textarea name="Mensagem" id="suporte-mensagem" placeholder="Descreva sua dúvida ou problema..." required></textarea>
+                </div>
+
+                <p class="sup-nota">Sua mensagem será enviada diretamente para nossa equipe. Responderemos no e-mail informado acima.</p>
+
+                <p id="suporte-erro" class="sup-erro" style="display: none;">Não foi possível enviar agora. Verifique sua conexão e tente novamente.</p>
+
+                <div class="form-botoes">
+                  <button type="submit" class="btn-salvar" id="btn-enviar-suporte">Enviar mensagem</button>
+                </div>
+              </form>
+
+              <div id="suporte-sucesso" class="sup-sucesso" style="display: none;">
+                <div class="sup-ok">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>
+                </div>
+                <h3>Mensagem enviada com sucesso!</h3>
+                <p>Nossa equipe vai te responder no e-mail informado.</p>
+                <button type="button" class="btn-salvar" id="btn-suporte-nova-mensagem">Enviar outra mensagem</button>
+              </div>
             </div>
 
-            <div class="campo">
-              <label for="suporte-assunto">Assunto</label>
-              <input type="text" name="Assunto" id="suporte-assunto" placeholder="Ex: Dúvida sobre o plano Premium" required>
+            <!-- Lateral: canais + perguntas rápidas -->
+            <div class="sup-lado">
+              <div class="sup-canais">
+                <div class="sup-canal">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                  <span><strong>E-mail</strong>Todos os planos</span>
+                </div>
+                <div class="sup-canal">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.5 7.2L3 21l1.8-6A8 8 0 1 1 21 12Z"/></svg>
+                  <span><strong>Chat e telefone</strong>Plano Premium</span>
+                </div>
+              </div>
+
+              <div class="sup-faq">
+                <h3>Perguntas rápidas</h3>
+                <details name="faq-suporte">
+                  <summary>Como troco de plano?</summary>
+                  <p>Abra a aba <strong>Planos</strong>, escolha o plano desejado e siga o pagamento.</p>
+                </details>
+                <details name="faq-suporte">
+                  <summary>Onde vejo o boleto da assinatura?</summary>
+                  <p>Na aba <strong>Assinatura</strong>, clique em “Ver boleto”.</p>
+                </details>
+                <details name="faq-suporte">
+                  <summary>Como cancelo minha assinatura?</summary>
+                  <p>Na aba <strong>Assinatura</strong>, use “Cancelar assinatura” (planos Básico e Premium). O plano Grátis não tem cancelamento: ele encerra sozinho após 30 dias..</p>
+                </details>
+                <details name="faq-suporte">
+                  <summary>Como cadastro um colaborador?</summary>
+                  <p>Na aba <strong>Administração</strong>, preencha o formulário “Cadastrar Novo Colaborador”.</p>
+                </details>
+                <details name="faq-suporte">
+                  <summary>Como cadastro serviços e clientes?</summary>
+                  <p>Também na aba <strong>Administração</strong>, nas seções “Serviços” e “Clientes”.</p>
+                </details>
+              </div>
             </div>
 
-            <div class="campo">
-              <label for="suporte-mensagem">Mensagem</label>
-              <textarea name="Mensagem" id="suporte-mensagem" rows="6" placeholder="Descreva sua dúvida ou problema..." required style="border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit; background: var(--input-bg); color: var(--texto); resize: vertical;"></textarea>
-            </div>
-
-            <p style="font-size: 12px; color: var(--muted); margin: 0;">Sua mensagem será enviada diretamente para nossa equipe. Responderemos no e-mail informado acima.</p>
-
-            <p id="suporte-erro" style="font-size: 12px; color: #e74c3c; margin: 0; display: none;">Não foi possível enviar agora. Verifique sua conexão e tente novamente.</p>
-
-            <div class="form-botoes">
-              <button type="submit" class="btn-salvar" id="btn-enviar-suporte">Enviar Mensagem</button>
-            </div>
-          </form>
-
-          <div id="suporte-sucesso" style="display: none; text-align: center; padding: 10px 0;">
-            <div style="font-size: 34px; line-height: 1;">✅</div>
-            <h3 style="margin: 10px 0 4px;">Mensagem enviada com sucesso!</h3>
-            <p style="color: var(--muted); font-size: 13px; margin: 0 0 16px;">Nossa equipe vai te responder no e-mail informado.</p>
-            <button type="button" class="btn-salvar" id="btn-suporte-nova-mensagem">Enviar outra mensagem</button>
           </div>
         </div>
       </section>
 
-      <!-- TELA DE SELEÇÃO DE PLANOS -->
-      <section id="secao-planos" style="display: none;">
-        <h2>Planos e Assinaturas</h2>
-        <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Escolha o plano ideal para gerenciar o seu negócio.</p>
-        <p id="aviso-sem-plano" hidden style="border: 1px solid var(--roxo); border-radius: 8px; padding: 10px 14px; font-size: 13px; margin: 12px 0 0;">Você cancelou a sua assinatura. Escolha um plano para voltar a usar o sistema.</p>
+          <!-- TELA DE SELEÇÃO DE PLANOS -->
+          <section id="secao-planos" style="display: none">
+            <h2>Planos e Assinaturas</h2>
+            <p style="color: var(--muted); font-size: 13px; margin-top: -8px">
+              Escolha o plano ideal para gerenciar o seu negócio.
+            </p>
+            <p
+              id="aviso-sem-plano"
+              hidden
+              style="
+                border: 1px solid var(--roxo);
+                border-radius: 8px;
+                padding: 10px 14px;
+                font-size: 13px;
+                margin: 12px 0 0;
+              "
+            >
+              Você cancelou a sua assinatura. Escolha um plano para voltar a
+              usar o sistema.
+            </p>
 
-        <div class="planos-grid">
+            <div class="planos-grid">
+              <!-- PLANO FREE -->
+              <div class="card-plano" id="card-plano-free">
+                <div>
+                  <h3>Grátis</h3>
+                  <div class="preco" data-preco-plano="FREE"></div>
+                  <ul>
+                    <li>✓ Agendamentos ilimitados durante o período</li>
+                    <li>✓ Até 15 colaboradores</li>
+                    <li>✓ Agenda simples</li>
+                    <li>✕ Sem relatórios</li>
+                    <li>✕ Sem suporte prioritário</li>
+                    <li>✕ Sem integrações externas</li>
+                  </ul>
+                </div>
+                <button class="btn-selecionar-plano" id="btn-plano-free">
+                  Selecionar Plano
+                </button>
+              </div>
 
-          <!-- PLANO FREE -->
-          <div class="card-plano" id="card-plano-free">
-            <div>
-              <h3>Grátis</h3>
-              <div class="preco" data-preco-plano="FREE"></div>
-              <ul>
-                <li>✓ Agendamentos ilimitados durante o período</li>
-                <li>✓ Até 15 colaboradores</li>
-                <li>✓ Agenda simples</li>
-                <li>✕ Sem relatórios</li>
-                <li>✕ Sem suporte prioritário</li>
-                <li>✕ Sem integrações externas</li>
-              </ul>
-            </div>
-            <button class="btn-selecionar-plano" id="btn-plano-free">Selecionar Plano</button>
-          </div>
+              <!-- PLANO BÁSICO -->
+              <div class="card-plano" id="card-plano-basico">
+                <div>
+                  <h3>Básico</h3>
+                  <div class="preco" data-preco-plano="BASICO"></div>
+                  <ul>
+                    <li>✓ Sem limite de tempo</li>
+                    <li>✓ Agendamentos ilimitados</li>
+                    <li>✓ Até 10 colaboradores</li>
+                    <li>✕ Sem relatórios de agenda</li>
+                    <li>✕ Sem relatórios financeiros</li>
+                    <li>✓ Suporte somente por e-mail</li>
+                    <li>✓ Notificações por e-mail</li>
+                  </ul>
+                </div>
+                <div>
+                  <button class="btn-selecionar-plano" id="btn-plano-basico">
+                    Escolher Básico
+                  </button>
+                </div>
+              </div>
 
-          <!-- PLANO BÁSICO -->
-          <div class="card-plano" id="card-plano-basico">
-            <div>
-              <h3>Básico</h3>
-              <div class="preco" data-preco-plano="BASICO"></div>
-              <ul>
-                <li>✓ Sem limite de tempo</li>
-                <li>✓ Agendamentos ilimitados</li>
-                <li>✓ Até 10 colaboradores</li>
-                <li>✕ Sem relatórios de agenda</li>
-                <li>✕ Sem relatórios financeiros</li>
-                <li>✓ Suporte somente por e-mail</li>
-                <li>✓ Notificações por e-mail</li>
-              </ul>
+              <!-- PLANO PREMIUM -->
+              <div class="card-plano" id="card-plano-premium">
+                <div>
+                  <h3>Premium</h3>
+                  <div class="preco" data-preco-plano="PREMIUM"></div>
+                  <ul>
+                    <li>✓ Sem limite de tempo</li>
+                    <li>✓ Agendamentos ilimitados</li>
+                    <li>✓ Colaboradores ilimitados</li>
+                    <li>✓ Relatórios avançados (financeiro)</li>
+                    <li>✓ Suporte prioritário (chat/telefone)</li>
+                    <li>✓ Integração com WhatsApp</li>
+                    <li>✓ Personalização de serviços e horários</li>
+                  </ul>
+                </div>
+                <div>
+                  <button class="btn-selecionar-plano" id="btn-plano-premium">
+                    Escolher Premium
+                  </button>
+                </div>
+              </div>
             </div>
-            <div>
-              <button class="btn-selecionar-plano" id="btn-plano-basico">Escolher Básico</button>
-            </div>
-          </div>
+          </section>
 
-          <!-- PLANO PREMIUM -->
-          <div class="card-plano" id="card-plano-premium">
-            <div>
-              <h3>Premium</h3>
-              <div class="preco" data-preco-plano="PREMIUM"></div>
-              <ul>
-                <li>✓ Sem limite de tempo</li>
-                <li>✓ Agendamentos ilimitados</li>
-                <li>✓ Colaboradores ilimitados</li>
-                <li>✓ Relatórios avançados (financeiro)</li>
-                <li>✓ Suporte prioritário (chat/telefone)</li>
-                <li>✓ Integração com WhatsApp</li>
-                <li>✓ Personalização de serviços e horários</li>
-              </ul>
-            </div>
-            <div>
-              <button class="btn-selecionar-plano" id="btn-plano-premium">Escolher Premium</button>
-            </div>
-          </div>
+          <!-- ASSINATURA -->
+          <section id="secao-assinatura" style="display: none">
+            <h2>Minha assinatura</h2>
+            <p style="color: var(--muted); font-size: 13px; margin-top: -8px">
+              Veja o seu plano e gerencie o pagamento.
+            </p>
 
+            <div class="assinatura-lista">
+              <!-- Plano ativo -->
+              <div class="card-assinatura" id="assinatura-ativa" hidden>
+                <span class="assinatura-status">Assinatura ativa</span>
+                <h3>—</h3>
+                <div>
+                  <button
+                    type="button"
+                    class="btn-ver-boleto"
+                    data-plano="Premium"
+                  >
+                    📄 Ver boleto
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-trocar-pagamento"
+                    data-plano="Premium"
+                    hidden
+                  >
+                    💳 Trocar forma de pagamento
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-cancelar-assinatura"
+                    data-plano="Premium"
+                    hidden
+                  >
+                    Cancelar assinatura
+                  </button>
+                </div>
+              </div>
+
+              <!-- Plano escolhido que ainda aguarda o pagamento do boleto -->
+              <div class="card-assinatura" id="assinatura-pendente" hidden>
+                <span class="assinatura-status pendente"
+                  >Aguardando pagamento do boleto</span
+                >
+                <h3>—</h3>
+                <div>
+                  <button
+                    type="button"
+                    class="btn-ver-boleto"
+                    data-plano="Premium"
+                  >
+                    📄 Ver boleto
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-trocar-pagamento"
+                    data-plano="Premium"
+                    hidden
+                  >
+                    💳 Trocar forma de pagamento
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-cancelar-assinatura"
+                    data-plano="Premium"
+                    hidden
+                  >
+                    Cancelar assinatura
+                  </button>
+                </div>
+              </div>
+
+<!-- ============ PLANO GRÁTIS (layout D) ============ -->
+<div class="card-assinatura" id="assinatura-vazia" hidden>
+  <div class="sa-hero">
+    <div>
+      <p class="sa-eyebrow">MINHA ASSINATURA</p>
+      <h3>Plano Grátis</h3>
+      <p>Período de teste para conhecer o sistema.</p>
+    </div>
+
+    <span class="assinatura-status sa-teste">
+      Período de teste
+    </span>
+  </div>
+
+  <div class="sa-corpo sa-grade-2">
+    <div class="sa-card">
+      <h4>Seu teste gratuito</h4>
+
+      <p>
+        Sem cartão de crédito. Ao fim do período, escolha um plano
+        para continuar.
+      </p>
+
+      <div class="trial-numero">
+        <strong>
+          <span id="trial-dias">30</span>
+          <span id="trial-rotulo">dias restantes</span>
+        </strong>
+
+        <small>de 30 dias</small>
+      </div>
+
+      <div class="trial-trilho">
+        <div id="trial-barra" class="trial-barra"></div>
+      </div>
+
+      <p id="trial-aviso" class="sa-aviso-teste" hidden></p>
+
+      <div class="sa-acoes">
+        <button
+          type="button"
+          class="btn-selecionar-plano"
+          id="btn-assinatura-ver-planos"
+        >
+          Ver planos
+        </button>
+      </div>
+    </div>
+
+    <div class="sa-card">
+      <h4>O que está incluso</h4>
+
+      <ul class="sa-lista">
+        <li>Agendamentos ilimitados no período</li>
+        <li>Agenda simples</li>
+        <li>Cadastro de colaboradores, serviços e clientes</li>
+      </ul>
+
+      <p style="margin-top: 18px;">
+        Relatórios, suporte prioritário e integrações ficam nos planos pagos.
+      </p>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <!-- MODAL DE NOVO AGENDAMENTO -->
+    <div class="modal-overlay" id="modal-agendamento" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modal-agendamento-titulo">Agendar Cliente</h3>
+          <button
+            type="button"
+            id="btn-fechar-modal"
+            style="
+              background: none;
+              border: none;
+              color: var(--texto);
+              cursor: pointer;
+              font-size: 16px;
+            "
+          >
+            ✕
+          </button>
         </div>
-      </section>
+        <form id="form-novo-agendamento" class="form-agendamento">
+          <div class="campo">
+            <label>Cliente</label>
+            <input
+              type="text"
+              id="agend-cliente"
+              placeholder="Digite ou escolha um cliente cadastrado"
+              required
+              autocomplete="off"
+              list="lista-clientes"
+            />
+            <datalist id="lista-clientes"></datalist>
+            <button type="button" id="btn-novo-cliente-modal" class="btn-link">
+              + Cadastrar novo cliente
+            </button>
+          </div>
 
-      <!-- ASSINATURA -->
-      <section id="secao-assinatura" style="display: none;">
-        <h2>Minha assinatura</h2>
-        <p style="color: var(--muted); font-size: 13px; margin-top:-8px;">Veja o seu plano e gerencie o pagamento.</p>
+          <div class="campo" id="campo-whatsapp" hidden>
+            <label
+              >WhatsApp do cliente
+              <span class="dica-campo">(opcional)</span></label
+            >
+            <input
+              type="tel"
+              id="agend-whatsapp"
+              placeholder="(11) 91234-5678"
+              inputmode="tel"
+              maxlength="15"
+              autocomplete="off"
+            />
+            <span class="dica-campo"
+              >Com DDD. Serve para enviar o lembrete do horário pelo
+              WhatsApp.</span
+            >
+          </div>
 
-        <div class="assinatura-lista">
+          <div class="campo">
+            <label>Serviço</label>
+            <select id="agend-servico" required>
+              <option value="">Selecione o serviço...</option>
+            </select>
+          </div>
 
-          <!-- Plano ativo -->
-          <div class="card-assinatura" id="assinatura-ativa" hidden>
-            <span class="assinatura-status">Assinatura ativa</span>
-            <h3>—</h3>
-            <div>
-              <button type="button" class="btn-ver-boleto" data-plano="Premium">📄 Ver boleto</button>
-              <button type="button" class="btn-trocar-pagamento" data-plano="Premium" hidden>💳 Trocar forma de pagamento</button>
-              <button type="button" class="btn-cancelar-assinatura" data-plano="Premium" hidden>Cancelar assinatura</button>
+          <div class="campo">
+            <label>Profissional Responsável</label>
+            <select id="agend-profissional" required></select>
+          </div>
+
+          <div class="campo">
+            <label>Data</label>
+            <input type="date" id="agend-data" required />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <div class="campo">
+              <label>Hora Início</label>
+              <input
+                type="time"
+                id="agend-hora-inicio"
+                value="08:00"
+                required
+              />
+            </div>
+            <div class="campo">
+              <label>Duração (min)</label>
+              <input
+                type="number"
+                id="agend-duracao"
+                value=""
+                placeholder="—"
+                readonly
+                tabindex="-1"
+                aria-describedby="dica-duracao"
+              />
+              <small class="dica-campo" id="dica-duracao"
+                >Vem da duração cadastrada no serviço.</small
+              >
             </div>
           </div>
 
-          <!-- Plano escolhido que ainda aguarda o pagamento do boleto -->
-          <div class="card-assinatura" id="assinatura-pendente" hidden>
-            <span class="assinatura-status pendente">Aguardando pagamento do boleto</span>
-            <h3>—</h3>
-            <div>
-              <button type="button" class="btn-ver-boleto" data-plano="Premium">📄 Ver boleto</button>
-              <button type="button" class="btn-trocar-pagamento" data-plano="Premium" hidden>💳 Trocar forma de pagamento</button>
-              <button type="button" class="btn-cancelar-assinatura" data-plano="Premium" hidden>Cancelar assinatura</button>
-            </div>
+          <div class="campo">
+            <label>Valor (R$)</label>
+            <input
+              type="text"
+              id="agend-valor"
+              value=""
+              placeholder="—"
+              readonly
+              tabindex="-1"
+            />
+            <small class="dica-campo">Valor cadastrado no serviço.</small>
           </div>
 
-          <!-- Sem assinatura paga -->
-          <div class="card-assinatura" id="assinatura-vazia" hidden>
-            <span class="assinatura-status">Plano atual</span>
-            <h3>Grátis</h3>
-            <p>Você ainda não tem uma assinatura paga. Escolha um plano para liberar mais recursos.</p>
-            <button type="button" class="btn-selecionar-plano" id="btn-assinatura-ver-planos">Ver planos</button>
+          <div class="campo">
+            <label>Cor do Card</label>
+            <input
+              type="color"
+              id="agend-cor"
+              value="#3d5a80"
+              style="height: 38px; padding: 2px; cursor: pointer"
+            />
           </div>
 
+          <div class="form-botoes">
+            <button
+              type="submit"
+              class="btn-salvar"
+              id="btn-confirmar-agendamento"
+            >
+              Confirmar Agendamento
+            </button>
+            <button
+              type="button"
+              id="btn-cancelar-agendamento"
+              class="btn-cancelar"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL: DETALHES DO AGENDAMENTO (aparece ao clicar no card da agenda; daqui se edita) -->
+    <div class="modal-overlay" id="modal-detalhes-agendamento" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Detalhes do agendamento</h3>
+          <button
+            type="button"
+            id="btn-fechar-detalhes"
+            aria-label="Fechar"
+            style="
+              background: none;
+              border: none;
+              color: var(--texto);
+              cursor: pointer;
+              font-size: 16px;
+            "
+          >
+            ✕
+          </button>
         </div>
-      </section>
-
-    </main>
-  </div>
-</div>
-
-<!-- MODAL DE NOVO AGENDAMENTO -->
-<div class="modal-overlay" id="modal-agendamento" hidden>
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3 id="modal-agendamento-titulo">Agendar Cliente</h3>
-      <button type="button" id="btn-fechar-modal" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
-    </div>
-    <form id="form-novo-agendamento" class="form-agendamento">
-      <div class="campo">
-        <label>Cliente</label>
-        <input type="text" id="agend-cliente" placeholder="Digite ou escolha um cliente cadastrado" required autocomplete="off" list="lista-clientes">
-        <datalist id="lista-clientes"></datalist>
-        <button type="button" id="btn-novo-cliente-modal" class="btn-link">+ Cadastrar novo cliente</button>
-      </div>
-
-      <div class="campo" id="campo-whatsapp" hidden>
-        <label>WhatsApp do cliente <span class="dica-campo">(opcional)</span></label>
-        <input type="tel" id="agend-whatsapp" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
-        <span class="dica-campo">Com DDD. Serve para enviar o lembrete do horário pelo WhatsApp.</span>
-      </div>
-
-      <div class="campo">
-        <label>Serviço</label>
-        <select id="agend-servico" required>
-          <option value="">Selecione o serviço...</option>
-        </select>
-      </div>
-
-      <div class="campo">
-        <label>Profissional Responsável</label>
-        <select id="agend-profissional" required></select>
-      </div>
-
-      <div class="campo">
-        <label>Data</label>
-        <input type="date" id="agend-data" required>
-      </div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div class="campo">
-          <label>Hora Início</label>
-          <input type="time" id="agend-hora-inicio" value="08:00" required>
+        <div class="boleto-linha">
+          <span>Cliente</span><strong id="det-cliente">—</strong>
         </div>
-        <div class="campo">
-          <label>Duração (min)</label>
-          <input type="number" id="agend-duracao" value="" placeholder="—" readonly tabindex="-1" aria-describedby="dica-duracao">
-          <small class="dica-campo" id="dica-duracao">Vem da duração cadastrada no serviço.</small>
+        <div class="boleto-linha">
+          <span>Serviço</span><strong id="det-servico">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Profissional</span><strong id="det-profissional">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Data</span><strong id="det-data">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Horário</span><strong id="det-horario">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Duração</span><strong id="det-duracao">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Valor</span><strong id="det-valor">—</strong>
+        </div>
+        <div class="boleto-linha" id="det-linha-whatsapp">
+          <span>WhatsApp</span><strong id="det-whatsapp">—</strong>
+        </div>
+        <div class="form-botoes">
+          <button
+            type="button"
+            class="btn-whatsapp-detalhes"
+            id="btn-whatsapp-detalhes"
+            hidden
+          >
+            💬 WhatsApp
+          </button>
+          <button type="button" class="btn-cancelar" id="btn-fechar-detalhes-2">
+            Fechar
+          </button>
+          <button type="button" class="btn-salvar" id="btn-editar-agendamento">
+            ✎ Editar
+          </button>
         </div>
       </div>
+    </div>
 
-      <div class="campo">
-        <label>Valor (R$)</label>
-        <input type="text" id="agend-valor" value="" placeholder="—" readonly tabindex="-1">
-        <small class="dica-campo">Valor cadastrado no serviço.</small>
+    <!-- MODAL: CADASTRAR CLIENTE -->
+    <div class="modal-overlay" id="modal-cliente" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Cadastrar Cliente</h3>
+          <button
+            type="button"
+            id="btn-fechar-cliente"
+            aria-label="Fechar"
+            style="
+              background: none;
+              border: none;
+              color: var(--texto);
+              cursor: pointer;
+              font-size: 16px;
+            "
+          >
+            ✕
+          </button>
+        </div>
+        <form id="form-cliente" class="form-agendamento" novalidate>
+          <div class="campo">
+            <label for="cli-nome"
+              >Nome do cliente <span class="obrigatorio">*</span></label
+            >
+            <input
+              type="text"
+              id="cli-nome"
+              placeholder="Ex: João Pereira"
+              maxlength="60"
+              autocomplete="off"
+            />
+          </div>
+          <div class="campo">
+            <label for="cli-telefone"
+              >Telefone / WhatsApp <span class="obrigatorio">*</span></label
+            >
+            <input
+              type="tel"
+              id="cli-telefone"
+              placeholder="(11) 91234-5678"
+              inputmode="tel"
+              maxlength="15"
+              autocomplete="off"
+            />
+            <span class="dica-campo"
+              >Com DDD. Também é usado para o lembrete pelo WhatsApp.</span
+            >
+          </div>
+          <div class="form-botoes">
+            <button type="submit" class="btn-salvar" id="btn-salvar-cliente">
+              Salvar Cliente
+            </button>
+            <button
+              type="button"
+              class="btn-cancelar"
+              id="btn-cancelar-cliente"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
 
-      <div class="campo">
-        <label>Cor do Card</label>
-        <input type="color" id="agend-cor" value="#3d5a80" style="height:38px; padding:2px; cursor:pointer;">
+    <!-- MODAL: VER BOLETO -->
+    <div class="modal-overlay" id="modal-boleto" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Boleto da assinatura</h3>
+          <button
+            type="button"
+            id="btn-fechar-boleto"
+            aria-label="Fechar"
+            style="
+              background: none;
+              border: none;
+              color: var(--texto);
+              cursor: pointer;
+              font-size: 16px;
+            "
+          >
+            ✕
+          </button>
+        </div>
+        <div class="boleto-linha">
+          <span>Plano</span><strong id="boleto-plano">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Valor</span><strong id="boleto-valor">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Vencimento</span><strong id="boleto-vencimento">—</strong>
+        </div>
+        <div class="boleto-linha">
+          <span>Status</span><strong id="boleto-status">—</strong>
+        </div>
+        <div class="boleto-codigo" id="boleto-codigo" hidden></div>
+        <p
+          id="boleto-aviso"
+          style="font-size: 12px; color: var(--muted); margin: 10px 0 0"
+          hidden
+        ></p>
+        <div class="form-botoes">
+          <button
+            type="button"
+            class="btn-cancelar"
+            id="btn-copiar-boleto"
+            hidden
+          >
+            Copiar código
+          </button>
+          <button
+            type="button"
+            class="btn-salvar"
+            id="btn-imprimir-boleto"
+            hidden
+          >
+            🖨️ Imprimir boleto
+          </button>
+          <a
+            class="btn-salvar"
+            id="btn-abrir-boleto"
+            href="#"
+            target="_blank"
+            rel="noopener"
+            style="text-decoration: none"
+            hidden
+            >Abrir boleto</a
+          >
+        </div>
       </div>
+    </div>
 
-      <div class="form-botoes">
-        <button type="submit" class="btn-salvar" id="btn-confirmar-agendamento">Confirmar Agendamento</button>
-        <button type="button" id="btn-cancelar-agendamento" class="btn-cancelar">Cancelar</button>
+    <!-- MODAL DE CONFIRMAÇÃO: SAIR -->
+    <div class="modal-overlay" id="modal-sair" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Sair da conta?</h3>
+          <button
+            type="button"
+            id="btn-fechar-sair"
+            aria-label="Fechar"
+            style="
+              background: none;
+              border: none;
+              color: var(--texto);
+              cursor: pointer;
+              font-size: 16px;
+            "
+          >
+            ✕
+          </button>
+        </div>
+        <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px">
+          Tem certeza de que deseja sair? Para entrar de novo, você vai precisar
+          fazer login.
+        </p>
+        <div class="form-botoes">
+          <button type="button" class="btn-cancelar" id="manter-login">
+            Continuar logado
+          </button>
+          <button
+            type="button"
+            class="btn-salvar btn-perigo"
+            id="confirmar-sair"
+          >
+            Sim, sair
+          </button>
+        </div>
       </div>
-    </form>
-  </div>
-</div>
+    </div>
 
-<!-- MODAL: DETALHES DO AGENDAMENTO (aparece ao clicar no card da agenda; daqui se edita) -->
-<div class="modal-overlay" id="modal-detalhes-agendamento" hidden>
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>Detalhes do agendamento</h3>
-      <button type="button" id="btn-fechar-detalhes" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
-    </div>
-    <div class="boleto-linha"><span>Cliente</span><strong id="det-cliente">—</strong></div>
-    <div class="boleto-linha"><span>Serviço</span><strong id="det-servico">—</strong></div>
-    <div class="boleto-linha"><span>Profissional</span><strong id="det-profissional">—</strong></div>
-    <div class="boleto-linha"><span>Data</span><strong id="det-data">—</strong></div>
-    <div class="boleto-linha"><span>Horário</span><strong id="det-horario">—</strong></div>
-    <div class="boleto-linha"><span>Duração</span><strong id="det-duracao">—</strong></div>
-    <div class="boleto-linha"><span>Valor</span><strong id="det-valor">—</strong></div>
-    <div class="boleto-linha" id="det-linha-whatsapp"><span>WhatsApp</span><strong id="det-whatsapp">—</strong></div>
-    <div class="form-botoes">
-      <button type="button" class="btn-whatsapp-detalhes" id="btn-whatsapp-detalhes" hidden>💬 WhatsApp</button>
-      <button type="button" class="btn-cancelar" id="btn-fechar-detalhes-2">Fechar</button>
-      <button type="button" class="btn-salvar" id="btn-editar-agendamento">✎ Editar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: CADASTRAR CLIENTE -->
-<div class="modal-overlay" id="modal-cliente" hidden>
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>Cadastrar Cliente</h3>
-      <button type="button" id="btn-fechar-cliente" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
-    </div>
-    <form id="form-cliente" class="form-agendamento" novalidate>
-      <div class="campo">
-        <label for="cli-nome">Nome do cliente <span class="obrigatorio">*</span></label>
-        <input type="text" id="cli-nome" placeholder="Ex: João Pereira" maxlength="60" autocomplete="off">
+    <!-- MODAL DE CONFIRMAÇÃO: CANCELAR ASSINATURA -->
+    <div class="modal-overlay" id="modal-cancelar-assinatura" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Cancelar assinatura?</h3>
+          <button
+            type="button"
+            id="btn-fechar-cancelamento"
+            style="
+              background: none;
+              border: none;
+              color: var(--texto);
+              cursor: pointer;
+              font-size: 16px;
+            "
+          >
+            ✕
+          </button>
+        </div>
+        <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px">
+          Você vai sair da conta e voltar para a tela inicial. Para entrar de
+          novo, vai precisar escolher um plano. Tem certeza?
+        </p>
+        <div class="form-botoes">
+          <button type="button" class="btn-cancelar" id="manter-plano">
+            Manter plano
+          </button>
+          <button
+            type="button"
+            class="btn-salvar btn-perigo"
+            id="confirmar-cancelamento"
+          >
+            Sim, cancelar
+          </button>
+        </div>
       </div>
-      <div class="campo">
-        <label for="cli-telefone">Telefone / WhatsApp <span class="obrigatorio">*</span></label>
-        <input type="tel" id="cli-telefone" placeholder="(11) 91234-5678" inputmode="tel" maxlength="15" autocomplete="off">
-        <span class="dica-campo">Com DDD. Também é usado para o lembrete pelo WhatsApp.</span>
-      </div>
-      <div class="form-botoes">
-        <button type="submit" class="btn-salvar" id="btn-salvar-cliente">Salvar Cliente</button>
-        <button type="button" class="btn-cancelar" id="btn-cancelar-cliente">Cancelar</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- MODAL: VER BOLETO -->
-<div class="modal-overlay" id="modal-boleto" hidden>
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>Boleto da assinatura</h3>
-      <button type="button" id="btn-fechar-boleto" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
     </div>
-    <div class="boleto-linha"><span>Plano</span><strong id="boleto-plano">—</strong></div>
-    <div class="boleto-linha"><span>Valor</span><strong id="boleto-valor">—</strong></div>
-    <div class="boleto-linha"><span>Vencimento</span><strong id="boleto-vencimento">—</strong></div>
-    <div class="boleto-linha"><span>Status</span><strong id="boleto-status">—</strong></div>
-    <div class="boleto-codigo" id="boleto-codigo" hidden></div>
-    <p id="boleto-aviso" style="font-size:12px; color:var(--muted); margin:10px 0 0;" hidden></p>
-    <div class="form-botoes">
-      <button type="button" class="btn-cancelar" id="btn-copiar-boleto" hidden>Copiar código</button>
-      <button type="button" class="btn-salvar" id="btn-imprimir-boleto" hidden>🖨️ Imprimir boleto</button>
-      <a class="btn-salvar" id="btn-abrir-boleto" href="#" target="_blank" rel="noopener" style="text-decoration:none;" hidden>Abrir boleto</a>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL DE CONFIRMAÇÃO: SAIR -->
-<div class="modal-overlay" id="modal-sair" hidden>
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>Sair da conta?</h3>
-      <button type="button" id="btn-fechar-sair" aria-label="Fechar" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
-    </div>
-    <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px;">Tem certeza de que deseja sair? Para entrar de novo, você vai precisar fazer login.</p>
-    <div class="form-botoes">
-      <button type="button" class="btn-cancelar" id="manter-login">Continuar logado</button>
-      <button type="button" class="btn-salvar btn-perigo" id="confirmar-sair">Sim, sair</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL DE CONFIRMAÇÃO: CANCELAR ASSINATURA -->
-<div class="modal-overlay" id="modal-cancelar-assinatura" hidden>
-  <div class="modal-card">
-    <div class="modal-header">
-      <h3>Cancelar assinatura?</h3>
-      <button type="button" id="btn-fechar-cancelamento" style="background:none; border:none; color:var(--texto); cursor:pointer; font-size:16px;">✕</button>
-    </div>
-    <p style="font-size: 13px; color: var(--muted); margin: 0 0 6px;">Você vai sair da conta e voltar para a tela inicial. Para entrar de novo, vai precisar escolher um plano. Tem certeza?</p>
-    <div class="form-botoes">
-      <button type="button" class="btn-cancelar" id="manter-plano">Manter plano</button>
-      <button type="button" class="btn-salvar btn-perigo" id="confirmar-cancelamento">Sim, cancelar</button>
-    </div>
-  </div>
-  
-</div>
-
-</body>
+  </body>
 </html>
