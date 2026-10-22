@@ -1070,7 +1070,7 @@
         </div>
         <form id="form-novo-agendamento" class="form-agendamento">
           <div class="campo">
-            <label>Cliente</label>
+            <label>Nome do cliente</label>
             <input
               type="text"
               id="agend-cliente"
@@ -1085,22 +1085,24 @@
             </button>
           </div>
 
-          <div class="campo" id="campo-whatsapp" hidden>
-            <label
-              >WhatsApp do cliente
+          <div class="campo" id="campo-whatsapp">
+            <label for="agend-whatsapp"
+              >Telefone do cliente
               <span class="dica-campo">(opcional)</span></label
             >
             <input
               type="tel"
               id="agend-whatsapp"
-              placeholder="(11) 91234-5678"
+              placeholder="Digite ou escolha um telefone cadastrado"
               inputmode="tel"
               maxlength="15"
               autocomplete="off"
+              list="lista-telefones"
             />
+            <datalist id="lista-telefones"></datalist>
             <span class="dica-campo"
-              >Com DDD. Serve para enviar o lembrete do horário pelo
-              WhatsApp.</span
+              >Com DDD. Ao escolher o nome ou o telefone de um cliente
+              cadastrado, o outro campo é preenchido sozinho.</span
             >
           </div>
 
