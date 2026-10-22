@@ -2905,6 +2905,14 @@ function calcularTeste() {
   };
 }
 
+/* Cor da barra conforme os dias que restam: verde (30) → amarelo → laranja → vermelho (0).
+   Usa a matiz (hue) do HSL: 155 = verde do site, 0 = vermelho. */
+function corDaBarra(restantes) {
+  if (restantes <= 0) return '#d32f2f';
+  const hue = Math.round(155 * (restantes / DIAS_TESTE));
+  return 'hsl(' + hue + ', 90%, 42%)';
+}
+
 /* Escreve o resultado na tela (card do plano Grátis na aba Assinatura). */
 function atualizarContadorTeste() {
   const elDias = document.getElementById('trial-dias');
@@ -2915,10 +2923,15 @@ function atualizarContadorTeste() {
   const t = calcularTeste();
   elDias.textContent = t.restantes;
   elRotulo.textContent = t.restantes === 1 ? 'dia restante' : 'dias restantes';
-  elBarra.style.width = t.percentual + '%';
 
-  // cor da barra: verde → âmbar (7 dias ou menos) → vermelho (acabou)
-  elBarra.style.background = t.expirado ? '#d32f2f' : t.restantes <= 7 ? '#ffb020' : '#00c878';
+  // barra CHEIA com 30 dias e vai esvaziando até 0
+  elBarra.style.width = (t.restantes / DIAS_TESTE) * 100 + '%';
+  elBarra.style.background = corDaBarra(t.restantes);
+
+  // no zero: o fundo da barra fica avermelhado e o número também
+  const trilho = elBarra.parentElement;
+  if (trilho) trilho.style.background = t.expirado ? 'rgba(211, 47, 47, .22)' : '';
+  elDias.style.color = t.expirado ? '#d32f2f' : '';
 
   const aviso = document.getElementById('trial-aviso');
   if (aviso) {
