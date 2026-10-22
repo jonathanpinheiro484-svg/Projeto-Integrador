@@ -280,7 +280,8 @@ function iniciarAssinatura() {
   // false = o plano só libera depois do pagamento do boleto (o certo). true = libera na hora, só para demonstração.
   const BOLETO_LIBERA_NA_HORA = false;
   const BOLETO_BANCO = "999";              // código de banco fictício (o boleto é uma simulação)
-  const PIX_CONFIRMACAO_TESTE_MS = 12000;  // MODO TESTE: tempo até o Pix "ser pago" sozinho (ou use o botão de simular)
+  const PIX_VALIDADE_MS = 110 * 1000;      // tempo para pagar o Pix (1 min e 50 s). Passou disso: erro e a pessoa tenta de novo. Mude aqui se quiser outro tempo.
+  const ENDPOINT_PIX_STATUS = "";          // >>> API: rota do backend que diz se o Pix foi pago (GET ?codigo=...  ->  { "pago": true }). Vazia = nunca confirma sozinho.
   const ENDPOINT_NOTA = "api/notas-fiscais.php"; // >>> API: backend que emite a nota fiscal e envia por e-mail
   // MODO TESTE: true = simula a nota na tela (sem backend, sem e-mail, sem pagamento real).
   // Troque para false quando o backend estiver pronto.
@@ -325,6 +326,8 @@ function iniciarAssinatura() {
   let notaTesteHtml = "";  // nota simulada (só no modo teste)
   let boletoAtual = null;  // boleto gerado nesta tela (ao apertar Assinar): { linha, codigo, vencimento, valor }
   let modoTrocar = false;  // true = só trocar a forma de pagamento de uma assinatura que já existe (assinatura.html?modo=trocar-pagamento)
+  let modoRenovar = false; // true = renovar o plano pagando pelo Pix (assinatura.html?modo=renovar-pix)
+  let renovarBase = null;  // fim do período atual: a renovação soma a partir dele (se ainda não venceu)
 
   const $ = (id) => document.getElementById(id);
   const moeda = (v) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -341,8 +344,8 @@ function iniciarAssinatura() {
     return { total: mensal, porMes: mensal, desconto: 0 };
   }
 
-  function dataRenovacao(chave, cicloEscolhido) {
-    const d = new Date();
+  function dataRenovacao(chave, cicloEscolhido, base) {
+    const d = (base && base > new Date()) ? new Date(base) : new Date();
     if (chave === "FREE") d.setDate(d.getDate() + PLANOS.FREE.duracaoDias);
     else if (cicloEscolhido === "anual") d.setFullYear(d.getFullYear() + 1);
     else d.setMonth(d.getMonth() + 1);
@@ -358,19 +361,39 @@ function iniciarAssinatura() {
     const preco = calcularPreco(planoEscolhido, ciclo);
     const subtotal = gratis ? 0 : p.mensal * (ciclo === "anual" ? 12 : 1);
 
-    $("titulo-pagina").textContent = modoTrocar ? "Trocar forma de pagamento" : "Assinar plano " + p.nome;
+    $("titulo-pagina").textContent = modoTrocar ? "Trocar forma de pagamento" : (modoRenovar ? "Renovar plano " + p.nome : "Assinar plano " + p.nome);
     $("res-plano").textContent = p.nome;
     $("res-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
     $("res-subtotal").textContent = moeda(subtotal);
     $("linha-desconto").hidden = !(preco.desconto > 0);
     $("res-desconto").textContent = "- " + moeda(preco.desconto);
-    $("res-renovacao").textContent = gratis ? "Nenhuma" : dataRenovacao(planoEscolhido, ciclo).toLocaleDateString("pt-BR");
+    $("res-renovacao").textContent = gratis ? "Nenhuma" : dataRenovacao(planoEscolhido, ciclo, renovarBase).toLocaleDateString("pt-BR");
+    // Data da compra (hoje), uma linha acima da próxima cobrança
+    if (!$("res-renovacao-compra")) {
+      const linhaRenov = $("res-renovacao").parentElement;
+      const linhaCompra = linhaRenov.cloneNode(true);
+      linhaCompra.setAttribute("data-linha-compra", "");
+      if (linhaCompra.id) linhaCompra.id += "-compra";
+      linhaCompra.querySelectorAll("[id]").forEach((el) => { el.id += "-compra"; });
+      const valorClone = linhaCompra.querySelector("#res-renovacao-compra");
+      const rotuloClone = Array.from(linhaCompra.children).find((el) => !el.contains(valorClone));
+      if (rotuloClone) rotuloClone.textContent = "Data da compra";
+      linhaRenov.parentElement.insertBefore(linhaCompra, linhaRenov);
+    }
+    $("res-renovacao-compra").textContent = new Date().toLocaleDateString("pt-BR");
+    document.querySelector("[data-linha-compra]").hidden = modoTrocar; // trocar a forma de pagamento não é uma compra nova
     $("res-total").textContent = moeda(preco.total);
 
     $("btn-assinar").textContent = gratis ? "Ativar plano grátis" : "Assinar " + p.nome + " · " + moeda(preco.total);
     $("aviso-cobranca").textContent = gratis
       ? "Sem cobrança. Ao fim dos 30 dias, escolha um plano pago para continuar."
       : (ciclo === "anual" ? "Cobrança única por ano. Você pode cancelar quando quiser." : "Cobrança mensal. Você pode cancelar quando quiser.");
+
+    // Renovar pelo Pix: mesmo plano e ciclo da assinatura, só com a forma de pagamento Pix
+    if (modoRenovar) {
+      $("sub-pagina").textContent = "Pague com Pix para renovar o seu plano " + p.nome + ".";
+      $("btn-assinar").textContent = "Renovar " + p.nome + " · " + moeda(preco.total);
+    }
 
     // Trocar forma de pagamento: não cobra nada agora, só muda como as próximas cobranças serão feitas
     if (modoTrocar) {
@@ -441,7 +464,7 @@ function iniciarAssinatura() {
       info.className = "cartao-info";
       info.textContent = c.bandeira + " •••• " + c.final;
       const detalhe = document.createElement("small");
-      detalhe.textContent = c.nome + " · Validade " + c.validade;
+      detalhe.textContent = (c.nome ? c.nome + " · " : "") + "Validade " + c.validade; // o nome no cartão é opcional
       info.appendChild(detalhe);
       const remover = document.createElement("button");
       remover.type = "button";
@@ -620,13 +643,12 @@ function iniciarAssinatura() {
     else if (soDigitos(numeroCartao).length !== 16) falhar("O número do cartão deve ter exatamente 16 números.", "cc-numero");
     else if (cartaoSequencial(numeroCartao)) falhar("Número de cartão inválido: não pode ter sequência ou números repetidos.", "cc-numero");
     else if (!cartaoValido(numeroCartao)) falhar("O número do cartão não é válido. Confira os números digitados.", "cc-numero");
-    const nomeCartao = $("cc-nome").value.trim();
-    if (!nomeCartao) falhar("Preencha o nome impresso no cartão.", "cc-nome");
-    else if (/[^\p{L}\s]/u.test(nomeCartao)) falhar("O nome no cartão deve ter apenas letras (sem números, símbolos ou pontuação).", "cc-nome");
-    else if (!NOME_REGEX.test(nomeCartao)) falhar("Digite o nome como está impresso no cartão, com nome e sobrenome.", "cc-nome");
     const validadeCartao = $("cc-validade").value;
     if (!validadeValida(validadeCartao)) falhar("Validade inválida ou vencida. Use o formato MM/AA.", "cc-validade");
     else if (!validadeDentroDeCincoAnos(validadeCartao)) falhar("Validade inválida: o cartão não pode vencer em mais de 5 anos.", "cc-validade");
+    // Nome impresso no cartão: só letras (sem números nem símbolos). Continua opcional.
+    const nomeCartao = $("cc-nome").value.trim();
+    if (nomeCartao && /[^\p{L}\s]/u.test(nomeCartao)) falhar("O nome no cartão deve ter apenas letras, sem números ou símbolos.", "cc-nome");
     const cvv = $("cc-cvv").value.trim();
     if (!cvv) falhar("Preencha o CVV do cartão.", "cc-cvv");
     else if (!/^\d{3,4}$/.test(cvv)) falhar("O CVV deve ter 3 ou 4 números.", "cc-cvv");
@@ -787,7 +809,7 @@ function iniciarAssinatura() {
   $("ass-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, ""); });
   // Nome no cartão: só aceita letras e espaços
   // e converte tudo para MAIÚSCULAS enquanto digita
-  $("cc-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, "").toUpperCase(); });
+  $("cc-nome").addEventListener("input", (e) => { e.target.value = e.target.value.replace(/[^\p{L}\s]/gu, "").toUpperCase(); }); // só letras e espaço, em maiúsculas
   $("ass-cpf").addEventListener("input", (e) => { e.target.value = mascaraCpf(e.target.value); });
   $("cc-numero").addEventListener("input", (e) => { e.target.value = mascaraCartao(e.target.value); });
   $("cc-validade").addEventListener("input", (e) => { e.target.value = mascaraValidade(e.target.value); });
@@ -824,21 +846,189 @@ function iniciarAssinatura() {
     setTimeout(() => { $("btn-copiar-pix").textContent = "Copiar"; }, 2000);
   });
 
+  // =====================================================
+  // TELA DE PROCESSAMENTO DO PAGAMENTO (Pix, cartão e boleto)
+  // Fundo escurecido, círculo girando na cor do site e as etapas aparecendo uma a uma.
+  // É criada aqui mesmo (não precisa mexer no HTML) e usa as cores do site (var(--roxo), var(--card)...).
+  // >>> API: com o gateway real, troque os tempos (ms) por esperas de verdade (resposta do gateway / webhook).
+  // =====================================================
+  const Processamento = (function () {
+    let overlay = null, elTitulo = null, elSub = null, elLista = null;
+    const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    function criar() {
+      if (overlay) return;
+      const estilo = document.createElement("style");
+      estilo.textContent =
+        ".proc-overlay{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(4,14,28,.72);backdrop-filter:blur(4px)}" +
+        ".proc-overlay[hidden]{display:none}" +
+        ".proc-card{width:100%;max-width:380px;background:#0b2239;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:26px 24px 20px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.45);animation:proc-entra .25s ease}" +
+        ".proc-icone{width:64px;height:64px;margin:0 auto 14px;position:relative}" +
+        ".proc-spin{position:absolute;inset:0;border-radius:50%;border:5px solid rgba(255,255,255,.12);border-top-color:#00c46a;animation:proc-gira .9s linear infinite}" +
+        ".proc-ok{position:absolute;inset:0;border-radius:50%;background:#00c46a;color:#fff;font-size:32px;font-weight:700;display:none;align-items:center;justify-content:center;animation:proc-pop .35s ease}" +
+        ".proc-overlay.ok .proc-spin{display:none}.proc-overlay.ok .proc-ok{display:flex}" +
+        ".proc-logo{font-weight:800;font-size:15px;line-height:1.05;letter-spacing:.5px;color:#fff;margin:0 0 18px}" +
+        ".proc-titulo{font-size:18px;margin:0 0 4px;color:#fff}" +
+        ".proc-sub{font-size:13px;color:#9fb3c8;margin:0 0 16px;line-height:1.5}" +
+        ".proc-passos{list-style:none;margin:0 0 14px;padding:0;text-align:left;font-size:13px}" +
+        ".proc-passos li{display:flex;align-items:center;gap:10px;padding:7px 4px;color:#9fb3c8}" +
+        ".proc-passos li::before{content:'';width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.25);flex:none;box-sizing:border-box}" +
+        ".proc-passos li.ativo{color:#fff;font-weight:600}" +
+        ".proc-passos li.ativo::before{border-color:#00c46a;border-top-color:transparent;animation:proc-gira .8s linear infinite}" +
+        ".proc-passos li.feito{color:#fff}" +
+        ".proc-passos li.feito::before{content:'✓';background:#00c46a;border-color:#00c46a;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1}" +
+        ".proc-aviso{font-size:11px;color:#7f96ad;margin:0}" +
+        ".pix-status{display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:var(--muted,#64748b);margin:8px 0 0}" +
+        ".pix-status .proc-mini{width:14px;height:14px;border-radius:50%;border:2px solid var(--roxo-claro,#efeaff);border-top-color:var(--roxo,#6c5ce7);animation:proc-gira .9s linear infinite}" +
+        "@keyframes proc-gira{to{transform:rotate(360deg)}}" +
+        "@keyframes proc-entra{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}" +
+        "@keyframes proc-pop{from{transform:scale(.4)}to{transform:scale(1)}}" +
+        "@media (prefers-reduced-motion:reduce){.proc-spin,.proc-passos li.ativo::before,.pix-status .proc-mini{animation-duration:3s}.proc-card,.proc-ok{animation:none}}";
+      document.head.appendChild(estilo);
+
+      overlay = document.createElement("div");
+      overlay.className = "proc-overlay";
+      overlay.hidden = true;
+      overlay.setAttribute("role", "alertdialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-live", "polite");
+      overlay.setAttribute("aria-busy", "true");
+      overlay.innerHTML =
+        '<div class="proc-card">' +
+        '<div class="proc-logo">GET<br>TIME</div>' +
+        '<div class="proc-icone"><span class="proc-spin"></span><span class="proc-ok">✓</span></div>' +
+        '<h2 class="proc-titulo"></h2><p class="proc-sub"></p><ul class="proc-passos"></ul>' +
+        '<p class="proc-aviso">🔒 Pagamento seguro. Não feche nem atualize esta página.</p></div>';
+      document.body.appendChild(overlay);
+      elTitulo = overlay.querySelector(".proc-titulo");
+      elSub = overlay.querySelector(".proc-sub");
+      elLista = overlay.querySelector(".proc-passos");
+    }
+
+    // Mostra a tela e vai marcando as etapas, uma de cada vez. A tela continua aberta no final
+    // (use fechar() ou concluir() depois).
+    async function rodar(opcoes) {
+      criar();
+      overlay.classList.remove("ok");
+      overlay.setAttribute("aria-busy", "true");
+      elTitulo.textContent = opcoes.titulo || "Processando...";
+      elSub.textContent = opcoes.subtitulo || "Não feche esta página.";
+      elLista.innerHTML = "";
+      const itens = (opcoes.passos || []).map((p) => {
+        const li = document.createElement("li");
+        li.textContent = p.t;
+        elLista.appendChild(li);
+        return li;
+      });
+      overlay.hidden = false;
+      for (let i = 0; i < itens.length; i++) {
+        itens[i].className = "ativo";
+        await dormir(opcoes.passos[i].ms || 800);
+        itens[i].className = "feito";
+      }
+      await dormir(250);
+    }
+
+    function mensagem(texto) { if (overlay) elSub.textContent = texto; }
+
+    // Marca como concluído (✓ verde), espera um instante e fecha
+    async function concluir(titulo, subtitulo, ms) {
+      if (!overlay || overlay.hidden) return;
+      overlay.classList.add("ok");
+      overlay.setAttribute("aria-busy", "false");
+      elTitulo.textContent = titulo;
+      elSub.textContent = subtitulo || "";
+      elLista.querySelectorAll("li").forEach((li) => { li.className = "feito"; });
+      await dormir(ms || 1200);
+      fechar();
+    }
+
+    function fechar() { if (overlay) overlay.hidden = true; }
+
+    return { rodar, mensagem, concluir, fechar };
+  })();
+
+  // Pix: troca o "Aguardando..." por um aviso com círculo girando
+  function mostrarEsperaPix() {
+    const caixa = $("pix-resultado");
+    let aviso = Array.from(caixa.querySelectorAll("p")).find((p) => /Aguardando/.test(p.textContent));
+    if (!aviso) {
+      aviso = document.createElement("p");
+      $("pix-teste").insertAdjacentElement("beforebegin", aviso);
+    }
+    aviso.className = "pix-status";
+    aviso.innerHTML = '<span class="proc-mini"></span><span id="pix-status-texto">Aguardando a confirmação do pagamento...</span>';
+  }
+
   // Pix: o código só é gerado quando a pessoa aperta "Assinar"; depois a tela espera o pagamento
-  let confirmarPixAgora = null;
   function gerarCodigoPix() {
     // >>> API: com o gateway real, use o "copia e cola" que ele devolver
     return "00020126-SIMULACAO-" + Math.random().toString(36).slice(2, 12).toUpperCase();
   }
+
+  // Pergunta ao backend se o Pix já foi pago. Sem a rota configurada, o Pix nunca é confirmado.
+  async function consultarPagamentoPix() {
+    if (!ENDPOINT_PIX_STATUS) return false;
+    try {
+      const resp = await fetch(ENDPOINT_PIX_STATUS + "?codigo=" + encodeURIComponent($("pix-codigo").value));
+      if (!resp.ok) return false;
+      const dados = await resp.json();
+      return dados.pago === true || String(dados.status || "").toLowerCase() === "pago";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Espera o pagamento de verdade: mostra o tempo que falta e consulta o backend de 3 em 3 segundos.
+  // Devolve true quando pagou, ou false se o tempo acabou sem pagamento.
   function aguardarPagamentoPix() {
     return new Promise((resolve) => {
-      let timer = null;
-      confirmarPixAgora = () => { clearTimeout(timer); confirmarPixAgora = null; resolve(); };
-      // >>> API: com o gateway real, aqui entra a consulta do status do Pix (ou o webhook) no lugar do tempo fixo.
-      timer = setTimeout(confirmarPixAgora, PIX_CONFIRMACAO_TESTE_MS);
+      const inicio = Date.now();
+      let ciclos = 0;
+      let consultando = false;
+      const timer = setInterval(async () => {
+        const restante = PIX_VALIDADE_MS - (Date.now() - inicio);
+        if (restante <= 0) { clearInterval(timer); resolve(false); return; }
+        const texto = $("pix-status-texto");
+        if (texto) {
+          const min = Math.floor(restante / 60000);
+          const seg = String(Math.floor((restante % 60000) / 1000)).padStart(2, "0");
+          texto.textContent = "Aguardando o pagamento... o código expira em " + String(min).padStart(2, "0") + ":" + seg;
+        }
+        ciclos++;
+        if (ciclos % 3 === 0 && !consultando) {
+          consultando = true;
+          const pago = await consultarPagamentoPix();
+          consultando = false;
+          if (pago) { clearInterval(timer); resolve(true); }
+        }
+      }, 1000);
     });
   }
-  $("btn-simular-pix").addEventListener("click", () => { if (confirmarPixAgora) confirmarPixAgora(); });
+
+  // O tempo do Pix acabou: mostra duas opções e devolve "novo" (gerar outro Pix) ou "trocar" (escolher outra forma de pagamento)
+  function perguntarPixExpirado() {
+    return new Promise((resolve) => {
+      const caixa = document.createElement("div");
+      caixa.id = "pix-expirado";
+      caixa.style.cssText = "margin-top:16px;padding:16px;border:1px solid #f0d58a;background:#fff9e6;border-radius:10px;";
+      caixa.innerHTML =
+        '<p style="margin:0 0 4px;font-weight:700;color:#7a5b00">O tempo para pagar o Pix acabou</p>' +
+        '<p style="margin:0 0 8px;font-size:14px;color:#7a5b00">Não identificamos o pagamento. O que você prefere fazer?</p>';
+      const botao = (texto, estilo, valor) => {
+        const b = document.createElement("button");
+        b.type = "button"; // dentro do formulário: não pode enviar
+        b.textContent = texto;
+        b.style.cssText = "display:block;width:100%;margin-top:8px;padding:13px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;" + estilo;
+        b.addEventListener("click", () => { caixa.remove(); resolve(valor); });
+        caixa.appendChild(b);
+      };
+      botao("Tentar novamente (gerar novo Pix)", "background:#6c5ce7;color:#fff;border:0;", "novo");
+      botao("Trocar forma de pagamento", "background:#fff;color:#1f2430;border:1px solid #dfe3ec;", "trocar");
+      $("pix-resultado").insertAdjacentElement("afterend", caixa);
+      caixa.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   // Trocar a forma de pagamento de uma assinatura que já existe (não cobra nada agora)
   async function salvarTrocaPagamento() {
@@ -853,7 +1043,11 @@ function iniciarAssinatura() {
     btn.disabled = true;
     btn.textContent = "Salvando...";
     // >>> API: avisar o backend/gateway da nova forma de pagamento (PUT na assinatura, com o token do cartão).
-    await new Promise((r) => setTimeout(r, 800));
+    await Processamento.rodar({
+      titulo: "Salvando a forma de pagamento",
+      subtitulo: "Só um instante...",
+      passos: [{ t: "Conferindo os dados", ms: 600 }, { t: "Atualizando sua assinatura", ms: 800 }]
+    });
 
     reg.metodo = metodo;
     reg.cartaoFinal = cartaoUsado ? cartaoUsado.final : null;
@@ -861,6 +1055,7 @@ function iniciarAssinatura() {
     delete reg.boletoLinha;
     localStorage.setItem(CHAVE_ASSINATURA, JSON.stringify(reg));
 
+    await Processamento.concluir("Forma de pagamento atualizada!", "As próximas cobranças usarão a nova forma.");
     btn.disabled = false;
     btn.textContent = textoOriginal;
     mostrarSucessoTroca(metodo, cartaoUsado, reg);
@@ -882,12 +1077,26 @@ function iniciarAssinatura() {
     $("suc-redireciona").textContent = "";
     $("btn-ir-painel").textContent = "Voltar para a agenda";
     $("etapa-checkout").hidden = true;
+    if ($("link-voltar")) $("link-voltar").hidden = true; // na tela de pagamento realizado não aparece o "Voltar"
     $("etapa-sucesso").hidden = false;
     window.scrollTo(0, 0);
   }
 
   $("form-assinatura").addEventListener("submit", async (e) => {
     e.preventDefault();
+    try {
+      await processarEnvio();
+    } catch (erro) {
+      console.error("Erro ao processar a assinatura:", erro);
+      mostrarErro("Não foi possível concluir agora. Tente novamente.", null);
+      atualizarTela(); // volta o botão ao normal
+      $("btn-assinar").disabled = false;
+    } finally {
+      Processamento.fechar(); // a tela de processamento nunca fica presa
+    }
+  });
+
+  async function processarEnvio() {
     const { erros, primeiro } = validarFormulario();
     if (erros.length > 0) { mostrarErro(erros.join("\n"), primeiro); return; }
     limparErro();
@@ -896,14 +1105,14 @@ function iniciarAssinatura() {
 
     const gratis = planoEscolhido === "FREE";
     const preco = calcularPreco(planoEscolhido, ciclo);
-    const metodo = gratis ? null : metodoAtual();
-    const validoAte = dataRenovacao(planoEscolhido, ciclo);
+    const metodo = gratis ? null : (modoRenovar ? "pix" : metodoAtual());
+    const validoAte = dataRenovacao(planoEscolhido, ciclo, renovarBase);
     if (metodo === "boleto") boletoAtual = gerarBoleto(preco.total); // o boleto só é gerado agora, ao apertar Assinar
     const boleto = metodo === "boleto" ? boletoAtual : null;
     const pendente = !!boleto && !BOLETO_LIBERA_NA_HORA; // boleto: o plano só libera depois do pagamento
     const cartaoUsado = metodo === "cartao" ? cartaoSelecionado() : null;
     // E-mail e CPF sempre os do cadastro (quando existem)
-    const emailNota = cadastro.email || $("ass-email").value.trim();
+    const emailNota = String(cadastro.email || $("ass-email").value || "").trim().toLowerCase(); // qualquer provedor (Gmail, Outlook, Yahoo, e-mail próprio...)
     const cpfNota = cadastro.cpf || soDigitos($("ass-cpf").value);
 
     const btn = $("btn-assinar");
@@ -923,19 +1132,62 @@ function iniciarAssinatura() {
     // Simulação: o cartão aprova na hora; o Pix leva alguns segundos para "confirmar".
     // Com o gateway real, o Pix fica "pendente" até o banco confirmar o pagamento (webhook).
     if (metodo === "pix") {
-      // O Pix só é gerado agora, ao apertar Assinar: mostra o QR Code e o copia e cola e espera o pagamento
-      $("pix-codigo").value = gerarCodigoPix();
-      atualizarQrPix();
-      $("pix-resultado").hidden = false;
-      $("pix-teste").hidden = !MODO_TESTE;
-      btn.textContent = "Aguardando o pagamento do Pix...";
-      $("pix-resultado").scrollIntoView({ behavior: "smooth", block: "center" });
-      await aguardarPagamentoPix();
+      let pago = false;
+      while (!pago) { // se o tempo acabar, a pessoa escolhe: gerar um novo Pix ou trocar a forma de pagamento
+        // 1) Gera o Pix
+        await Processamento.rodar({
+          titulo: "Gerando seu Pix",
+          subtitulo: "Só um instante...",
+          passos: [{ t: "Conferindo seus dados", ms: 600 }, { t: "Criando o código Pix", ms: 800 }]
+        });
+        Processamento.fechar();
+        // 2) Mostra o QR Code e o copia e cola e espera o pagamento
+        $("pix-codigo").value = gerarCodigoPix();
+        atualizarQrPix();
+        $("pix-resultado").hidden = false;
+        $("pix-teste").hidden = true; // não existe mais pagamento simulado: só segue quando o pagamento for confirmado
+        mostrarEsperaPix();
+        btn.textContent = "Aguardando o pagamento do Pix...";
+        $("pix-resultado").scrollIntoView({ behavior: "smooth", block: "center" });
+        pago = await aguardarPagamentoPix();
+        if (!pago) { // o Pix expirou sem pagamento
+          $("pix-resultado").hidden = true;
+          btn.textContent = "Pix expirado";
+          const escolha = await perguntarPixExpirado();
+          if (escolha === "trocar") {
+            atualizarTela(); // volta o botão e o resumo ao normal
+            btn.disabled = false;
+            const formas = document.querySelector(".metodo");
+            if (formas) formas.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+          }
+          // "novo": o laço volta e gera outro código e outro QR Code
+        }
+      }
+      // 3) Pagamento recebido: confirma e libera o plano
+      await Processamento.rodar({
+        titulo: "Pagamento recebido!",
+        subtitulo: "Estamos confirmando com o banco. Não feche esta página.",
+        passos: [{ t: "Confirmando o pagamento", ms: 900 }, { t: "Liberando o seu plano", ms: 800 }]
+      });
     } else if (metodo === "boleto") {
-      btn.textContent = "Gerando boleto...";
-      await new Promise((r) => setTimeout(r, 1200));
+      await Processamento.rodar({
+        titulo: "Gerando seu boleto",
+        subtitulo: "Só um instante...",
+        passos: [{ t: "Conferindo seus dados", ms: 600 }, { t: "Registrando o boleto", ms: 900 }, { t: "Gerando o código de barras", ms: 800 }]
+      });
+    } else if (metodo === "cartao") {
+      await Processamento.rodar({
+        titulo: "Processando seu pagamento",
+        subtitulo: "Não feche nem atualize esta página.",
+        passos: [{ t: "Verificando os dados do cartão", ms: 900 }, { t: "Falando com o banco", ms: 1300 }, { t: "Confirmando o pagamento", ms: 900 }]
+      });
     } else {
-      await new Promise((r) => setTimeout(r, 1500));
+      await Processamento.rodar({
+        titulo: "Ativando o seu plano",
+        subtitulo: "Só um instante...",
+        passos: [{ t: "Criando a sua assinatura", ms: 800 }, { t: "Liberando o acesso", ms: 700 }]
+      });
     }
 
     // Só guarda dados do pedido. Nunca número, validade ou CVV do cartão.
@@ -964,6 +1216,7 @@ function iniciarAssinatura() {
     // Nota fiscal por e-mail (só para plano pago; no boleto, só depois que o pagamento for confirmado)
     let notaEnviada = false;
     if (!gratis && !pendente) {
+      Processamento.mensagem("Enviando a nota fiscal para o seu e-mail...");
       const pedidoNota = {
         nome: $("ass-nome").value.trim(),
         email: emailNota,
@@ -980,10 +1233,14 @@ function iniciarAssinatura() {
       } else notaEnviada = await enviarNotaFiscal(pedidoNota);
     }
 
+    await Processamento.concluir(
+      pendente ? "Boleto gerado!" : (gratis ? "Plano ativado!" : "Pagamento aprovado!"),
+      pendente ? "O plano é liberado assim que o pagamento do boleto for confirmado." : "Tudo certo! Levando você para a confirmação..."
+    );
     btn.disabled = false;
     btn.textContent = textoOriginal;
     mostrarSucesso(gratis, preco.total, metodo, validoAte, notaEnviada, emailNota, pendente);
-  });
+  }
 
   // QR Code do Pix: desenhado a partir do código copia e cola
   function atualizarQrPix() {
@@ -1008,8 +1265,10 @@ function iniciarAssinatura() {
     const cobranca = pedido.ciclo === "anual" ? "anual" : "mensal";
     const agora = new Date();
     const dataEmissao = agora.toLocaleDateString("pt-BR") + " às " + agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    const fim = dataRenovacao(pedido.plano, pedido.ciclo);
-    const periodo = agora.toLocaleDateString("pt-BR") + " a " + fim.toLocaleDateString("pt-BR");
+    const dataCompra = new Date(pedido.contratadoEm || agora).toLocaleDateString("pt-BR");
+    const fim = dataRenovacao(pedido.plano, pedido.ciclo, renovarBase);
+    const inicio = (renovarBase && renovarBase > agora) ? renovarBase : agora; // renovação: o período novo começa quando o atual termina
+    const periodo = inicio.toLocaleDateString("pt-BR") + " a " + fim.toLocaleDateString("pt-BR");
     const numero = "TESTE-" + Date.now().toString().slice(-6);
     const codigo = "GT-" + Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
 
@@ -1064,6 +1323,7 @@ function iniciarAssinatura() {
 
       // Pagamento
       secao("Pagamento",
+        campo("Data da compra", dataCompra) +
         campo("Forma de pagamento", pagto) +
         campo("Situação", "Pagamento confirmado", "color:#15803d") +
         campo("Próxima cobrança", fim.toLocaleDateString("pt-BR"))) +
@@ -1078,9 +1338,13 @@ function iniciarAssinatura() {
       "</table></td></tr></table></body></html>";
   }
 
-  // MODO TESTE: envia a nota de teste por e-mail usando o EmailJS (sem backend)
+  // MODO TESTE: envia a nota de teste por e-mail usando o EmailJS (sem backend).
+  // Funciona para qualquer destinatário (Gmail, Outlook, Hotmail, Yahoo, e-mail de empresa...),
+  // desde que no modelo do EmailJS o campo "To Email" esteja como {{to_email}} e o corpo use {{{nota_html}}}.
   async function enviarEmailJS(pedido, html) {
     if (!EMAILJS.servico || !EMAILJS.modelo || !EMAILJS.chavePublica) return false;
+    const destino = String(pedido.email || "").trim().toLowerCase();
+    if (!EMAIL_REGEX.test(destino)) { console.error("EmailJS: e-mail de destino inválido:", destino); return false; }
     try {
       const resp = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
         method: "POST",
@@ -1090,15 +1354,19 @@ function iniciarAssinatura() {
           template_id: EMAILJS.modelo,
           user_id: EMAILJS.chavePublica,
           template_params: {
-            to_email: pedido.email,
+            to_email: destino,
+            email: destino,      // alguns modelos usam {{email}}
+            reply_to: destino,
             to_name: pedido.nome,
             assunto: "Get Time - Nota da sua compra (TESTE)",
             nota_html: html
           }
         })
       });
+      if (!resp.ok) console.error("EmailJS recusou o envio:", resp.status, await resp.text()); // F12 > Console mostra o motivo
       return resp.ok;
     } catch (e) {
+      console.error("Erro ao enviar pelo EmailJS:", e);
       return false;
     }
   }
@@ -1130,35 +1398,77 @@ function iniciarAssinatura() {
       ? "Você tem 30 dias para testar o sistema."
       : (pendente
         ? "Pague o boleto até " + boletoAtual.vencimento.toLocaleDateString("pt-BR") + ". O plano " + p.nome + " será liberado assim que o pagamento for confirmado."
-        : "Seu plano " + p.nome + " já está ativo.");
+        : (modoRenovar ? "Seu plano " + p.nome + " foi renovado." : "Seu plano " + p.nome + " já está ativo."));
     $("suc-plano").textContent = p.nome;
     $("suc-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
     $("suc-total").textContent = moeda(total);
     const nota = $("suc-nota");
     nota.hidden = gratis;
     nota.textContent = pendente
-      ? "A nota fiscal será enviada para " + emailNota + " quando o pagamento for confirmado."
+      ? "A nota fiscal será enviada para o seu e-mail quando o pagamento for confirmado."
       : (notaEnviada
-        ? "Enviamos a nota fiscal para " + emailNota + "."
-        : "A nota fiscal será enviada para " + emailNota + ".");
-    if (MODO_TESTE && !gratis && !pendente) {
-      nota.textContent = notaEnviada
-        ? "MODO TESTE: enviamos a nota de teste para " + emailNota + ". "
-        : "MODO TESTE: nenhum e-mail foi enviado. ";
-      const ver = document.createElement("a");
-      ver.href = "#";
-      ver.textContent = "Ver a nota de teste";
-      ver.addEventListener("click", (e) => {
-        e.preventDefault();
-        window.open(URL.createObjectURL(new Blob([notaTesteHtml], { type: "text/html" })), "_blank");
-      });
-      nota.appendChild(ver);
+        ? "Enviamos a nota fiscal para o seu e-mail."
+        : (MODO_TESTE
+          ? "Não foi possível enviar a nota por e-mail agora. Você pode baixá-la pelo botão abaixo."
+          : "A nota fiscal será enviada para o seu e-mail."));
+    // Botão "Baixar nota fiscal": aparece quando o pagamento já foi aprovado (Pix e cartão).
+    // No boleto só depois que o pagamento for confirmado; no plano grátis não há nota.
+    // >>> API: em produção, troque pelo link/PDF da nota que o backend emitiu.
+    const podeBaixarNota = !gratis && !pendente && !!notaTesteHtml;
+    let btnNota = $("btn-baixar-nota");
+    if (podeBaixarNota) {
+      if (!btnNota) {
+        const caixa = document.createElement("p");
+        caixa.style.marginTop = "14px";
+        btnNota = document.createElement("button");
+        btnNota.type = "button";
+        btnNota.id = "btn-baixar-nota";
+        btnNota.className = "btn-sec";
+        btnNota.style.cssText = "display:block;width:100%;padding:12px;font-size:14px;font-weight:600;";
+        btnNota.textContent = "⬇ Baixar nota fiscal";
+        btnNota.addEventListener("click", () => {
+          const agora = new Date();
+          const pad = (n) => String(n).padStart(2, "0");
+          const carimbo = agora.getFullYear() + pad(agora.getMonth() + 1) + pad(agora.getDate()) + "-" + pad(agora.getHours()) + pad(agora.getMinutes());
+          const url = URL.createObjectURL(new Blob([notaTesteHtml], { type: "text/html;charset=utf-8" }));
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "nota-fiscal-get-time-" + carimbo + ".html";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          btnNota.textContent = "✓ Nota baixada";
+          setTimeout(() => { btnNota.textContent = "⬇ Baixar nota fiscal"; }, 2500);
+        });
+        caixa.appendChild(btnNota);
+        const alvo = $("btn-ir-painel").parentElement;
+        alvo.parentElement.insertBefore(caixa, alvo);
+      }
+      btnNota.parentElement.hidden = false;
+    } else if (btnNota) {
+      btnNota.parentElement.hidden = true;
     }
     $("suc-boleto").hidden = !pendente;
     if (pendente) mostrarBoleto();
     $("suc-rotulo-data").textContent = gratis ? "Teste até" : (pendente ? "Vencimento do boleto" : "Próxima cobrança");
     $("suc-data").textContent = (pendente ? boletoAtual.vencimento : validoAte).toLocaleDateString("pt-BR");
+    // Dia em que a assinatura foi feita: uma linha acima da data de vencimento/próxima cobrança
+    const rotuloVenc = $("suc-rotulo-data"), valorVenc = $("suc-data");
+    let linhaFeita = $("suc-feita-linha");
+    if (!linhaFeita && rotuloVenc.parentElement === valorVenc.parentElement) {
+      linhaFeita = valorVenc.parentElement.cloneNode(true);
+      linhaFeita.id = "suc-feita-linha";
+      linhaFeita.querySelector("#suc-rotulo-data").id = "suc-rotulo-feita";
+      linhaFeita.querySelector("#suc-data").id = "suc-feita";
+      valorVenc.parentElement.parentElement.insertBefore(linhaFeita, valorVenc.parentElement);
+    }
+    if (linhaFeita) {
+      $("suc-rotulo-feita").textContent = "Data da assinatura";
+      $("suc-feita").textContent = new Date().toLocaleDateString("pt-BR");
+    }
     $("etapa-checkout").hidden = true;
+    if ($("link-voltar")) $("link-voltar").hidden = true; // na tela de pagamento realizado não aparece o "Voltar"
     $("etapa-sucesso").hidden = false;
     window.scrollTo(0, 0);
 
@@ -1166,7 +1476,7 @@ function iniciarAssinatura() {
     if (MODO_TESTE || pendente) { $("suc-redireciona").textContent = ""; return; }
 
     // Aprovado: volta para a agenda sozinho, já com o plano ativo (o botão leva na hora)
-    let segundos = 4;
+    let segundos = podeBaixarNota ? 15 : 4; // com a nota para baixar, dá mais tempo antes de abrir a agenda
     const aviso = $("suc-redireciona");
     const mostrarContagem = () => { aviso.textContent = "Abrindo a sua agenda em " + segundos + "s..."; };
     mostrarContagem();
@@ -1193,6 +1503,7 @@ function iniciarAssinatura() {
   // O plano vem da tela de Planos: assinatura.html?plano=profissional
   const params = new URLSearchParams(window.location.search);
   modoTrocar = params.get("modo") === "trocar-pagamento";
+  modoRenovar = params.get("modo") === "renovar-pix";
   const planoUrl = (params.get("plano") || "").toUpperCase();
   let podeContinuar = true;
 
@@ -1223,6 +1534,26 @@ function iniciarAssinatura() {
         } else {
           if (PLANOS[chaveReg]) planoEscolhido = chaveReg;
           if (reg.ciclo === "anual" || reg.ciclo === "mensal") ciclo = reg.ciclo;
+        }
+      }
+      // Renovar pelo Pix: usa o plano e o ciclo da assinatura que já existe e só oferece o Pix
+      if (modoRenovar) {
+        let reg = null;
+        try { reg = JSON.parse(localStorage.getItem(CHAVE_ASSINATURA)); } catch (e) { reg = null; }
+        const chaveReg = String((reg && reg.plano) || "").toUpperCase();
+        if (!reg || !chaveReg || chaveReg === "FREE") {
+          podeContinuar = false;
+          window.location.replace(PAGINA_PAINEL); // sem assinatura paga, não há o que renovar
+        } else {
+          if (PLANOS[chaveReg]) planoEscolhido = chaveReg;
+          if (reg.ciclo === "anual" || reg.ciclo === "mensal") ciclo = reg.ciclo;
+          renovarBase = reg.validoAte ? new Date(reg.validoAte) : null;
+          const radioPix = document.querySelector('input[name="metodo"][value="pix"]');
+          if (radioPix) {
+            radioPix.checked = true;
+            radioPix.dispatchEvent(new Event("change")); // mostra o painel do Pix
+            document.querySelectorAll(".metodo").forEach((l) => { l.hidden = l.querySelector("input") !== radioPix; });
+          }
         }
       }
     }

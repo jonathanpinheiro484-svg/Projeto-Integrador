@@ -337,7 +337,7 @@ function iniciarDashboard() {
   function extrairLista(resposta) {
     if (Array.isArray(resposta)) return resposta;
     if (resposta && typeof resposta === "object") {
-      for (const chave of ["dados", "data", "items", "itens", "colaboradores", "servicos", "Servicos", "servicosCadastrados", "result", "resultado", "$values", "value"]) {
+      for (const chave of ["dados", "data", "items", "itens", "colaboradores", "clientes", "Clientes", "agendamentos", "Agendamentos", "servicos", "Servicos", "servicosCadastrados", "result", "resultado", "$values", "value"]) {
         if (Array.isArray(resposta[chave])) return resposta[chave];
       }
     }
@@ -387,6 +387,7 @@ function iniciarDashboard() {
 
   // >>> API: agendamentos (começa vazio; guarda no localStorage até ter backend).
   let agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
+  let clientesProntos = Promise.resolve(); // vira a promessa de carregarClientes() na inicialização
 
   // >>> API: contratos próximos do vencimento (começa vazio).
   let contratos = [];
@@ -436,31 +437,104 @@ function iniciarDashboard() {
   }
 
   // Agendamento que veio da API -> formato usado pela agenda. >>> Ajuste os nomes aqui se a API devolver outros.
+  // Aceita a data/hora separadas ou juntas, cliente e serviços como nome, objeto ou só o id (busca o nome nas listas já carregadas).
+  function dataApiParaISO(v) {
+    const t = String(v ?? "").trim();
+    let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+  }
+  function horaApiParaHHMM(v) {
+    const m = String(v ?? "").match(/(\d{1,2}):(\d{2})/);
+    return m ? m[1].padStart(2, "0") + ":" + m[2] : "";
+  }
+
   function normalizarAgendamentoApi(item) {
     if (!item) return null;
-    const id = Number(item.id ?? item.Id);
-    const data = String(item.data ?? item.Data ?? "").slice(0, 10);
-    const hora = String(item.horaInicio ?? item.HoraInicio ?? "").slice(0, 5);
-    if (!Number.isFinite(id) || !data || !hora) return null;
+    const id = Number(item.id ?? item.Id ?? item.agendamentoId ?? item.AgendamentoId);
+    const brutoData = item.data ?? item.Data ?? item.dataAgendamento ?? item.DataAgendamento ?? item.dataHora ?? item.DataHora ?? item.dataHoraInicio ?? item.DataHoraInicio;
+    const data = dataApiParaISO(brutoData);
+    const hora = horaApiParaHHMM(item.horaInicio ?? item.HoraInicio ?? item.hora ?? item.Hora) || horaApiParaHHMM(brutoData);
+    if (!Number.isFinite(id) || !data || !hora) {
+      console.warn("[API] agendamento ignorado (faltou id, data ou hora):", item);
+      return null;
+    }
+
+    // Cliente: nome direto, objeto, ou só o id (procura na lista de clientes)
     const cli = item.cliente ?? item.Cliente;
-    const nomeCliente = item.clienteNome ?? item.ClienteNome ?? item.nomeCliente ?? (cli && typeof cli === "object" ? (cli.nome ?? cli.Nome) : cli) ?? "";
-    const listaServ = item.servicos ?? item.Servicos ?? [];
-    const nomesServ = Array.isArray(listaServ)
-      ? listaServ.map(sv => typeof sv === "string" ? sv : (sv && (sv.nome ?? sv.Nome))).filter(Boolean)
-      : [];
+    const idCliente = item.clienteId ?? item.ClienteId ?? (cli && typeof cli === "object" ? (cli.id ?? cli.Id) : undefined);
+    const clienteLista = idCliente != null ? clientes.find(c => String(c.id) === String(idCliente)) : null;
+    const nomeCliente = item.clienteNome ?? item.ClienteNome ?? item.nomeCliente ?? item.NomeCliente
+      ?? (cli && typeof cli === "object" ? (cli.nome ?? cli.Nome) : cli) ?? (clienteLista ? clienteLista.nome : "");
+    const telefoneCliente = item.whatsapp ?? item.Whatsapp ?? item.telefone ?? item.Telefone
+      ?? (cli && typeof cli === "object" ? (cli.telefone ?? cli.Telefone) : undefined) ?? (clienteLista ? clienteLista.telefone : "");
+
+    // Serviços: lista de nomes/objetos, lista de ids, ou um id só
+    const achaServico = idSv => servicos.find(s => String(s.id) === String(idSv));
+    let nomesServ = [];
+    const listaServ = item.servicos ?? item.Servicos;
+    if (Array.isArray(listaServ)) {
+      nomesServ = listaServ.map(sv => {
+        if (typeof sv === "string") return sv;
+        if (typeof sv === "number") { const a = achaServico(sv); return a ? a.nome : null; }
+        if (!sv) return null;
+        const nome = sv.nome ?? sv.Nome;
+        if (nome) return nome;
+        const a = achaServico(sv.id ?? sv.Id ?? sv.servicoId ?? sv.ServicoId);
+        return a ? a.nome : null;
+      }).filter(Boolean);
+    }
+    if (!nomesServ.length) {
+      const ids = item.servicoIds ?? item.ServicoIds;
+      const listaIds = Array.isArray(ids) ? ids : [item.servicoId ?? item.ServicoId].filter(v => v != null);
+      nomesServ = listaIds.map(idSv => { const a = achaServico(idSv); return a ? a.nome : null; }).filter(Boolean);
+    }
+    const textoServ = item.servicoNome ?? item.ServicoNome ?? item.servico ?? item.Servico ?? "";
+    if (!nomesServ.length && typeof textoServ === "string" && textoServ) nomesServ = [textoServ];
+    const cadastrados = nomesServ.map(n => servicos.find(s => String(s.nome).toLowerCase() === String(n).toLowerCase())).filter(Boolean);
+
+    const duracaoApi = Number(item.duracaoMinutos ?? item.DuracaoMinutos ?? item.duracaoMin ?? item.duracao ?? item.Duracao);
+    const valorApi = Number(item.valor ?? item.Valor ?? item.preco ?? item.Preco ?? item.valorTotal ?? item.ValorTotal);
     return {
       id,
-      cliente: String(nomeCliente),
-      servico: nomesServ.length ? listaEmTexto(nomesServ) : String(item.servico ?? item.Servico ?? ""),
+      cliente: String(nomeCliente || ""),
+      servico: nomesServ.length ? listaEmTexto(nomesServ) : "",
       servicos: nomesServ,
-      colaboradorId: Number(item.colaboradorId ?? item.ColaboradorId ?? 0) || 0,
+      colaboradorId: Number(item.colaboradorId ?? item.ColaboradorId ?? 0) || 0, // sem colaborador = o próprio dono
       data,
       horaInicio: hora,
-      duracaoMin: Number(item.duracaoMinutos ?? item.DuracaoMinutos ?? item.duracaoMin) || 0,
+      duracaoMin: duracaoApi > 0 ? duracaoApi : (cadastrados.reduce((s, sv) => s + (Number(sv.duracaoMin) || 0), 0) || 30),
       cor: item.cor ?? item.Cor ?? "#3d5a80",
-      valor: Number(item.valor ?? item.Valor ?? item.preco ?? item.Preco) || 0,
-      whatsapp: String(item.whatsapp ?? item.Whatsapp ?? item.telefone ?? item.Telefone ?? "").replace(/\D/g, "")
+      valor: Number.isFinite(valorApi) && valorApi > 0 ? valorApi : cadastrados.reduce((s, sv) => s + (Number(sv.valor) || 0), 0),
+      whatsapp: String(telefoneCliente || "").replace(/\D/g, "")
     };
+  }
+
+  // Lê os agendamentos do banco (GET /Agendamentos) e redesenha a agenda.
+  // Devolve true se conseguiu ler; false se a API falhou ou veio num formato que não deu para entender.
+  async function recarregarAgendamentosDoBanco() {
+    try {
+      const dadosAgendamentos = await apiRequest("AGENDAMENTOS");
+      console.log("[API] resposta de agendamentos:", dadosAgendamentos);
+      const listaAg = (dadosAgendamentos === null || dadosAgendamentos === undefined || dadosAgendamentos === "") ? [] : extrairLista(dadosAgendamentos);
+      if (!listaAg) {
+        console.warn("A API de agendamentos não devolveu uma lista reconhecível (veja a resposta acima).", dadosAgendamentos);
+        return false;
+      }
+      const doBanco = listaAg.map(normalizarAgendamentoApi).filter(Boolean);
+      if (listaAg.length && !doBanco.length) {
+        console.warn("A API devolveu agendamentos num formato não reconhecido (veja o primeiro item).", listaAg[0]);
+        return false;
+      }
+      agendamentos = doBanco; // o que vale é o que está no banco
+      salvarAgendamentosLocal(agendamentos);
+      renderizarAgenda();
+      return true;
+    } catch (erro) {
+      console.warn("Não foi possível carregar agendamentos da API.", erro.message);
+      return false;
+    }
   }
 
   async function carregarDadosIniciais() {
@@ -480,23 +554,8 @@ function iniciarDashboard() {
       console.warn("Não foi possível carregar colaboradores da API.", erro.message);
     }
 
-    try {
-      // GET /Agendamentos (se a API ainda não tiver essa rota, cai no catch e a agenda usa o que está no navegador)
-      const dadosAgendamentos = await apiRequest("AGENDAMENTOS");
-      console.log("[API] resposta de agendamentos:", dadosAgendamentos);
-      const listaAg = (dadosAgendamentos === null || dadosAgendamentos === undefined || dadosAgendamentos === "") ? [] : extrairLista(dadosAgendamentos);
-      if (listaAg) {
-        const doBanco = listaAg.map(normalizarAgendamentoApi).filter(Boolean);
-        if (doBanco.length || listaAg.length === 0) {
-          agendamentos = doBanco; // o que vale é o que está no banco
-          salvarAgendamentosLocal(agendamentos);
-        } else {
-          console.warn("A API devolveu agendamentos num formato não reconhecido (veja o console).", listaAg[0]);
-        }
-      }
-    } catch (erro) {
-      console.warn("Não foi possível carregar agendamentos da API.", erro.message);
-    }
+    await clientesProntos; // os nomes/telefones dos clientes e os serviços precisam estar carregados antes de montar a agenda
+    await recarregarAgendamentosDoBanco();
 
     try {
       const dadosContratos = await apiRequest("CONTRATOS");
@@ -558,6 +617,17 @@ function iniciarDashboard() {
   // Mostra a assinatura do cliente (ativa e/ou aguardando o pagamento do boleto) com os botões
   // Ver boleto, Trocar forma de pagamento e Cancelar assinatura. Os cliques seguem nas mesmas
   // funções de antes, que leem o plano no data-plano de cada botão.
+  // Forma de pagamento da assinatura ativa: "boleto", "pix", "cartao" (ou "" se não souber)
+  function metodoDaAssinatura() {
+    const reg = lerJsonLocal(CHAVE_ASSINATURA, null);
+    if (!reg || typeof reg !== "object") return "";
+    const m = String(reg.metodo || reg.formaPagamento || reg.meioPagamento || reg.pagamento || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+    if (m.includes("BOLETO")) return "boleto";
+    if (m.includes("PIX")) return "pix";
+    if (m.includes("CART")) return "cartao";
+    return reg.boleto ? "boleto" : "";
+  }
+
   function atualizarAssinatura() {
     const cartaoAtiva = document.getElementById("assinatura-ativa");
     const cartaoPendente = document.getElementById("assinatura-pendente");
@@ -580,6 +650,30 @@ function iniciarDashboard() {
     preencher(cartaoAtiva, planoAtivo);
     preencher(cartaoPendente, planoPendente);
     cartaoVazio.hidden = !!(planoAtivo || planoPendente);
+
+    // Botão de pagamento do card ativo, conforme a forma de pagamento da assinatura:
+    // boleto -> "Ver boleto"; Pix -> "Pagar com Pix" (leva para a tela de pagamento e renova o plano); cartão -> nenhum.
+    // O card que aguarda o pagamento do boleto continua com o "Ver boleto".
+    const btnBoletoAtivo = cartaoAtiva.querySelector(".btn-ver-boleto");
+    if (btnBoletoAtivo) {
+      let btnPix = cartaoAtiva.querySelector(".btn-pagar-pix");
+      if (!btnPix) {
+        btnPix = btnBoletoAtivo.cloneNode(false); // copia só o botão (mesmo visual), sem o texto nem os cliques
+        btnPix.removeAttribute("id");
+        btnPix.classList.remove("btn-ver-boleto");
+        btnPix.classList.add("btn-pagar-pix");
+        btnPix.textContent = "💠 Pagar com Pix";
+        btnPix.addEventListener("click", () => {
+          window.location.href = `${PAGINA_ASSINATURA}?plano=${alvoDoCard(btnPix).toLowerCase()}&origem=painel&modo=renovar-pix`;
+        });
+        btnBoletoAtivo.insertAdjacentElement("afterend", btnPix);
+      }
+      btnPix.dataset.plano = btnBoletoAtivo.dataset.plano;
+      const metodoAtivo = metodoDaAssinatura();
+      const mostrar = (btn, sim) => { btn.hidden = !sim; btn.style.display = sim ? "" : "none"; };
+      mostrar(btnBoletoAtivo, metodoAtivo === "boleto");
+      mostrar(btnPix, metodoAtivo === "pix");
+    }
   }
 
   function atualizarPlano() {
@@ -1067,16 +1161,21 @@ function iniciarDashboard() {
   async function removerAgendamento(id, event) {
     if (event) event.stopPropagation();
 
-    // >>> API: apagar agendamento no backend.
-    // try {
-    //   await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
-    // } catch (erro) {
-    //   console.warn("Não foi possível remover o agendamento na API.", erro.message);
-    // }
+    // >>> API: DELETE /Agendamentos/{id}. Só some da agenda o que foi apagado no banco
+    // (senão ele voltaria na próxima vez que a agenda for carregada).
+    try {
+      await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
+    } catch (erro) {
+      console.warn("Não foi possível remover o agendamento na API.", erro.message);
+      alert(mensagemErroApiComum(erro, "Não foi possível remover o agendamento no banco."));
+      return;
+    }
 
-    agendamentos = agendamentos.filter(a => a.id !== id);
-    salvarAgendamentosLocal(agendamentos);
-    renderizarAgenda();
+    if (!(await recarregarAgendamentosDoBanco())) {
+      agendamentos = agendamentos.filter(a => a.id !== id);
+      salvarAgendamentosLocal(agendamentos);
+      renderizarAgenda();
+    }
   }
 
   // =====================================================
@@ -1551,12 +1650,17 @@ function iniciarDashboard() {
       if (btnConfirmar) btnConfirmar.disabled = false;
     }
 
-    if (agendamentoEditandoId !== null) {
-      agendamentos = agendamentos.map(a => a.id === agendamentoEditandoId ? novoAgendamento : a);
-    } else {
-      agendamentos.push(novoAgendamento);
+    // Volta ao banco para pegar o que ficou gravado (ids e valores de verdade).
+    // Se não conseguir ler, usa o que acabou de ser salvo.
+    const recarregou = await recarregarAgendamentosDoBanco();
+    if (!recarregou) {
+      if (agendamentoEditandoId !== null) {
+        agendamentos = agendamentos.map(a => a.id === agendamentoEditandoId ? novoAgendamento : a);
+      } else {
+        agendamentos.push(novoAgendamento);
+      }
+      salvarAgendamentosLocal(agendamentos);
     }
-    salvarAgendamentosLocal(agendamentos);
     seletorData.value = novoAgendamento.data;
     renderizarAgenda();
     fecharModalAgendamento();
@@ -1636,8 +1740,9 @@ function iniciarDashboard() {
     atualizarListaClientes();
     try {
       const dados = await apiRequest("CLIENTES"); // GET: a API devolve só os clientes do dono do token
-      if (Array.isArray(dados)) {
-        clientes = dados.map(normalizarCliente).filter(Boolean);
+      const listaClientesApi = extrairLista(dados);
+      if (listaClientesApi) {
+        clientes = listaClientesApi.map(normalizarCliente).filter(Boolean);
         salvarClientesLocal();
         atualizarListaClientes();
       }
@@ -2752,7 +2857,12 @@ function iniciarDashboard() {
     });
   }
 
-  carregarClientes();
+  // Voltou para esta aba (ex.: o colaborador marcou algo em outro aparelho): relê a agenda do banco
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) recarregarAgendamentosDoBanco();
+  });
+
+  clientesProntos = carregarClientes();
   carregarDadosIniciais();
 }
 
