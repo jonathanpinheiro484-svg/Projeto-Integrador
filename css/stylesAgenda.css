@@ -340,7 +340,6 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .btn-link:hover { text-decoration:underline; }
 
 
-
 /* =====================================================================
    TEMA GET TIME  —  carregue DEPOIS do estilo.css
    <link rel="stylesheet" href="css/estilo.css">
@@ -409,298 +408,6 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .form-agendamento input:focus,
 .form-agendamento select:focus,
 .form-agendamento textarea:focus { outline: 2px solid var(--destaque); outline-offset: 0; border-color: transparent; }
-
-
-
-
-/* =====================================================================
-   TEMA GET TIME  —  carregue DEPOIS do estilo.css
-   <link rel="stylesheet" href="css/estilo.css">
-   <link rel="stylesheet" href="css/tema-gettime.css">
-
-   Paleta tirada das telas do site:
-   - Azul-marinho do fundo/menu ........ #0a1f38
-   - Verde dos botões (CTA) ............ #00c878
-   - Azul dos cards/degradês ........... #2a75e0
-   - Azul claro dos campos e destaques . #eaf1fc
-   ===================================================================== */
-
-:root {
-  --navy: #0a1f38;
-  --primaria: #00c878;
-  --primaria-hover: #00ad68;
-  --destaque: #2a75e0;
-  --on-primaria: #0a1f38;          /* texto escuro sobre o verde (igual ao site) */
-
-  --roxo: var(--destaque);         /* apelido: tudo que usava --roxo agora usa o azul da marca */
-  --bg: #f3f6fb;
-  --card: #ffffff;
-  --border: #dbe5f2;
-  --texto: #0a1f38;
-  --muted: #64748b;
-  --input-bg: #eaf1fc;
-  --hover-menu: #eaf1fc;
-}
-
-[data-theme="dark"] {
-  --bg: #081a30;
-  --card: #0d2540;
-  --border: #1b3a5c;
-  --texto: #eef4fb;
-  --muted: #9fb3cc;
-  --input-bg: #12304f;
-  --hover-menu: #12304f;
-}
-
-/* ---------- Cores que estavam fixas no estilo.css ---------- */
-.bar-simulacao { background: var(--navy); }
-.btn-tema { background: #12304f; border-color: #1b3a5c; }
-.btn-tema:hover { background: #1b3a5c; }
-
-.menu-item.ativo { background: rgba(42,117,224,.12); color: var(--destaque); }
-[data-theme="dark"] .menu-item.ativo { background: rgba(42,117,224,.25); color: #7db8ff; }
-
-.toggle-view button.ativo { background: var(--navy); }
-[data-theme="dark"] .toggle-view button.ativo { background: var(--destaque); }
-
-/* Botões de ação = verde do site com texto escuro */
-.btn-salvar,
-.btn-selecionar-plano,
-.card-plano .badge,
-.btn-mostrar-sidebar,
-.logo-icone { background: var(--primaria); color: var(--on-primaria); }
-.btn-salvar:hover,
-.btn-selecionar-plano:hover { background: var(--primaria-hover); }
-.btn-novo-agendamento { background: var(--primaria) !important; color: var(--on-primaria) !important; border-color: var(--primaria) !important; }
-.btn-selecionar-plano.atual { background: var(--border); color: var(--muted); }
-.btn-salvar.btn-perigo { background: #d32f2f; color: #fff; }
-
-.card-plano.destaque { border-color: var(--primaria); }
-.servicos-grupo input[type="checkbox"] { accent-color: var(--primaria); }
-.barra { background: var(--destaque); }
-.form-agendamento input:focus,
-.form-agendamento select:focus,
-.form-agendamento textarea:focus { outline: 2px solid var(--destaque); outline-offset: 0; border-color: transparent; }
-
-
-
-
-
-
-
-/* =====================================================================
-   TEMA GET TIME  —  carregue DEPOIS do estilo.css
-   <link rel="stylesheet" href="css/estilo.css">
-   <link rel="stylesheet" href="css/tema-gettime.css">
-
-   Paleta tirada das telas do site:
-   - Azul-marinho do fundo/menu ........ #0a1f38
-   - Verde dos botões (CTA) ............ #00c878
-   - Azul dos cards/degradês ........... #2a75e0
-   - Azul claro dos campos e destaques . #eaf1fc
-   ===================================================================== */
-
-:root {
-  --navy: #0a1f38;
-  --primaria: #00c878;
-  --primaria-hover: #00ad68;
-  --destaque: #2a75e0;
-  --on-primaria: #0a1f38;          /* texto escuro sobre o verde (igual ao site) */
-
-  --roxo: var(--destaque);         /* apelido: tudo que usava --roxo agora usa o azul da marca */
-  --bg: #f3f6fb;
-  --card: #ffffff;
-  --border: #dbe5f2;
-  --texto: #0a1f38;
-  --muted: #64748b;
-  --input-bg: #eaf1fc;
-  --hover-menu: #eaf1fc;
-}
-
-[data-theme="dark"] {
-  --bg: #081a30;
-  --card: #0d2540;
-  --border: #1b3a5c;
-  --texto: #eef4fb;
-  --muted: #9fb3cc;
-  --input-bg: #12304f;
-  --hover-menu: #12304f;
-}
-
-/* ---------- Cores que estavam fixas no estilo.css ---------- */
-.bar-simulacao { background: var(--navy); }
-.btn-tema { background: #12304f; border-color: #1b3a5c; }
-.btn-tema:hover { background: #1b3a5c; }
-
-.menu-item.ativo { background: rgba(42,117,224,.12); color: var(--destaque); }
-[data-theme="dark"] .menu-item.ativo { background: rgba(42,117,224,.25); color: #7db8ff; }
-
-.toggle-view button.ativo { background: var(--navy); }
-[data-theme="dark"] .toggle-view button.ativo { background: var(--destaque); }
-
-/* Botões de ação = verde do site com texto escuro */
-.btn-salvar,
-.btn-selecionar-plano,
-.card-plano .badge,
-.btn-mostrar-sidebar,
-.logo-icone { background: var(--primaria); color: var(--on-primaria); }
-.btn-salvar:hover,
-.btn-selecionar-plano:hover { background: var(--primaria-hover); }
-.btn-novo-agendamento { background: var(--primaria) !important; color: var(--on-primaria) !important; border-color: var(--primaria) !important; }
-.btn-selecionar-plano.atual { background: var(--border); color: var(--muted); }
-.btn-salvar.btn-perigo { background: #d32f2f; color: #fff; }
-
-.card-plano.destaque { border-color: var(--primaria); }
-.servicos-grupo input[type="checkbox"] { accent-color: var(--primaria); }
-.barra { background: var(--destaque); }
-.form-agendamento input:focus,
-.form-agendamento select:focus,
-.form-agendamento textarea:focus { outline: 2px solid var(--destaque); outline-offset: 0; border-color: transparent; }
-
-
-
-
-/* =====================================================================
-   TEMA GET TIME  —  carregue DEPOIS do estilo.css
-   <link rel="stylesheet" href="css/estilo.css">
-   <link rel="stylesheet" href="css/tema-gettime.css">
-
-   Paleta tirada das telas do site:
-   - Azul-marinho do fundo/menu ........ #0a1f38
-   - Verde dos botões (CTA) ............ #00c878
-   - Azul dos cards/degradês ........... #2a75e0
-   - Azul claro dos campos e destaques . #eaf1fc
-   ===================================================================== */
-
-:root {
-  --navy: #0a1f38;
-  --primaria: #00c878;
-  --primaria-hover: #00ad68;
-  --destaque: #2a75e0;
-  --on-primaria: #0a1f38;          /* texto escuro sobre o verde (igual ao site) */
-
-  --roxo: var(--destaque);         /* apelido: tudo que usava --roxo agora usa o azul da marca */
-  --bg: #f3f6fb;
-  --card: #ffffff;
-  --border: #dbe5f2;
-  --texto: #0a1f38;
-  --muted: #64748b;
-  --input-bg: #eaf1fc;
-  --hover-menu: #eaf1fc;
-}
-
-[data-theme="dark"] {
-  --bg: #081a30;
-  --card: #0d2540;
-  --border: #1b3a5c;
-  --texto: #eef4fb;
-  --muted: #9fb3cc;
-  --input-bg: #12304f;
-  --hover-menu: #12304f;
-}
-
-/* ---------- Cores que estavam fixas no estilo.css ---------- */
-.bar-simulacao { background: var(--navy); }
-.btn-tema { background: #12304f; border-color: #1b3a5c; }
-.btn-tema:hover { background: #1b3a5c; }
-
-.menu-item.ativo { background: rgba(42,117,224,.12); color: var(--destaque); }
-[data-theme="dark"] .menu-item.ativo { background: rgba(42,117,224,.25); color: #7db8ff; }
-
-.toggle-view button.ativo { background: var(--navy); }
-[data-theme="dark"] .toggle-view button.ativo { background: var(--destaque); }
-
-/* Botões de ação = verde do site com texto escuro */
-.btn-salvar,
-.btn-selecionar-plano,
-.card-plano .badge,
-.btn-mostrar-sidebar,
-.logo-icone { background: var(--primaria); color: var(--on-primaria); }
-.btn-salvar:hover,
-.btn-selecionar-plano:hover { background: var(--primaria-hover); }
-.btn-novo-agendamento { background: var(--primaria) !important; color: var(--on-primaria) !important; border-color: var(--primaria) !important; }
-.btn-selecionar-plano.atual { background: var(--border); color: var(--muted); }
-.btn-salvar.btn-perigo { background: #d32f2f; color: #fff; }
-
-.card-plano.destaque { border-color: var(--primaria); }
-.servicos-grupo input[type="checkbox"] { accent-color: var(--primaria); }
-.barra { background: var(--destaque); }
-.form-agendamento input:focus,
-.form-agendamento select:focus,
-.form-agendamento textarea:focus { outline: 2px solid var(--destaque); outline-offset: 0; border-color: transparent; }
-
-/* =====================================================================
-   TEMA GET TIME  —  carregue DEPOIS do estilo.css
-   <link rel="stylesheet" href="css/estilo.css">
-   <link rel="stylesheet" href="css/tema-gettime.css">
- 
-   Paleta tirada das telas do site:
-   - Azul-marinho do fundo/menu ........ #0a1f38
-   - Verde dos botões (CTA) ............ #00c878
-   - Azul dos cards/degradês ........... #2a75e0
-   - Azul claro dos campos e destaques . #eaf1fc
-   ===================================================================== */
- 
-:root {
-  --navy: #0a1f38;
-  --primaria: #00c878;
-  --primaria-hover: #00ad68;
-  --destaque: #2a75e0;
-  --on-primaria: #0a1f38;          /* texto escuro sobre o verde (igual ao site) */
- 
-  --roxo: var(--destaque);         /* apelido: tudo que usava --roxo agora usa o azul da marca */
-  --bg: #f3f6fb;
-  --card: #ffffff;
-  --border: #dbe5f2;
-  --texto: #0a1f38;
-  --muted: #64748b;
-  --input-bg: #eaf1fc;
-  --hover-menu: #eaf1fc;
-}
- 
-[data-theme="dark"] {
-  --bg: #081a30;
-  --card: #0d2540;
-  --border: #1b3a5c;
-  --texto: #eef4fb;
-  --muted: #9fb3cc;
-  --input-bg: #12304f;
-  --hover-menu: #12304f;
-}
- 
-/* ---------- Cores que estavam fixas no estilo.css ---------- */
-.bar-simulacao { background: var(--navy); }
-.btn-tema { background: #12304f; border-color: #1b3a5c; }
-.btn-tema:hover { background: #1b3a5c; }
- 
-.menu-item.ativo { background: rgba(42,117,224,.12); color: var(--destaque); }
-[data-theme="dark"] .menu-item.ativo { background: rgba(42,117,224,.25); color: #7db8ff; }
- 
-.toggle-view button.ativo { background: var(--navy); }
-[data-theme="dark"] .toggle-view button.ativo { background: var(--destaque); }
- 
-/* Botões de ação = verde do site com texto escuro */
-.btn-salvar,
-.btn-selecionar-plano,
-.card-plano .badge,
-.btn-mostrar-sidebar,
-.logo-icone { background: var(--primaria); color: var(--on-primaria); }
-.btn-salvar:hover,
-.btn-selecionar-plano:hover { background: var(--primaria-hover); }
-.btn-novo-agendamento { background: var(--primaria) !important; color: var(--on-primaria) !important; border-color: var(--primaria) !important; }
-.btn-selecionar-plano.atual { background: var(--border); color: var(--muted); }
-.btn-salvar.btn-perigo { background: #d32f2f; color: #fff; }
- 
-.card-plano.destaque { border-color: var(--primaria); }
-.servicos-grupo input[type="checkbox"] { accent-color: var(--primaria); }
-.barra { background: var(--destaque); }
-.form-agendamento input:focus,
-.form-agendamento select:focus,
-.form-agendamento textarea:focus { outline: 2px solid var(--destaque); outline-offset: 0; border-color: transparent; }
- 
-
-
-
 
 /* =====================================================================
    TELA DE SUPORTE  (layout C, ocupa a tela toda, sem rolagem no desktop)
@@ -708,7 +415,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 /* largura: deixa folga à direita para o botão flutuante do WhatsApp não cobrir nada */
 #secao-suporte { width: calc(100% - 120px); max-width: 1400px; margin: 0 auto; }
 .sup-pagina { display: grid; grid-template-rows: auto minmax(0, 1fr); height: calc(100vh - 92px); min-height: 540px; }
- 
+
 .sup-hero {
   flex-shrink: 0; text-align: center; color: #fff;
   background: linear-gradient(135deg, #081d36, #0d2a47);
@@ -717,17 +424,13 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .sup-eyebrow { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .12em; color: #6db3ff; }
 .sup-hero h2 { margin: 6px 0 6px; font-size: 32px; font-weight: 800; line-height: 1.15; }
 .sup-hero p:last-child { margin: 0; font-size: 14px; color: #c4d3e6; }
- 
+
 /* as duas colunas começam na mesma linha e usam a largura inteira da faixa */
 .sup-corpo {
   min-height: 0; position: relative; z-index: 1;
   display: grid; grid-template-columns: 1.5fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 20px;
   margin: -68px 0 0;
 }
- 
-
-
-
 
 /* formulário */
 .sup-form-card {
@@ -749,7 +452,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .sup-form-card .btn-salvar { width: 100%; border-radius: 999px; padding: 14px; font-size: 16px; }
 .sup-nota { font-size: 12px; color: var(--muted); margin: 0; }
 .sup-erro { font-size: 12px; color: #e74c3c; margin: 0; }
- 
+
 .sup-sucesso { text-align: center; margin: auto 0; padding: 10px 0; }
 .sup-ok {
   width: 72px; height: 72px; margin: 0 auto 14px; border-radius: 50%;
@@ -759,7 +462,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .sup-sucesso h3 { margin: 0 0 4px; font-size: 20px; }
 .sup-sucesso p { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
 .sup-sucesso .btn-salvar { width: auto; padding: 12px 28px; }
- 
+
 /* coluna lateral: canais + perguntas (acaba na mesma altura do formulário) */
 .sup-lado { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
 .sup-canais { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; flex-shrink: 0; }
@@ -771,7 +474,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 }
 .sup-canal svg { color: var(--destaque); flex-shrink: 0; }
 .sup-canal strong { display: block; font-size: 14px; color: var(--texto); }
- 
+
 .sup-faq {
   flex: 1; min-height: 0; overflow-y: auto;
   background: var(--card); border: 1px solid var(--border); border-radius: 24px;
@@ -788,7 +491,7 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 .sup-faq summary::after { content: "+"; color: var(--destaque); font-size: 22px; line-height: 1; }
 .sup-faq details[open] summary::after { content: "–"; }
 .sup-faq details p { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
- 
+
 /* telas menores: empilha (aí a rolagem é inevitável) */
 @media (max-width: 900px), (max-height: 600px) {
   #secao-suporte { width: 100%; }
@@ -799,196 +502,103 @@ h2 { font-size: 17px; margin: 0 0 12px; }
   .sup-campo-msg textarea { min-height: 120px; }
   .sup-faq { overflow: visible; }
 }
- 
-
 
 /* =====================================================================
-   TELA DE ASSINATURA — PLANO GRÁTIS (LAYOUT D)
+   TELA DE ASSINATURA  (layouts D, E e F)
    ===================================================================== */
+#secao-assinatura { width: calc(100% - 120px); max-width: 1400px; margin: 0 auto; }
+#secao-assinatura .assinatura-lista { display: block !important; margin-top: 0 !important; }
+/* só os cards já migrados (classe sa-novo) perdem a caixa e ocupam a largura toda;
+   os antigos continuam como eram */
+.card-assinatura.sa-novo { background: transparent !important; border: 0 !important; padding: 0 !important; max-width: none !important; width: 100% !important; }
+.card-assinatura:not(.sa-novo) { max-width: 420px; }
 
-#secao-assinatura {
-  width: calc(100% - 120px);
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-#secao-assinatura .assinatura-lista {
-  display: block;
-  width: 100%;
-  margin-top: 0;
-}
-
-/* Remove o visual antigo somente do novo card */
-#secao-assinatura .card-assinatura.sa-novo {
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-/* Garante que hidden continue funcionando */
-#secao-assinatura .card-assinatura.sa-novo[hidden] {
-  display: none;
-}
-
-/* ==========================================================
-   CABEÇALHO AZUL
-   ========================================================== */
-
+/* faixa azul-marinho */
 .sa-hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-
-  min-height: 205px;
-  padding: 30px 38px 94px;
-
-  color: #ffffff;
-  background: linear-gradient(135deg, #081d36, #0d2a47);
-  border-radius: 24px;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  background: linear-gradient(135deg, #081d36, #0d2a47); color: #fff;
+  border-radius: 24px; padding: 26px 36px 88px;
 }
-
-.sa-hero > div {
-  min-width: 0;
-}
-
-.sa-hero .sa-eyebrow {
-  margin: 0;
-  color: #6db3ff;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-.sa-hero h3 {
-  margin: 7px 0 5px;
-  color: #ffffff;
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1.15;
-}
-
-.sa-hero p {
-  margin: 0;
-  color: #c4d3e6;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
+.sa-hero .sa-eyebrow { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .12em; color: #6db3ff; }
+.sa-hero h3 { margin: 6px 0 4px; font-size: 32px; font-weight: 800; line-height: 1.15; }
+.sa-hero p { margin: 0; font-size: 14px; color: #c4d3e6; }
 .sa-hero .assinatura-status {
-  flex-shrink: 0;
-  position: static;
-
-  padding: 7px 16px;
-  border-radius: 999px;
-
-  background: var(--primaria);
-  color: var(--on-primaria);
-
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
+  background: var(--primaria); color: var(--on-primaria); font-size: 12px; font-weight: 700;
+  padding: 5px 14px; border-radius: 999px; white-space: nowrap;
 }
+.sa-hero .assinatura-status.pendente { background: #ffb020; color: #0a1f38; }
+.sa-hero .assinatura-status.sa-teste { background: #6db3ff; color: #0a1f38; }
 
-.sa-hero .assinatura-status.sa-teste {
-  background: #6db3ff;
-  color: #0a1f38;
-}
-
-/* ==========================================================
-   ÁREA DOS DOIS CARDS
-   ========================================================== */
-
-.sa-corpo {
-  position: relative;
-  z-index: 1;
-
-  display: grid;
-  gap: 20px;
-
-  margin-top: -66px;
-  padding: 0 26px 26px;
-}
-
-.sa-grade-2 {
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-}
+/* cards sobrepostos à faixa */
+.sa-corpo { margin-top: -62px; position: relative; z-index: 1; display: grid; gap: 20px; }
+.sa-grade-2 { grid-template-columns: 1.3fr 1fr; }
+.sa-info-3 { grid-template-columns: repeat(3, 1fr); }
+.sa-info-4 { grid-template-columns: repeat(4, 1fr); }
+.sa-par { display: grid; gap: 20px; grid-template-columns: 1.4fr 1fr; }
 
 .sa-card {
-  min-width: 0;
-  padding: 28px 30px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(10,31,56,.14); padding: 26px 30px;
+}
+.sa-card h4 { margin: 0 0 6px; font-size: 18px; font-weight: 800; }
+.sa-card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.sa-info { padding: 18px 22px; }
+.sa-info small { display: block; font-size: 12px; color: var(--muted); }
+.sa-info strong { display: block; margin-top: 4px; font-size: 20px; font-weight: 800; }
+.sa-info strong.sa-alerta { color: #b45309; }
+[data-theme="dark"] .sa-info strong.sa-alerta { color: #ffb020; }
 
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  box-shadow: 0 14px 34px rgba(10, 31, 56, 0.14);
+/* contador do teste (plano Grátis) */
+.trial-numero { display: flex; justify-content: space-between; align-items: baseline; margin-top: 18px; }
+.trial-numero strong { font-size: 40px; font-weight: 800; }
+#trial-rotulo { font-size: 16px; font-weight: 600; color: var(--muted); }
+.trial-numero small { font-size: 13px; color: var(--muted); }
+.trial-trilho { height: 12px; background: var(--input-bg); border-radius: 999px; margin: 12px 0 24px; }
+.trial-barra { height: 12px; width: 0; border-radius: 999px; background: var(--primaria); transition: width .4s ease, background .4s ease; }
+.sa-aviso-teste { color: #d32f2f; font-size: 13px; margin: -10px 0 16px; }
+.sa-aviso-teste[hidden] { display: none; }
+
+/* lista "inclui" */
+.sa-lista { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 12px 20px; }
+.sa-lista-2 { grid-template-columns: 1fr 1fr; }
+.sa-lista li { display: flex; gap: 10px; align-items: center; font-size: 14px; }
+.sa-lista li::before { content: "✓"; color: var(--primaria); font-weight: 800; }
+
+/* botões desta tela (mantêm as classes que o JS já usa) */
+.sa-acoes { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.sa-acoes .btn-ver-boleto,
+.sa-acoes .btn-selecionar-plano {
+  width: auto; margin: 0; padding: 13px 28px; border-radius: 999px; font-size: 15px; font-weight: 700;
+  background: var(--primaria); color: var(--on-primaria); border: 0; cursor: pointer;
+}
+.sa-acoes .btn-ver-boleto:hover,
+.sa-acoes .btn-selecionar-plano:hover { background: var(--primaria-hover); color: var(--on-primaria); }
+.sa-acoes .btn-trocar-pagamento { width: auto; margin: 0; padding: 12px 26px; border-radius: 999px; }
+.sa-acoes [hidden], .sa-cancelar-linha [hidden] { display: none !important; }
+
+/* "Cancelar assinatura" vira link discreto */
+.sa-cancelar-linha { margin: 0; text-align: right; }
+.sa-cancelar-linha .btn-cancelar-assinatura {
+  display: inline; width: auto; margin: 0; padding: 0; background: none; border: 0;
+  color: #b42318; font-size: 13px; font-weight: 500; text-decoration: underline; border-radius: 0;
+}
+.sa-cancelar-linha .btn-cancelar-assinatura:hover { background: none; color: #7a1a12; }
+[data-theme="dark"] .sa-cancelar-linha .btn-cancelar-assinatura { color: #ff8a80; }
+
+.sa-bloco-acao { display: flex; justify-content: space-between; align-items: center; gap: 30px; }
+.sa-bloco-acao p { max-width: 460px; }
+.sa-bloco-acao .sa-acoes { margin-top: 0; }
+
+@media (max-width: 900px) {
+  #secao-assinatura { width: 100%; }
+  .sa-grade-2, .sa-par, .sa-info-3 { grid-template-columns: 1fr; }
+  .sa-info-4 { grid-template-columns: 1fr 1fr; }
+  .sa-lista-2 { grid-template-columns: 1fr; }
+  .sa-hero { flex-direction: column; padding: 22px 20px 80px; }
+  .sa-hero h3 { font-size: 26px; }
+  .sa-bloco-acao { flex-direction: column; align-items: stretch; }
 }
 
-.sa-card h4 {
-  margin: 0 0 8px;
-  color: var(--texto);
-  font-size: 18px;
-  font-weight: 800;
-  line-height: 1.3;
-}
-
-.sa-card p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-/* ==========================================================
-   CONTADOR DO TESTE
-   ========================================================== */
-
-.trial-numero {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 20px;
-  margin-top: 22px;
-}
-
-/* O strong agrupa o número e o texto */
-.trial-numero strong {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
-
-  color: var(--texto);
-  font-weight: 800;
-}
-
-/* Número 30 */
-.trial-numero #trial-dias {
-  color: var(--texto);
-  font-size: 42px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-/* Texto "dias restantes" */
-.trial-numero #trial-rotulo {
-  color: var(--muted);
-  font-size: 15px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-/* Texto "de 30 dias" */
-.trial-numero small {
-  flex-shrink: 0;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.3;
-  text-align: right;
-}
+/* Abas bloqueadas quando o teste gratuito acabou */
+.menu-item.bloqueado-teste { opacity: .45; cursor: not-allowed; }
+.menu-item.bloqueado-teste::after { content: "🔒"; font-size: 12px; }
