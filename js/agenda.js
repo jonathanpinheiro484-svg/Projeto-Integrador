@@ -435,6 +435,34 @@ function iniciarDashboard() {
     atualizarServicosAgendamento();
   }
 
+  // Agendamento que veio da API -> formato usado pela agenda. >>> Ajuste os nomes aqui se a API devolver outros.
+  function normalizarAgendamentoApi(item) {
+    if (!item) return null;
+    const id = Number(item.id ?? item.Id);
+    const data = String(item.data ?? item.Data ?? "").slice(0, 10);
+    const hora = String(item.horaInicio ?? item.HoraInicio ?? "").slice(0, 5);
+    if (!Number.isFinite(id) || !data || !hora) return null;
+    const cli = item.cliente ?? item.Cliente;
+    const nomeCliente = item.clienteNome ?? item.ClienteNome ?? item.nomeCliente ?? (cli && typeof cli === "object" ? (cli.nome ?? cli.Nome) : cli) ?? "";
+    const listaServ = item.servicos ?? item.Servicos ?? [];
+    const nomesServ = Array.isArray(listaServ)
+      ? listaServ.map(sv => typeof sv === "string" ? sv : (sv && (sv.nome ?? sv.Nome))).filter(Boolean)
+      : [];
+    return {
+      id,
+      cliente: String(nomeCliente),
+      servico: nomesServ.length ? listaEmTexto(nomesServ) : String(item.servico ?? item.Servico ?? ""),
+      servicos: nomesServ,
+      colaboradorId: Number(item.colaboradorId ?? item.ColaboradorId ?? 0) || 0,
+      data,
+      horaInicio: hora,
+      duracaoMin: Number(item.duracaoMinutos ?? item.DuracaoMinutos ?? item.duracaoMin) || 0,
+      cor: item.cor ?? item.Cor ?? "#3d5a80",
+      valor: Number(item.valor ?? item.Valor ?? item.preco ?? item.Preco) || 0,
+      whatsapp: String(item.whatsapp ?? item.Whatsapp ?? item.telefone ?? item.Telefone ?? "").replace(/\D/g, "")
+    };
+  }
+
   async function carregarDadosIniciais() {
     await recarregarServicosDoBanco();
 
@@ -453,8 +481,19 @@ function iniciarDashboard() {
     }
 
     try {
+      // GET /Agendamentos (se a API ainda não tiver essa rota, cai no catch e a agenda usa o que está no navegador)
       const dadosAgendamentos = await apiRequest("AGENDAMENTOS");
-      if (Array.isArray(dadosAgendamentos)) agendamentos = dadosAgendamentos;
+      console.log("[API] resposta de agendamentos:", dadosAgendamentos);
+      const listaAg = (dadosAgendamentos === null || dadosAgendamentos === undefined || dadosAgendamentos === "") ? [] : extrairLista(dadosAgendamentos);
+      if (listaAg) {
+        const doBanco = listaAg.map(normalizarAgendamentoApi).filter(Boolean);
+        if (doBanco.length || listaAg.length === 0) {
+          agendamentos = doBanco; // o que vale é o que está no banco
+          salvarAgendamentosLocal(agendamentos);
+        } else {
+          console.warn("A API devolveu agendamentos num formato não reconhecido (veja o console).", listaAg[0]);
+        }
+      }
     } catch (erro) {
       console.warn("Não foi possível carregar agendamentos da API.", erro.message);
     }
@@ -576,6 +615,7 @@ function iniciarDashboard() {
     });
 
     atualizarAssinatura(); // põe o plano certo nos botões da tela de Assinatura antes de mostrar/esconder
+    atualizarWhatsAppFlutuante(); // botão do WhatsApp: só no Premium
     // Botão "Cancelar assinatura": aparece só no card do plano pago que está ativo
     // "Cancelar assinatura" também aparece no plano que está aguardando o pagamento do boleto.
     // "Trocar forma de pagamento" só aparece no plano que já está ativo.
@@ -1045,9 +1085,10 @@ function iniciarDashboard() {
   // com a mensagem de lembrete já escrita; a pessoa só aperta "Enviar".
   // Envio automático (sem clicar) exige a API oficial do WhatsApp, feita no back-end.
   // =====================================================
-  const WHATSAPP_SOMENTE_PREMIUM = false; // true = só quem tem plano Premium pode ligar
+  const WHATSAPP_SOMENTE_PREMIUM = true; // true = WhatsApp só no plano Premium (Grátis e Básico não veem o botão)
   const CHAVE_WHATSAPP_LIGADO = "whatsappLigado";
-  let whatsappLigado = true; // sempre ligado (o botão de ligar/desligar foi removido)
+  let whatsappLigado = true; // segue o plano: Premium = ligado; Grátis/Básico/Sem plano = desligado
+  let whatsappFlutuanteIniciado = false;
 
   function whatsappLiberadoNoPlano() {
     return !WHATSAPP_SOMENTE_PREMIUM || planoAtual === "PREMIUM" || planoAtual === "PRO";
@@ -1095,19 +1136,25 @@ function iniciarDashboard() {
   function atualizarWhatsApp() {
     const btn = document.getElementById("btn-toggle-whatsapp");
     const campo = document.getElementById("campo-whatsapp");
-    if (!whatsappLiberadoNoPlano()) whatsappLigado = false;
+    whatsappLigado = whatsappLiberadoNoPlano(); // volta a ligar sozinho quando o plano passa a ser Premium
     if (btn) {
       btn.textContent = whatsappLigado ? "💬 Ligado" : "💬 Desligado";
       btn.classList.toggle("whatsapp-on", whatsappLigado);
       btn.setAttribute("aria-pressed", String(whatsappLigado));
     }
-    if (campo) campo.hidden = !whatsappLigado;
-    // Botão flutuante verde no canto da tela (js/whatsapp.js)
-    if (window.WhatsAppFlutuante) {
-      WhatsAppFlutuante.iniciar({ permitirConfigurar: false, mensagem: "Olá! Gostaria de falar com o suporte." });
-      WhatsAppFlutuante.mostrar(whatsappLigado);
-    }
+    if (campo) campo.hidden = false; // o campo Telefone aparece em todos os planos; só os botões de enviar WhatsApp são do Premium
+    atualizarWhatsAppFlutuante();
     renderizarAgenda();
+  }
+
+  // Botão flutuante verde no canto da tela (js/whatsapp.js): só aparece no plano Premium
+  function atualizarWhatsAppFlutuante() {
+    if (!window.WhatsAppFlutuante) return;
+    if (!whatsappFlutuanteIniciado) {
+      WhatsAppFlutuante.iniciar({ permitirConfigurar: false, mensagem: "Olá! Gostaria de falar com o suporte." });
+      whatsappFlutuanteIniciado = true;
+    }
+    WhatsAppFlutuante.mostrar(whatsappLiberadoNoPlano());
   }
 
   const btnToggleWhatsapp = document.getElementById("btn-toggle-whatsapp");
@@ -1395,6 +1442,41 @@ function iniciarDashboard() {
   btnFecharModal.addEventListener("click", fecharModalAgendamento);
   btnCancelarAgendamento.addEventListener("click", fecharModalAgendamento);
 
+  // =====================================================
+  // AGENDAMENTO NA API: POST /Agendamentos (novo) e PUT /Agendamentos/{id} (editar).
+  // >>> Se a API reclamar de nome de campo, é SÓ aqui que se ajusta.
+  // O dono (DonoId) vem do token. O cliente e os serviços vão pelo id do banco.
+  // =====================================================
+  function montarCorpoAgendamentoApi(ag) {
+    const nomeCliente = String(ag.cliente || "").trim().toLowerCase();
+    const cliente = clientes.find(c => c.nome.toLowerCase() === nomeCliente);
+    if (!cliente || cliente.id === null || cliente.id === undefined) {
+      return { erro: 'Escolha um cliente cadastrado na lista, ou cadastre um novo em "+ Cadastrar novo cliente".' };
+    }
+    const servicoIds = [];
+    for (const nome of (ag.servicos || [])) {
+      const sv = servicos.find(x => String(x.nome).toLowerCase() === String(nome).toLowerCase());
+      if (!sv || !Number.isFinite(Number(sv.id))) {
+        return { erro: `O serviço "${nome}" não está no banco. Recarregue a página e tente de novo.` };
+      }
+      servicoIds.push(Number(sv.id));
+    }
+    const hora = String(ag.horaInicio || "");
+    return {
+      corpo: {
+        clienteId: Number(cliente.id),
+        colaboradorId: ag.colaboradorId === 0 ? null : ag.colaboradorId, // 0 = o próprio dono (não é colaborador)
+        servicoId: servicoIds[0],                        // a API pediu "o ID do serviço" (um só)
+        servicoIds,                                     // lista completa (se a API aceitar vários, ela usa este)
+        data: ag.data,                                  // "2026-10-21"
+        horaInicio: hora.length === 5 ? hora + ":00" : hora, // "08:00:00"
+        duracaoMinutos: ag.duracaoMin,
+        valor: ag.valor,
+        cor: ag.cor
+      }
+    };
+  }
+
   formAgendamento.addEventListener("submit", async function(e) {
     e.preventDefault();
 
@@ -1403,13 +1485,13 @@ function iniciarDashboard() {
       mostrarErroForm(formAgendamento, validacaoAgendamento.erros.join("\n"), validacaoAgendamento.campoErro);
       return;
     }
-    // WhatsApp do cliente (opcional; se preencher, precisa ser válido)
+    // Telefone do cliente (opcional; se preencher, precisa ser válido). Vale para todos os planos.
     let whatsappCliente = "";
     const campoZap = document.getElementById("agend-whatsapp");
-    if (whatsappLigado && campoZap && campoZap.value.trim()) {
+    if (campoZap && campoZap.value.trim()) {
       whatsappCliente = telefoneValido(campoZap.value);
       if (!whatsappCliente) {
-        mostrarErroForm(formAgendamento, "Digite um WhatsApp válido com DDD. Exemplo: (11) 91234-5678", campoZap);
+        mostrarErroForm(formAgendamento, "Digite um telefone válido com DDD. Exemplo: (11) 91234-5678", campoZap);
         return;
       }
     }
@@ -1437,17 +1519,39 @@ function iniciarDashboard() {
       whatsapp: whatsappCliente
     };
 
-    // >>> API: criar agendamento no backend.
-    // try {
-   //   const criado = await apiRequest("AGENDAMENTOS", { method: "POST", body: novoAgendamento });
-    //   if (criado && criado.id) novoAgendamento.id = criado.id;
-    // } catch (erro) {
-    //   console.warn("Não foi possível salvar o agendamento na API.", erro.message);
-    // }
+    // >>> API: POST /Agendamentos (novo) ou PUT /Agendamentos/{id} (edição).
+    // Só entra na agenda o que foi gravado no banco.
+    const montado = montarCorpoAgendamentoApi(novoAgendamento);
+    if (montado.erro) {
+      mostrarErroForm(formAgendamento, montado.erro, document.getElementById("agend-cliente"));
+      return;
+    }
+    const btnConfirmar = document.getElementById("btn-confirmar-agendamento");
+    if (btnConfirmar) btnConfirmar.disabled = true;
+    try {
+      console.log("[API] enviando agendamento:", montado.corpo);
+      if (agendamentoEditandoId !== null) {
+        await editarAgendamentoApi(agendamentoEditandoId, montado.corpo);
+        novoAgendamento.id = agendamentoEditandoId;
+      } else {
+        const criado = await criarAgendamentoApi(montado.corpo);
+        console.log("[API] resposta do POST /Agendamentos:", criado);
+        const idCriado = criado && typeof criado === "object" ? Number(criado.id ?? criado.Id) : NaN;
+        if (Number.isFinite(idCriado)) {
+          novoAgendamento.id = idCriado;
+        } else {
+          console.warn("A API não devolveu o id do agendamento; ele não poderá ser editado pela API até a agenda ser recarregada do banco.");
+        }
+      }
+    } catch (erro) {
+      console.warn("[API] erro ao salvar agendamento:", erro.message);
+      mostrarErroForm(formAgendamento, mensagemErroApiComum(erro, "Não foi possível salvar o agendamento no banco."), null);
+      return;
+    } finally {
+      if (btnConfirmar) btnConfirmar.disabled = false;
+    }
 
     if (agendamentoEditandoId !== null) {
-      // >>> API: atualizar agendamento no backend (PUT /Agendamentos/{id}).
-      novoAgendamento.id = agendamentoEditandoId;
       agendamentos = agendamentos.map(a => a.id === agendamentoEditandoId ? novoAgendamento : a);
     } else {
       agendamentos.push(novoAgendamento);
@@ -1483,16 +1587,47 @@ function iniciarDashboard() {
     try { localStorage.setItem(chaveClientes(), JSON.stringify(clientes)); } catch (e) { /* sem armazenamento: vale só nesta visita */ }
   }
 
+  // Lista de telefones (datalist) do campo Telefone do agendamento; é criada aqui se não existir no HTML
+  function obterListaTelefones() {
+    const campo = document.getElementById("agend-whatsapp");
+    if (!campo) return null;
+    let lista = document.getElementById("lista-telefones");
+    if (!lista) {
+      lista = document.createElement("datalist");
+      lista.id = "lista-telefones";
+      campo.insertAdjacentElement("afterend", lista);
+    }
+    campo.setAttribute("list", "lista-telefones");
+    return lista;
+  }
+
   function atualizarListaClientes() {
+    const ordenados = clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+    // Lista de NOMES: o nome em cima e o telefone embaixo
     const lista = document.getElementById("lista-clientes");
-    if (!lista) return;
-    lista.innerHTML = "";
-    clientes.slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).forEach(c => {
-      const opcao = document.createElement("option");
-      opcao.value = c.nome;
-      opcao.label = c.telefone ? c.nome + " · " + formatarTelefone(c.telefone) : c.nome;
-      lista.appendChild(opcao);
-    });
+    if (lista) {
+      lista.innerHTML = "";
+      ordenados.forEach(c => {
+        const opcao = document.createElement("option");
+        opcao.value = c.nome;
+        if (c.telefone) opcao.label = formatarTelefone(c.telefone);
+        lista.appendChild(opcao);
+      });
+    }
+
+    // Lista de TELEFONES: o telefone em cima e o nome embaixo
+    const listaTel = obterListaTelefones();
+    if (listaTel) {
+      listaTel.innerHTML = "";
+      ordenados.filter(c => c.telefone).forEach(c => {
+        const opcao = document.createElement("option");
+        opcao.value = formatarTelefone(c.telefone);
+        opcao.label = c.nome;
+        listaTel.appendChild(opcao);
+      });
+    }
+
     renderizarListaClientes(); // tabela da Administração
   }
 
@@ -1522,6 +1657,20 @@ function iniciarDashboard() {
     };
     campoClienteAgend.addEventListener("input", preencherTelefoneDoCliente);
     campoClienteAgend.addEventListener("change", preencherTelefoneDoCliente);
+  }
+
+  // Campo Telefone do agendamento (é o #agend-whatsapp): escolheu/digitou um telefone cadastrado, o nome vem junto
+  const campoTelefoneAgend = document.getElementById("agend-whatsapp");
+  if (campoTelefoneAgend) {
+    obterListaTelefones();
+    const preencherNomeDoCliente = () => {
+      const digitos = campoTelefoneAgend.value.replace(/\D/g, "");
+      if (digitos.length < 10) return;
+      const achado = clientes.find(c => c.telefone === digitos);
+      if (achado && campoClienteAgend) campoClienteAgend.value = achado.nome;
+    };
+    campoTelefoneAgend.addEventListener("input", preencherNomeDoCliente);
+    campoTelefoneAgend.addEventListener("change", preencherNomeDoCliente);
   }
 
   // --- Janela "Cadastrar Cliente" ---

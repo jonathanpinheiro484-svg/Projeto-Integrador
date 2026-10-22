@@ -23,7 +23,7 @@ const API_CONFIG = {
     VERIFICAR_CODIGO: "/VerificarCodigo",     // { email, codigo } -> confere o código
     REDEFINIR_SENHA: "/RedefinirSenha",       // { email, codigo, novaSenha } -> grava a nova senha
     COLABORADORES: "/colaboradores",
-    AGENDAMENTOS: "/agendamentos",
+    AGENDAMENTOS: "/Agendamentos",           // POST (cria); PUT em /Agendamentos/{id} (edita)
     FINANCEIRO: "/financeiro",
     CONTRATOS: "/contratos",
     PLANO: "/plano",
@@ -127,6 +127,18 @@ async function editarClienteApi(id, nome, telefone) {
 // Depois de remover, a tela deve recarregar a lista da API (GET /Clientes), que já não traz os inativos.
 async function removerClienteApi(id) {
   await apiRequest("CLIENTES", { method: "DELETE" }, "/" + id);
+}
+
+// Cria um agendamento no banco: POST /Agendamentos. Devolve o que a API responder (de preferência com o id novo).
+// O corpo é montado em agenda.js (montarCorpoAgendamentoApi). O dono vem do token, por isso não é enviado.
+async function criarAgendamentoApi(corpo) {
+  return apiRequest("AGENDAMENTOS", { method: "POST", body: corpo });
+}
+
+// Edita um agendamento no banco: PUT /Agendamentos/{id}. O id precisa ser o do banco.
+// Erros: use mensagemErroApiComum(erro) para mostrar na tela (400 = dado inválido, com a mensagem da API).
+async function editarAgendamentoApi(id, corpo) {
+  await apiRequest("AGENDAMENTOS", { method: "PUT", body: corpo }, "/" + id);
 }
 
 // --- LOGIN DE COLABORADORES (simulação no front até o backend PHP existir) ---
