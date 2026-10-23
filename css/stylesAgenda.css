@@ -819,10 +819,136 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
 }
 
 /* =====================================================================
-   FAIXA DO TOPO DA AGENDA (Exclusiva para a seção da agenda)
+   ACRESCENTAR NO FINAL DO stylesAgenda.css  (depois do bloco "ESTILO FLUTUANTE")
+   Contém, nesta ordem:
+     1) Melhorias da tela de agenda
+     2) Faixa da agenda + cartão "Próximo cliente"  (cor do cartão em variáveis)
+     3) Dashboard de cadastros
    ===================================================================== */
 
-#secao-agenda .hero-agenda {
+/* =====================================================================
+   MELHORIAS DA TELA DE AGENDA
+   Colar no FINAL do stylesAgenda.css (depois do bloco do menu lateral).
+   Usa as variáveis do tema, então funciona no modo claro e no noturno.
+   ===================================================================== */
+
+/* ---------- Respiro geral da página ---------- */
+.conteudo { padding: 24px 28px 48px; gap: 22px; }
+.stat-card, .admin-card { border-radius: 16px; }
+
+/* ---------- Barra de ferramentas (data, filtros, botões) ---------- */
+.agenda-header { margin-bottom: 16px; gap: 14px 20px; }
+.agenda-titulo-data { gap: 14px; }
+#agenda-data-texto { font-size: 22px; font-weight: 800; letter-spacing: -0.2px; }
+
+.agenda-controles { gap: 10px; }
+.agenda-controles label {
+  font-size: 12px; font-weight: 600; color: var(--muted); margin-right: 6px;
+}
+
+/* mesma altura e cantos em todos os controles */
+.input-data-seletor,
+.select-colunas { height: 40px; padding: 0 12px; border-radius: 12px; }
+
+.agenda-controles button {
+  height: 40px; padding: 0 16px; border-radius: 999px;
+  font-size: 13px; font-weight: 600;
+  transition: border-color 0.15s, filter 0.15s;
+}
+.agenda-controles button:hover { border-color: var(--destaque); }
+.btn-novo-agendamento:hover { filter: brightness(1.06); }
+
+/* "‹ 1 de 1 ›" vira um grupo único em pílula */
+.paginacao {
+  gap: 4px; padding: 3px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+}
+.agenda-controles .paginacao button {
+  width: 32px; height: 32px; padding: 0;
+  border: 0; border-radius: 50%; background: transparent; font-size: 16px;
+}
+.agenda-controles .paginacao button:hover { background: var(--hover-menu); }
+#pag-info { min-width: 44px; text-align: center; font-size: 12px; font-weight: 600; color: var(--texto); }
+
+/* ---------- Quadro da agenda ---------- */
+.agenda-wrap { border-radius: 18px; box-shadow: 0 10px 30px rgba(10, 31, 56, 0.07); }
+
+/* cabeçalho do colaborador */
+.cab { padding: 14px 8px 12px; gap: 4px; }
+.cab-nome { font-size: 13px; }
+.cab-cargo { font-size: 11px; opacity: 0.85; }
+.cab-avatar {
+  width: 30px; height: 30px; margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.22)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E")
+    center / 18px no-repeat;
+}
+
+/* horários no TOPO da linha (início da hora), como "07:00" */
+.hora-label { align-items: flex-start; padding-top: 6px; font-weight: 600; }
+.hora-label::after { content: ":00"; }
+
+/* linha suave marcando a meia hora */
+.linha-hora {
+  background:
+    linear-gradient(
+      color-mix(in srgb, var(--border) 55%, transparent),
+      color-mix(in srgb, var(--border) 55%, transparent)
+    ) 0 50% / 100% 1px no-repeat;
+}
+
+/* =====================================================================
+   FAIXA DO TOPO DA AGENDA (inspirada na home do site)
+   Colar no FINAL do stylesAgenda.css.
+   No <head> do agenda.html, adicione também a fonte da logo e dos títulos:
+   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet" />
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   COR DO CARTÃO "PRÓXIMO CLIENTE" — troque só aqui.
+   Opção ativa: AZUL DA MARCA. Para usar outra, comente este bloco
+   e descomente o da opção desejada.
+   --------------------------------------------------------------------- */
+:root {
+  --cartao-bg: linear-gradient(135deg, #2a75e0, #1f5fc0);
+  --cartao-texto: #ffffff;
+  --cartao-sub: rgba(255, 255, 255, 0.85);
+  --cartao-botao-bg: #ffffff;
+  --cartao-botao-texto: #0a1f38;
+}
+
+/* Opção VERDE DA MARCA
+:root {
+  --cartao-bg: #00c878;
+  --cartao-texto: #0a1f38;
+  --cartao-sub: rgba(10, 31, 56, 0.75);
+  --cartao-botao-bg: #0a1f38;
+  --cartao-botao-texto: #ffffff;
+}
+*/
+
+/* Opção CLARO (branco azulado, combina com os campos do sistema)
+:root {
+  --cartao-bg: #eaf1fc;
+  --cartao-texto: #0a1f38;
+  --cartao-sub: #4b5d75;
+  --cartao-botao-bg: #0a1f38;
+  --cartao-botao-texto: #ffffff;
+}
+*/
+
+/* Opção AMARELO ORIGINAL
+:root {
+  --cartao-bg: #ffe600;
+  --cartao-texto: #0a1f38;
+  --cartao-sub: #4d4a1c;
+  --cartao-botao-bg: #0a1f38;
+  --cartao-botao-texto: #ffffff;
+}
+*/
+
+/* ---------- Faixa azul-marinho ---------- */
+.hero-agenda {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: 32px;
@@ -832,121 +958,56 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
   background: linear-gradient(135deg, #081d36, #0d2a47);
   color: #fff;
 }
-
-#secao-agenda .hero-eyebrow { 
-  margin: 0; 
-  font-size: 12px; 
-  font-weight: 700; 
-  letter-spacing: 0.12em; 
-  color: #6db3ff; 
-}
-
-#secao-agenda .hero-agenda h1 {
+.hero-eyebrow { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #6db3ff; }
+.hero-agenda h1 {
   margin: 8px 0 10px;
   font-family: "Archivo Black", Inter, system-ui, sans-serif;
   font-weight: 400;
   font-size: clamp(28px, 3.4vw, 42px);
   line-height: 1.1;
 }
+.hero-agenda .hero-resumo { margin: 0; font-size: 15px; line-height: 1.5; color: #c4d3e6; }
+.hero-acoes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
 
-#secao-agenda .hero-agenda .hero-resumo { 
-  margin: 0; 
-  font-size: 15px; 
-  line-height: 1.5; 
-  color: #c4d3e6; 
+.btn-verde {
+  background: var(--primaria); color: var(--navy);
+  border: 0; border-radius: 999px; padding: 13px 26px;
+  font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer;
 }
-
-#secao-agenda .hero-acoes { 
-  display: flex; 
-  gap: 12px; 
-  flex-wrap: wrap; 
-  margin-top: 22px; 
+.btn-verde:hover { filter: brightness(1.06); }
+.btn-borda {
+  background: transparent; color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.35); border-radius: 999px; padding: 11px 24px;
+  font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
 }
-
-#secao-agenda .btn-verde {
-  background: var(--primaria); 
-  color: var(--navy);
-  border: 0; 
-  border-radius: 999px; 
-  padding: 13px 26px;
-  font: 700 14px inherit; 
-  font-family: inherit; 
-  cursor: pointer;
-}
-
-#secao-agenda .btn-verde:hover { 
-  filter: brightness(1.06); 
-}
-
-#secao-agenda .btn-borda {
-  background: transparent; 
-  color: #fff;
-  border: 2px solid rgba(255, 255, 255, 0.35); 
-  border-radius: 999px; 
-  padding: 11px 24px;
-  font-size: 14px; 
-  font-weight: 600; 
-  font-family: inherit; 
-  cursor: pointer;
-}
-
-#secao-agenda .btn-borda:hover { 
-  border-color: #fff; 
-}
+.btn-borda:hover { border-color: #fff; }
 
 /* ---------- Cartão do próximo cliente ---------- */
-#secao-agenda .hero-proximo {
+.hero-proximo {
   background: var(--cartao-bg);
   color: var(--cartao-texto);
   border-radius: 20px;
   padding: 24px 28px;
 }
-
-#secao-agenda .hero-proximo small { 
-  font-size: 12px; 
-  font-weight: 800; 
-  letter-spacing: 0.08em; 
-}
-
-#secao-agenda .hero-hora {
+.hero-proximo small { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; }
+.hero-hora {
   margin: 6px 0;
   font-family: "Archivo Black", Inter, system-ui, sans-serif;
-  font-size: 64px; 
-  line-height: 1;
+  font-size: 64px; line-height: 1;
 }
-
-#secao-agenda .hero-proximo h3 { 
-  margin: 0 0 2px; 
-  font-size: 20px; 
+.hero-proximo h3 { margin: 0 0 2px; font-size: 20px; }
+.hero-agenda .hero-proximo p { margin: 0; font-size: 14px; color: var(--cartao-sub); }
+.hero-proximo button {
+  margin-top: 16px; padding: 11px 22px;
+  background: var(--cartao-botao-bg); color: var(--cartao-botao-texto);
+  border: 0; border-radius: 999px;
+  font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
 }
+.hero-proximo button[hidden] { display: none; }
 
-#secao-agenda .hero-proximo p { 
-  margin: 0; 
-  font-size: 14px; 
-  color: var(--cartao-sub); 
-}
-
-#secao-agenda .hero-proximo button {
-  margin-top: 16px; 
-  padding: 11px 22px;
-  background: var(--cartao-botao-bg); 
-  color: var(--cartao-botao-texto);
-  border: 0; 
-  border-radius: 999px;
-  font-size: 13px; 
-  font-weight: 700; 
-  font-family: inherit; 
-  cursor: pointer;
-}
-
-#secao-agenda .hero-proximo button[hidden] { 
-  display: none; 
-}
-
-/* ---------- Painel branco que guarda a agenda ---------- */
-#secao-agenda .painel-agenda {
-  position: relative; 
-  z-index: 1;
+/* ---------- Painel branco que guarda a agenda (sobe sobre a faixa) ---------- */
+.painel-agenda {
+  position: relative; z-index: 1;
   margin-top: -60px;
   padding: 18px;
   background: var(--card);
@@ -954,20 +1015,298 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
   border-radius: 20px;
   box-shadow: 0 14px 34px rgba(10, 31, 56, 0.12);
 }
+.painel-agenda .agenda-wrap { border: 0; box-shadow: none; border-radius: 12px; }
 
-#secao-agenda .painel-agenda .agenda-wrap { 
-  border: 0; 
-  box-shadow: none; 
-  border-radius: 12px; 
-}
 
 @media (max-width: 900px) {
-  #secao-agenda .hero-agenda { 
-    grid-template-columns: 1fr; 
-    padding: 28px 22px 88px; 
-    border-radius: 24px; 
-  }
-  #secao-agenda .hero-hora { 
-    font-size: 52px; 
-  }
+  .hero-agenda { grid-template-columns: 1fr; padding: 28px 22px 88px; border-radius: 24px; }
+  .hero-hora { font-size: 52px; }
+}
+
+/* =====================================================================
+   DASHBOARD DE CADASTROS + AJUSTE DA FAIXA DA AGENDA
+   Colar no FINAL do stylesAgenda.css (depois do bloco hero-agenda.css).
+   ===================================================================== */
+
+/* ---------- 2) Dashboard: faixa azul-marinho ---------- */
+.hero-dash {
+  padding: 32px 36px 100px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #081d36, #0d2a47);
+  color: #fff;
+}
+.hero-dash .hero-eyebrow { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #6db3ff; }
+.hero-dash h1 {
+  margin: 8px 0 10px;
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 42px);
+  line-height: 1.1;
+}
+.hero-dash .hero-resumo { margin: 0; max-width: 520px; font-size: 15px; line-height: 1.5; color: #c4d3e6; }
+
+/* ---------- 3) Cartões de cadastro (sobem sobre a faixa) ---------- */
+.cards-cad {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  margin: -70px 8px 6px;
+}
+.cad {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(10, 31, 56, 0.14);
+  padding: 22px 24px;
+}
+.cad-icone {
+  width: 44px; height: 44px; margin-bottom: 12px;
+  display: grid; place-items: center;
+  border-radius: 12px; background: var(--hover-menu); color: var(--destaque);
+}
+.cad-icone svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.cad small { display: block; font-size: 12px; color: var(--muted); }
+.cad strong {
+  display: block; margin: 2px 0;
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400; font-size: 36px; line-height: 1.1;
+}
+.cad-sub { display: block; min-height: 18px; font-size: 13px; color: var(--muted); }
+.cad-linha { display: flex; align-items: center; gap: 14px; margin-top: 16px; }
+
+.btn-pill {
+  padding: 10px 18px; border: 0; border-radius: 999px;
+  background: var(--primaria); color: var(--navy);
+  font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.btn-pill:hover { filter: brightness(1.06); }
+.btn-link2 {
+  padding: 0; border: 0; background: none;
+  color: var(--destaque); font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+}
+.btn-link2:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .cards-cad { grid-template-columns: 1fr; margin-top: -60px; }
+  .hero-dash { padding: 26px 22px 88px; }
+}
+
+
+
+/* =====================================================================
+   REPAGINAÇÃO DO DASHBOARD — GET TIME
+   Colar no FINAL do stylesAgenda.css (depois de tudo que já existe).
+   Usa as variáveis do tema (--navy, --primaria, --destaque, --card...),
+   então funciona no modo claro e no noturno.
+   ===================================================================== */
+
+/* ---------- 1) FAIXA DA AGENDA ---------- */
+
+.hero-agenda {
+  position: relative;
+  overflow: hidden;
+  grid-template-columns: 1fr;
+  min-height: 270px;
+  padding: 48px 48px 112px;
+  background:
+    radial-gradient(520px 260px at 92% 15%, rgba(42, 117, 224, 0.45), transparent 70%),
+    radial-gradient(380px 220px at 78% 105%, rgba(0, 200, 120, 0.22), transparent 70%),
+    linear-gradient(135deg, #081d36, #0d2a47);
+}
+/* calendário desenhado ao fundo, só para a faixa não ficar vazia */
+.hero-agenda::after {
+  content: "";
+  position: absolute;
+  right: 56px;
+  top: 46%;
+  width: 210px;
+  height: 210px;
+  transform: translateY(-50%) rotate(-6deg);
+  opacity: 0.12;
+  pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M3 10h18M8 14h2M14 14h2M8 18h2'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.hero-texto { position: relative; z-index: 1; max-width: 560px; }
+.hero-agenda .hero-acoes { margin-top: 26px; }
+.btn-verde,
+.btn-borda { display: inline-flex; align-items: center; gap: 8px; }
+.btn-borda svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- 2) PAINEL DA AGENDA (agora sobe sobre a faixa) ---------- */
+.painel-agenda {
+  margin: -68px 20px 0;
+  padding: 22px 22px 20px;
+  border-radius: 24px;
+  box-shadow: 0 18px 44px rgba(10, 31, 56, 0.16);
+}
+.painel-agenda .agenda-header {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+.agenda-filtro { display: flex; align-items: center; }
+.painel-agenda .agenda-wrap { border: 1px solid var(--border); border-radius: 16px; }
+
+/* ---------- 3) ADMINISTRAÇÃO: estrutura em grupos ---------- */
+#secao-administrativo { display: flex; flex-direction: column; gap: 40px; padding-top: 8px; }
+.grupo-admin { display: flex; flex-direction: column; gap: 18px; }
+
+.grupo-cab { display: flex; align-items: center; gap: 14px; }
+.grupo-icone {
+  width: 50px; height: 50px; flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #081d36, #0d2a47);
+  color: var(--primaria);
+  box-shadow: 0 10px 22px rgba(10, 31, 56, 0.22);
+}
+.grupo-icone svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.grupo-cab h2 {
+  margin: 0;
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.1;
+}
+.grupo-cab p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+
+/* ---------- 4) CARDS E FORMULÁRIOS ---------- */
+#secao-administrativo .admin-grid { grid-template-columns: 1.5fr 1fr; gap: 20px; }
+#secao-administrativo .admin-card {
+  padding: 26px 28px;
+  border-radius: 22px;
+  box-shadow: 0 14px 34px rgba(10, 31, 56, 0.08);
+}
+.admin-card .admin-card-header { margin-bottom: 20px; }
+.admin-card h3 { margin: 0; font-size: 18px; font-weight: 800; }
+.card-sub { margin: 4px 0 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+
+.form-2col { grid-template-columns: 1fr 1fr; gap: 18px 20px; }
+.form-2col .campo-full,
+.form-2col .form-botoes { grid-column: 1 / -1; }
+
+.admin-card .form-agendamento .campo { gap: 6px; }
+.admin-card .form-agendamento .campo label { font-size: 13px; font-weight: 600; }
+.admin-card .form-agendamento input:not([type="color"]),
+.admin-card .form-agendamento select {
+  height: 46px;
+  padding: 0 14px;
+  font-size: 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+.admin-card .form-agendamento input::placeholder { color: var(--muted); opacity: 0.8; }
+.admin-card .form-agendamento .input-cor {
+  width: 76px; height: 46px; padding: 4px; cursor: pointer;
+  border-radius: 12px; border: 1px solid var(--border);
+}
+.admin-card .form-agendamento input:user-invalid { border-color: #e11d48; }
+
+.admin-card .form-botoes {
+  margin-top: 6px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.admin-card .btn-salvar,
+.admin-card .btn-cancelar {
+  padding: 12px 28px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.admin-card .btn-salvar:hover { filter: brightness(1.05); }
+.admin-card .btn-cancelar:hover { background: var(--hover-menu); }
+
+/* ---------- 5) LISTAS (serviços e clientes) ---------- */
+.admin-card table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.admin-card th {
+  padding: 0 10px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.admin-card td { padding: 14px 10px; border-bottom: 1px solid var(--border); }
+.admin-card tbody tr:last-child td { border-bottom: 0; }
+.admin-card tbody tr:hover td { background: var(--hover-menu); }
+.admin-card tbody tr td:first-child { font-weight: 600; border-radius: 10px 0 0 10px; }
+.admin-card tbody tr td:last-child { text-align: right; white-space: nowrap; border-radius: 0 10px 10px 0; }
+
+/* Editar (azul) e Remover (vermelho): o último botão da linha é o "Remover" */
+.admin-card td:last-child :is(a, button) {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--destaque);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.admin-card td:last-child :is(a, button):hover { background: var(--hover-menu); border-color: var(--destaque); }
+.admin-card td:last-child :is(a, button):last-child { color: #e11d48; }
+.admin-card td:last-child :is(a, button):last-child:hover { background: rgba(225, 29, 72, 0.1); border-color: #e11d48; }
+
+/* aviso quando ainda não há nada cadastrado (só aparece se o JS deixar a lista vazia) */
+#colaboradores-lista:empty::before,
+#servicos-lista:empty::before,
+#clientes-lista:empty::before {
+  content: "Nada cadastrado ainda. Use o formulário ao lado para começar.";
+  grid-column: 1 / -1;
+  display: block;
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+}
+
+/* ---------- 6) EQUIPE CADASTRADA ---------- */
+#secao-administrativo .colaboradores-lista { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 0; }
+.colaborador-item {
+  padding: 14px 16px;
+  gap: 12px;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(10, 31, 56, 0.06);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.colaborador-item:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(10, 31, 56, 0.12); }
+.colaborador-avatar {
+  width: 42px; height: 42px;
+  background: var(--input-bg)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232a75e0' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4 3.6-7 8-7s8 3 8 7'/%3E%3C/svg%3E")
+    center / 22px no-repeat;
+}
+.colaborador-info strong { font-size: 14px; }
+.colaborador-info small { font-size: 12px; }
+.status-ativo, .status-inativo { padding: 2px 10px; font-size: 11px; font-weight: 600; }
+.colaborador-item button:not(.colaborador-remover) {
+  margin-left: 4px; padding: 3px 10px;
+  border: 1px solid var(--border); border-radius: 999px;
+  background: transparent; color: var(--texto);
+  font-family: inherit; font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.colaborador-item button:not(.colaborador-remover):hover { background: var(--hover-menu); border-color: var(--destaque); }
+
+/* ---------- 7) TELAS MENORES ---------- */
+@media (max-width: 900px) {
+  .hero-agenda { padding: 30px 22px 92px; min-height: 0; }
+  .hero-agenda::after { right: 14px; width: 130px; height: 130px; }
+  .painel-agenda { margin: -60px 0 0; padding: 16px 12px; border-radius: 20px; }
+  #secao-administrativo .admin-grid { grid-template-columns: 1fr; }
+  #secao-administrativo .admin-card { padding: 20px 18px; }
+  .form-2col { grid-template-columns: 1fr; }
+  .grupo-cab h2 { font-size: 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .colaborador-item,
+  .admin-card td:last-child :is(a, button) { transition: none; }
+  .colaborador-item:hover { transform: none; }
 }

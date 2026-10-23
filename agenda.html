@@ -261,423 +261,376 @@
             </div>
           </section>
 
-        <!-- AGENDA -->
+
+<!-- AGENDA -->
 <section id="secao-agenda">
-  
-    <!-- FAIXA DO TOPO (Agora fica presa apenas à tela da agenda) -->
-    <div class="hero-agenda">
-        <div>
-            <p class="hero-eyebrow">PAINEL DE AGENDAMENTOS</p>
-            <h1>Sua Agenda</h1>
-            <p class="hero-resumo">Gerencie seus horários, acompanhe os próximos clientes e mantenha seu dia organizado.</p>
-            
-            <div class="hero-acoes">
-                <button type="button" id="btn-abrir-agendamento" class="btn-verde">
-                    + Novo Agendamento
-                </button>
-                <button type="button" id="btn-abrir-cliente" class="btn-borda">
-                    👤 Cadastrar Cliente
-                </button>
-            </div>
+  <!-- Faixa do topo -->
+  <div class="hero-agenda">
+    <div class="hero-texto">
+      <p class="hero-eyebrow">PAINEL DE AGENDAMENTOS</p>
+      <h1>Sua Agenda</h1>
+      <p class="hero-resumo">
+        Gerencie seus horários, acompanhe os próximos clientes e mantenha seu
+        dia organizado.
+      </p>
+
+      <div class="hero-acoes">
+        <button type="button" id="btn-abrir-agendamento" class="btn-verde">
+          + Novo Agendamento
+        </button>
+        <button type="button" id="btn-abrir-cliente" class="btn-borda">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7M19 8v6M16 11h6"/></svg>
+          Cadastrar Cliente
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- (a faixa agora é fechada aqui; antes faltava este </div> e o painel ficava preso dentro dela) -->
+
+  <!-- Painel branco da agenda -->
+  <div class="painel-agenda">
+    <div class="agenda-header">
+      <div class="agenda-titulo-data">
+        <h2 id="agenda-data-texto" style="margin: 0">Data:</h2>
+        <input
+          type="date"
+          id="seletor-data"
+          class="input-data-seletor"
+          value="2026-09-25"
+        />
+      </div>
+
+      <div class="agenda-controles">
+        <div class="paginacao" id="container-paginacao">
+          <button type="button" id="btn-pag-anterior" aria-label="Página anterior">‹</button>
+          <span id="pag-info">1 de 1</span>
+          <button type="button" id="btn-pag-proxima" aria-label="Próxima página">›</button>
         </div>
 
-        <div class="hero-proximo">
-            <small>PRÓXIMO CLIENTE</small>
-            <div class="hero-hora" id="hero-proximo-hora">--:--</div>
-            <h3 id="hero-proximo-nome">Nenhum no momento</h3>
-            <p id="hero-proximo-servico">Aguardando novos horários</p>
-            <button type="button" id="btn-ver-detalhes-proximo">Ver Detalhes</button>
+        <div hidden>
+          <label for="seletor-colunas" style="font-size: 12px; color: var(--muted)">Colunas:</label>
+          <select id="seletor-colunas" class="select-colunas"></select>
         </div>
+
+        <div class="agenda-filtro">
+          <label for="filtro-colaborador">Procurar colaborador:</label>
+          <select id="filtro-colaborador" class="select-colunas">
+            <option value="todos">Procurar colaborador...</option>
+          </select>
+        </div>
+      </div>
     </div>
 
-    <!-- PAINEL BRANCO DA AGENDA -->
-    <div class="painel-agenda">
-        <div class="agenda-header">
-            <div class="agenda-titulo-data">
-                <h2 id="agenda-data-texto" style="margin: 0">Data:</h2>
-                <input
-                  type="date"
-                  id="seletor-data"
-                  class="input-data-seletor"
-                  value="2026-09-25"
-                />
-            </div>
-
-            <div class="agenda-controles">
-                <div class="paginacao" id="container-paginacao">
-                  <button type="button" id="btn-pag-anterior">‹</button>
-                  <span id="pag-info">1 de 1</span>
-                  <button type="button" id="btn-pag-proxima">›</button>
-                </div>
-
-                <div hidden>
-                  <label for="seletor-colunas" style="font-size: 12px; color: var(--muted)">Colunas:</label>
-                  <select id="seletor-colunas" class="select-colunas"></select>
-                </div>
-
-                <div>
-                  <label for="filtro-colaborador">Procurar colaborador:</label>
-                  <select id="filtro-colaborador" class="select-colunas">
-                    <option value="todos">Procurar colaborador...</option>
-                  </select>
-                </div>
-            </div>
-        </div>
-
-        <div class="agenda-wrap">
-            <div class="agenda" id="agenda"></div>
-        </div>
+    <div class="agenda-wrap">
+      <div class="agenda" id="agenda"></div>
     </div>
+  </div>
 </section>
 
-          <!-- ADMINISTRATIVO -->
-          <section id="secao-administrativo">
-            <h2>Administrativo</h2>
-            <div class="admin-grid">
-              <div class="admin-card">
-                <div class="admin-card-header">
-                  <h3>Cadastrar Novo Colaborador</h3>
-                </div>
+<!-- ADMINISTRATIVO -->
+<section id="secao-administrativo">
 
-                <!-- Validações feitas só com atributos HTML (required, minlength, maxlength, pattern, title).
-                 O navegador bloqueia o envio e mostra o texto do "title" quando o campo está errado. -->
-                <form
-                  id="form-colaborador"
-                  class="form-agendamento"
-                  style="
-                    border: 1px solid var(--border);
-                    padding: 20px;
-                    border-radius: 10px;
-                    background: var(--card);
-                    margin-bottom: 20px;
-                  "
-                >
-                  <div class="campo">
-                    <label for="colab-nome"
-                      >Nome Completo <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="text"
-                      id="colab-nome"
-                      placeholder="Ex: Fernanda Lima"
-                      required
-                      minlength="5"
-                      maxlength="60"
-                      pattern="[A-ZÀ-Ý][a-zà-ÿ]{1,}(\s(da|de|do|das|dos|e|[A-ZÀ-Ý][a-zà-ÿ]{1,}))*\s[A-ZÀ-Ý][a-zà-ÿ]{1,}"
-                      title="Digite o nome completo, sem abreviar: nome e sobrenome, cada um começando com letra maiúscula (ex: Fernanda Lima). Não use apenas iniciais nem pontos."
-                    />
-                    <small class="dica-campo"
-                      >Nome e sobrenome, sem abreviar e com a primeira letra
-                      maiúscula.</small
-                    >
-                  </div>
+  <!-- ===== EQUIPE ===== -->
+  <div class="grupo-admin">
+    <div class="grupo-cab">
+      <span class="grupo-icone">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.85M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </span>
+      <div>
+        <h2>Equipe</h2>
+        <p>Cadastre quem atende na sua agenda e libere o acesso ao sistema.</p>
+      </div>
+    </div>
 
-                  <div class="campo">
-                    <label for="colab-cargo"
-                      >Cargo / Especialidade
-                      <span class="obrigatorio">*</span></label
-                    >
-                    <select
-                      id="colab-cargo"
-                      required
-                      title="Escolha o serviço que o colaborador realiza."
-                    >
-                      <option value="">Selecione o serviço...</option>
-                      <option value="Manicure">Manicure</option>
-                      <option value="Pedicure">Pedicure</option>
-                      <option value="Cabeleireiro">Cabeleireiro</option>
-                      <option value="Barbeiro">Barbeiro</option>
-                      <option value="Spa">Spa</option>
-                      <option value="Esteticista">Esteticista</option>
-                      <option value="Massagista">Massagista</option>
-                      <option value="Maquiador">Maquiador</option>
-                      <option value="Depilador">Depilador</option>
-                      <option value="Designer de Sobrancelhas">
-                        Designer de Sobrancelhas
-                      </option>
-                      <option value="__outros__">Outros</option>
-                    </select>
-                    <input
-                      type="text"
-                      id="colab-cargo-outros"
-                      placeholder="Digite o serviço do colaborador"
-                      maxlength="60"
-                      hidden
-                    />
-                  </div>
+    <div class="admin-grid">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Cadastrar Novo Colaborador</h3>
+            <p class="card-sub">Os campos com * são obrigatórios.</p>
+          </div>
+        </div>
 
-                  <div class="campo">
-                    <label for="colab-email"
-                      >E-mail (Acesso ao Sistema)
-                      <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="email"
-                      id="colab-email"
-                      placeholder="Fernanda@agendaexpress.com"
-                      required
-                      maxlength="80"
-                      autocomplete="off"
-                    />
-                  </div>
+        <!-- Validações só com atributos HTML (required, minlength, maxlength, pattern, title) -->
+        <form id="form-colaborador" class="form-agendamento form-2col">
+          <div class="campo campo-full">
+            <label for="colab-nome">Nome Completo <span class="obrigatorio">*</span></label>
+            <input
+              type="text"
+              id="colab-nome"
+              placeholder="Ex: Fernanda Lima"
+              required
+              minlength="5"
+              maxlength="60"
+              pattern="[A-ZÀ-Ý][a-zà-ÿ]{1,}(\s(da|de|do|das|dos|e|[A-ZÀ-Ý][a-zà-ÿ]{1,}))*\s[A-ZÀ-Ý][a-zà-ÿ]{1,}"
+              title="Digite o nome completo, sem abreviar: nome e sobrenome, cada um começando com letra maiúscula (ex: Fernanda Lima). Não use apenas iniciais nem pontos."
+            />
+            <small class="dica-campo">Nome e sobrenome, sem abreviar e com a primeira letra maiúscula.</small>
+          </div>
 
-                  <div class="campo">
-                    <label for="colab-senha"
-                      >Senha de Acesso <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="password"
-                      id="colab-senha"
-                      placeholder="Digite a senha"
-                      required
-                      autocomplete="new-password"
-                      minlength="8"
-                      maxlength="20"
-                      pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,20}"
-                      title="A senha deve ter de 8 a 20 caracteres, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !)."
-                    />
-                    <small class="dica-campo"
-                      >De 8 a 20 caracteres, com 1 maiúscula, 1 minúscula e 1
-                      símbolo (@ # $ !).</small
-                    >
-                  </div>
+          <div class="campo">
+            <label for="colab-cargo">Cargo / Especialidade <span class="obrigatorio">*</span></label>
+            <select id="colab-cargo" required title="Escolha o serviço que o colaborador realiza.">
+              <option value="">Selecione o serviço...</option>
+              <option value="Manicure">Manicure</option>
+              <option value="Pedicure">Pedicure</option>
+              <option value="Cabeleireiro">Cabeleireiro</option>
+              <option value="Barbeiro">Barbeiro</option>
+              <option value="Spa">Spa</option>
+              <option value="Esteticista">Esteticista</option>
+              <option value="Massagista">Massagista</option>
+              <option value="Maquiador">Maquiador</option>
+              <option value="Depilador">Depilador</option>
+              <option value="Designer de Sobrancelhas">Designer de Sobrancelhas</option>
+              <option value="__outros__">Outros</option>
+            </select>
+            <input
+              type="text"
+              id="colab-cargo-outros"
+              placeholder="Digite o serviço do colaborador"
+              maxlength="60"
+              hidden
+            />
+          </div>
 
-                  <div class="campo">
-                    <label for="colab-senha-confirmar"
-                      >Confirmar Senha <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="password"
-                      id="colab-senha-confirmar"
-                      placeholder="Digite a senha novamente"
-                      required
-                      maxlength="20"
-                      autocomplete="new-password"
-                    />
-                  </div>
+          <div class="campo">
+            <label for="colab-email">E-mail (acesso ao sistema) <span class="obrigatorio">*</span></label>
+            <input
+              type="email"
+              id="colab-email"
+              placeholder="Fernanda@agendaexpress.com"
+              required
+              maxlength="80"
+              autocomplete="off"
+            />
+          </div>
 
-                  <div class="campo">
-                    <label for="colab-telefone"
-                      >Telefone do Colaborador
+          <div class="campo">
+            <label for="colab-senha">Senha de acesso <span class="obrigatorio">*</span></label>
+            <input
+              type="password"
+              id="colab-senha"
+              placeholder="Digite a senha"
+              required
+              autocomplete="new-password"
+              minlength="8"
+              maxlength="20"
+              pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,20}"
+              title="A senha deve ter de 8 a 20 caracteres, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !)."
+            />
+            <small class="dica-campo">De 8 a 20 caracteres, com 1 maiúscula, 1 minúscula e 1 símbolo (@ # $ !).</small>
+          </div>
 
-                      <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="tel"
-                      id="colab-telefone"
-                      placeholder="123456789"
-                      required
-                      maxlength="13"
-                    />
-                  </div>
+          <div class="campo">
+            <label for="colab-senha-confirmar">Confirmar senha <span class="obrigatorio">*</span></label>
+            <input
+              type="password"
+              id="colab-senha-confirmar"
+              placeholder="Digite a senha novamente"
+              required
+              maxlength="20"
+              autocomplete="new-password"
+            />
+          </div>
 
-                  <div class="campo">
-                    <label for="colab-cpf"
-                      >CPF do Funcionario<span class="obrigatorio"
-                        >*</span
-                      ></label
-                    >
-                    <input
-                      type="text"
-                      id="colab-cpf"
-                      placeholder="778.235.029-33"
-                      required
-                      maxlength="14"
-                    />
-                  </div>
+          <div class="campo">
+            <label for="colab-telefone">Telefone do colaborador <span class="obrigatorio">*</span></label>
+            <input
+              type="tel"
+              id="colab-telefone"
+              placeholder="123456789"
+              required
+              maxlength="13"
+            />
+          </div>
 
-                  <div class="campo">
-                    <label for="colab-data-admissao"
-                      >Data de admissão do Funcionario<span class="obrigatorio"
-                        >*</span
-                      ></label
-                    >
-                    <input type="date" id="colab-data-admissao" required />
-                  </div>
+          <div class="campo">
+            <label for="colab-cpf">CPF do funcionário <span class="obrigatorio">*</span></label>
+            <input
+              type="text"
+              id="colab-cpf"
+              placeholder="778.235.029-33"
+              required
+              maxlength="14"
+            />
+          </div>
 
-                  <div class="campo">
-                    <label for="colab-cor"
-                      >Cor do Cabeçalho
-                      <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="color"
-                      id="colab-cor"
-                      value="#00c0ef"
-                      required
-                      style="
-                        height: 38px;
-                        width: 60px;
-                        padding: 2px;
-                        cursor: pointer;
-                        border-radius: 6px;
-                        border: 1px solid var(--border);
-                      "
-                    />
-                  </div>
+          <div class="campo">
+            <label for="colab-data-admissao">Data de admissão <span class="obrigatorio">*</span></label>
+            <input type="date" id="colab-data-admissao" required />
+          </div>
 
-                  <div
-                    class="form-botoes"
-                    style="
-                      display: flex;
-                      justify-content: flex-end;
-                      gap: 10px;
-                      margin-top: 15px;
-                    "
-                  >
-                    <button type="submit" class="btn-salvar">
-                      Salvar Colaborador
-                    </button>
-                    <button type="reset" class="btn-cancelar">Limpar</button>
-                  </div>
-                </form>
-              </div>
+          <div class="campo">
+            <label for="colab-cor">Cor do cabeçalho na agenda <span class="obrigatorio">*</span></label>
+            <input type="color" id="colab-cor" class="input-cor" value="#00c0ef" required />
+          </div>
 
-              <!-- EQUIPE CADASTRADA (no lugar do antigo card de contratos) -->
-              <div class="admin-card">
-                <h3 style="margin-top: 0">Equipe Cadastrada</h3>
-                <div class="colaboradores-lista" id="colaboradores-lista"></div>
-              </div>
-            </div>
+          <div class="form-botoes">
+            <button type="reset" class="btn-cancelar">Limpar</button>
+            <button type="submit" class="btn-salvar">Salvar Colaborador</button>
+          </div>
+        </form>
+      </div>
 
-            <!-- SERVIÇOS: só o dono cadastra (nome, valor fixo e duração) -->
-            <h2 style="margin-top: 26px">Serviços</h2>
-            <div class="admin-grid">
-              <div class="admin-card">
-                <div class="admin-card-header">
-                  <h3>Cadastrar Serviço</h3>
-                </div>
-                <form id="form-servico" class="form-agendamento" novalidate>
-                  <div class="campo">
-                    <label for="serv-nome-lista"
-                      >Nome do serviço <span class="obrigatorio">*</span></label
-                    >
-                    <!-- As opções são colocadas pelo agenda.js (SERVICOS_PADRAO), a mesma lista do cargo do colaborador -->
-                    <select id="serv-nome-lista">
-                      <option value="">Selecione o serviço...</option>
-                      <option value="__outros__">Outros</option>
-                    </select>
-                    <input
-                      type="text"
-                      id="serv-nome"
-                      placeholder="Digite o nome do serviço"
-                      maxlength="60"
-                      autocomplete="off"
-                      hidden
-                    />
-                  </div>
-                  <div class="campo">
-                    <label for="serv-valor"
-                      >Valor (R$) <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="number"
-                      id="serv-valor"
-                      placeholder="Ex: 45,00"
-                      min="0"
-                      step="0.01"
-                      inputmode="decimal"
-                    />
-                    <small class="dica-campo"
-                      >Valor fixo, definido só pelo dono.</small
-                    >
-                  </div>
-                  <div class="campo">
-                    <label for="serv-duracao"
-                      >Duração (minutos)
-                      <span class="obrigatorio">*</span></label
-                    >
-                    <!-- As opções de tempo são colocadas pelo agenda.js -->
-                    <select id="serv-duracao">
-                      <option value="">Selecione a duração...</option>
-                    </select>
-                  </div>
-                  <div class="form-botoes">
-                    <button
-                      type="submit"
-                      class="btn-salvar"
-                      id="btn-salvar-servico"
-                    >
-                      Salvar Serviço
-                    </button>
-                    <button type="reset" class="btn-cancelar">Limpar</button>
-                  </div>
-                </form>
-              </div>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Equipe Cadastrada</h3>
+            <p class="card-sub">Quem aparece como coluna na sua agenda.</p>
+          </div>
+        </div>
+        <div class="colaboradores-lista" id="colaboradores-lista"></div>
+      </div>
+    </div>
+  </div>
 
-              <div class="admin-card">
-                <h3 style="margin-top: 0">Serviços Cadastrados</h3>
-                <div id="servicos-lista"></div>
-              </div>
-            </div>
+  <!-- ===== SERVIÇOS: só o dono cadastra (nome, valor fixo e duração) ===== -->
+  <div class="grupo-admin">
+    <div class="grupo-cab">
+      <span class="grupo-icone">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>
+      </span>
+      <div>
+        <br>
+        <h2>Serviços</h2>
+        <p>Defina o valor e o tempo de cada serviço. O agendamento usa esses dados.</p>
+      </div>
+    </div>
 
-            <!-- CLIENTES: mesmo formato dos serviços (formulário + lista) -->
-            <h2 style="margin-top: 26px">Clientes</h2>
-            <div class="admin-grid">
-              <div class="admin-card">
-                <div class="admin-card-header">
-                  <h3>Cadastrar Cliente</h3>
-                </div>
-                <form
-                  id="form-cliente-admin"
-                  class="form-agendamento"
-                  novalidate
-                >
-                  <div class="campo">
-                    <label for="cliadm-nome"
-                      >Nome do cliente <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="text"
-                      id="cliadm-nome"
-                      placeholder="Ex: João Pereira"
-                      maxlength="60"
-                      autocomplete="off"
-                    />
-                  </div>
-                  <div class="campo">
-                    <label for="cliadm-telefone"
-                      >Telefone / WhatsApp
-                      <span class="obrigatorio">*</span></label
-                    >
-                    <input
-                      type="tel"
-                      id="cliadm-telefone"
-                      placeholder="(11) 91234-5678"
-                      inputmode="tel"
-                      maxlength="15"
-                      autocomplete="off"
-                    />
-                    <small class="dica-campo"
-                      >Com DDD. Também é usado para o lembrete pelo
-                      WhatsApp.</small
-                    >
-                  </div>
-                  <div class="form-botoes">
-                    <button
-                      type="submit"
-                      class="btn-salvar"
-                      id="btn-salvar-cliente-admin"
-                    >
-                      Salvar Cliente
-                    </button>
-                    <button type="reset" class="btn-cancelar">Limpar</button>
-                  </div>
-                </form>
-              </div>
+    <div class="admin-grid">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Cadastrar Serviço</h3>
+            <p class="card-sub">O valor é fixo e só o dono pode alterar.</p>
+          </div>
+        </div>
+        <form id="form-servico" class="form-agendamento form-2col" novalidate>
+          <div class="campo campo-full">
+            <label for="serv-nome-lista">Nome do serviço <span class="obrigatorio">*</span></label>
+            <!-- As opções são colocadas pelo agenda.js (SERVICOS_PADRAO) -->
+            <select id="serv-nome-lista">
+              <option value="">Selecione o serviço...</option>
+              <option value="__outros__">Outros</option>
+            </select>
+            <input
+              type="text"
+              id="serv-nome"
+              placeholder="Digite o nome do serviço"
+              maxlength="60"
+              autocomplete="off"
+              hidden
+            />
+          </div>
 
-              <div class="admin-card">
-                <h3 style="margin-top: 0">Clientes Cadastrados</h3>
-                <div id="clientes-lista"></div>
-              </div>
-            </div>
+          <div class="campo">
+            <label for="serv-valor">Valor (R$) <span class="obrigatorio">*</span></label>
+            <input
+              type="number"
+              id="serv-valor"
+              placeholder="Ex: 45,00"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+            />
+          </div>
 
-            <!-- Elemento oculto: o script.js ainda escreve nele (renderizarContratos).
-             Se ele não existir, o script dá erro e a agenda não carrega. -->
-            <table hidden aria-hidden="true">
-              <tbody id="contratos-lista"></tbody>
-            </table>
-          </section>
+          <div class="campo">
+            <label for="serv-duracao">Duração (minutos) <span class="obrigatorio">*</span></label>
+            <!-- As opções de tempo são colocadas pelo agenda.js -->
+            <select id="serv-duracao">
+              <option value="">Selecione a duração...</option>
+            </select>
+          </div>
+
+          <div class="form-botoes">
+            <button type="reset" class="btn-cancelar">Limpar</button>
+            <button type="submit" class="btn-salvar" id="btn-salvar-servico">Salvar Serviço</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Serviços Cadastrados</h3>
+            <p class="card-sub">Use Editar para corrigir valor ou duração.</p>
+          </div>
+        </div>
+        <div id="servicos-lista"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CLIENTES ===== -->
+  <div class="grupo-admin">
+    <div class="grupo-cab">
+      <span class="grupo-icone">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18.5c1-2.4 3.1-3.5 5.5-3.5s4.5 1.1 5.5 3.5"/></svg>
+      </span>
+      <div>
+        <h2>Clientes</h2>
+        <p>Quem você atende. O telefone também serve para o lembrete no WhatsApp.</p>
+      </div>
+    </div>
+
+    <div class="admin-grid">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Cadastrar Cliente</h3>
+            <p class="card-sub">Informe o nome e o telefone com DDD.</p>
+          </div>
+        </div>
+        <form id="form-cliente-admin" class="form-agendamento form-2col" novalidate>
+          <div class="campo">
+            <label for="cliadm-nome">Nome do cliente <span class="obrigatorio">*</span></label>
+            <input
+              type="text"
+              id="cliadm-nome"
+              placeholder="Ex: João Pereira"
+              maxlength="60"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="campo">
+            <label for="cliadm-telefone">Telefone / WhatsApp <span class="obrigatorio">*</span></label>
+            <input
+              type="tel"
+              id="cliadm-telefone"
+              placeholder="(11) 91234-5678"
+              inputmode="tel"
+              maxlength="15"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="form-botoes">
+            <button type="reset" class="btn-cancelar">Limpar</button>
+            <button type="submit" class="btn-salvar" id="btn-salvar-cliente-admin">Salvar Cliente</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3>Clientes Cadastrados</h3>
+            <p class="card-sub">Use Editar para corrigir nome ou telefone.</p>
+          </div>
+        </div>
+        <div id="clientes-lista"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Elemento oculto: o script.js ainda escreve nele (renderizarContratos).
+       Se ele não existir, o script dá erro e a agenda não carrega. -->
+  <table hidden aria-hidden="true">
+    <tbody id="contratos-lista"></tbody>
+  </table>
+</section>
 
           <!-- SUPORTE -->
           <section id="secao-suporte" style="display: none">
