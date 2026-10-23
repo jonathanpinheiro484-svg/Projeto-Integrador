@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gestão Integrada Pro - Painel Central</title>
+    <title>GET TIME - Dashbording</title>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet" />
 
     <!-- Estilos -->
     <link rel="stylesheet" href="css/stylesAgenda.css" />
@@ -42,36 +43,56 @@
     </div>
 
     <div class="layout" id="layout-principal">
-      <!-- SIDEBAR -->
-      <aside class="sidebar" id="sidebar-principal">
-        <div
-          class="logo"
-          id="btn-gestao"
-          title="Ocultar menu lateral"
-          role="button"
-          tabindex="0"
-        >
-          <span class="logo-icone">G</span>
-          <div><strong>Gestão Integrada Pro</strong></div>
-        </div>
-        <nav class="menu">
-          <a class="menu-item ativo" data-menu="Dashboard">Dashboard</a>
-          <a class="menu-item" data-menu="Agenda">Agenda</a>
-          <a class="menu-item" data-menu="Financeiro">
-            <span>Financeiro</span>
-            <span id="tag-lock-fin" style="font-size: 12px" hidden>🔒</span>
-          </a>
-          <a class="menu-item" data-menu="Administracao">Administração</a>
-          <a class="menu-item" data-menu="Suporte">Suporte</a>
-          <a class="menu-item" data-menu="Planos">
-            <span>Planos</span>
-          </a>
-          <a class="menu-item" data-menu="Assinatura">
-            <span>Assinatura</span>
-          </a>
-          <a class="menu-item" id="btn-sair" role="button" tabindex="0">Sair</a>
-        </nav>
-      </aside>
+     <aside class="sidebar" id="sidebar-principal">
+  <div class="logo" id="btn-gestao" title="Ocultar menu lateral" role="button" tabindex="0">
+    <strong>GET<br />TIME</strong>
+  </div>
+
+  <nav class="menu">
+    <a class="menu-item ativo" data-menu="Dashboard">
+      <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+      <span>Dashboard</span>
+    </a>
+
+    <a class="menu-item" data-menu="Agenda">
+      <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>
+      <span>Agenda</span>
+    </a>
+
+    <a class="menu-item" data-menu="Financeiro">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M12 3v18M16.5 7.5C16.5 6 14.5 5 12 5s-4.5 1-4.5 2.8c0 4.2 9 2 9 6.4 0 1.8-2 2.8-4.5 2.8s-4.5-1-4.5-2.5"/></svg>
+      <span>Financeiro</span>
+      <span id="tag-lock-fin" style="font-size: 12px" hidden>🔒</span>
+    </a>
+
+    <a class="menu-item" data-menu="Administracao">
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span>Administração</span>
+    </a>
+
+    <div class="menu-grupo">Conta</div>
+
+    <a class="menu-item" data-menu="Suporte">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/></svg>
+      <span>Suporte</span>
+    </a>
+
+    <a class="menu-item" data-menu="Planos">
+      <svg class="ico" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>
+      <span>Planos</span>
+    </a>
+
+    <a class="menu-item" data-menu="Assinatura">
+      <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
+      <span>Assinatura</span>
+    </a>
+
+    <a class="menu-item menu-item--sair" id="btn-sair" role="button" tabindex="0">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      <span>Sair</span>
+    </a>
+  </nav>
+</aside>
 
       <!-- ÁREA PRINCIPAL -->
       <div class="main">
@@ -240,10 +261,39 @@
             </div>
           </section>
 
-          <!-- AGENDA -->
-          <section id="secao-agenda">
-            <div class="agenda-header">
-              <div class="agenda-titulo-data">
+        <!-- AGENDA -->
+<section id="secao-agenda">
+  
+    <!-- FAIXA DO TOPO (Agora fica presa apenas à tela da agenda) -->
+    <div class="hero-agenda">
+        <div>
+            <p class="hero-eyebrow">PAINEL DE AGENDAMENTOS</p>
+            <h1>Sua Agenda</h1>
+            <p class="hero-resumo">Gerencie seus horários, acompanhe os próximos clientes e mantenha seu dia organizado.</p>
+            
+            <div class="hero-acoes">
+                <button type="button" id="btn-abrir-agendamento" class="btn-verde">
+                    + Novo Agendamento
+                </button>
+                <button type="button" id="btn-abrir-cliente" class="btn-borda">
+                    👤 Cadastrar Cliente
+                </button>
+            </div>
+        </div>
+
+        <div class="hero-proximo">
+            <small>PRÓXIMO CLIENTE</small>
+            <div class="hero-hora" id="hero-proximo-hora">--:--</div>
+            <h3 id="hero-proximo-nome">Nenhum no momento</h3>
+            <p id="hero-proximo-servico">Aguardando novos horários</p>
+            <button type="button" id="btn-ver-detalhes-proximo">Ver Detalhes</button>
+        </div>
+    </div>
+
+    <!-- PAINEL BRANCO DA AGENDA -->
+    <div class="painel-agenda">
+        <div class="agenda-header">
+            <div class="agenda-titulo-data">
                 <h2 id="agenda-data-texto" style="margin: 0">Data:</h2>
                 <input
                   type="date"
@@ -251,9 +301,9 @@
                   class="input-data-seletor"
                   value="2026-09-25"
                 />
-              </div>
+            </div>
 
-              <div class="agenda-controles">
+            <div class="agenda-controles">
                 <div class="paginacao" id="container-paginacao">
                   <button type="button" id="btn-pag-anterior">‹</button>
                   <span id="pag-info">1 de 1</span>
@@ -261,11 +311,7 @@
                 </div>
 
                 <div hidden>
-                  <label
-                    for="seletor-colunas"
-                    style="font-size: 12px; color: var(--muted)"
-                    >Colunas:</label
-                  >
+                  <label for="seletor-colunas" style="font-size: 12px; color: var(--muted)">Colunas:</label>
                   <select id="seletor-colunas" class="select-colunas"></select>
                 </div>
 
@@ -275,24 +321,14 @@
                     <option value="todos">Procurar colaborador...</option>
                   </select>
                 </div>
-
-                <button type="button" id="btn-abrir-cliente">
-                  👤 Cadastrar Cliente
-                </button>
-                <button
-                  type="button"
-                  id="btn-abrir-agendamento"
-                  class="btn-novo-agendamento"
-                >
-                  + Novo Agendamento
-                </button>
-              </div>
             </div>
+        </div>
 
-            <div class="agenda-wrap">
-              <div class="agenda" id="agenda"></div>
-            </div>
-          </section>
+        <div class="agenda-wrap">
+            <div class="agenda" id="agenda"></div>
+        </div>
+    </div>
+</section>
 
           <!-- ADMINISTRATIVO -->
           <section id="secao-administrativo">
