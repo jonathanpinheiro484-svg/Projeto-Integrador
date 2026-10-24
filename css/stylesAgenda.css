@@ -1313,7 +1313,6 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
 
 
 /* =====================================================================
-<<<<<<< HEAD
    VISUAL DA AGENDA APLICADO NAS OUTRAS TELAS
    Financeiro, Planos e cards antigos da Assinatura.
    (Suporte, Agenda e Administrativo não foram alterados.)
@@ -1582,7 +1581,7 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
 #secao-planos .plano-premium ul { color: #fff; }
 #secao-planos .plano-premium li.ok::before { background: rgba(0, 200, 120, .22); color: var(--primaria); }
 #secao-planos .plano-premium .btn-selecionar-plano.atual { background: rgba(255, 255, 255, .14); color: #c4d3e6; }
-=======
+/* =====================================================================
    AJUSTES: ALINHAMENTO + MODO ESCURO
    Colar no FINAL do stylesAgenda.css (depois do dashboard-repaginado.css).
    ===================================================================== */
@@ -1681,4 +1680,94 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
 #secao-administrativo > .grupo-admin:first-child {
   margin-top: 8px;
 }
->>>>>>> 8017f0c7f6e81f98669b839498d0246803a6ee27
+
+
+/* =====================================================================
+   SEM A BARRA DE CIMA: nome + Modo Noturno agora ficam na sidebar
+   (acrescentar no FINAL do stylesAgenda.css)
+   ===================================================================== */
+.layout { min-height: 100vh; }
+
+/* botão ☰ para reabrir o menu (antes ficava na barra de cima) */
+.btn-mostrar-sidebar {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 60;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  box-shadow: 0 6px 16px rgba(10, 31, 56, 0.25);
+}
+
+/* bloco do usuário dentro da sidebar */
+aside.sidebar .sb-usuario {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 14px 0 6px;
+  padding: 12px;
+  border-top: 1px solid var(--sb-line);
+}
+aside.sidebar .sb-usuario-nome {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 14px;
+}
+aside.sidebar .sb-usuario-nome .ico {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  flex-shrink: 0;
+}
+aside.sidebar .sb-usuario .btn-tema {
+  width: 100%;
+  justify-content: center;
+  padding: 8px 10px;
+  border-radius: 999px;
+}
+
+@media (min-width: 769px) {
+  /* não existe mais a barra de 40px em cima */
+  aside.sidebar { height: calc(100vh - 32px); }
+  aside.sidebar .sb-usuario { margin-top: auto; }
+  aside.sidebar nav.menu a.menu-item.menu-item--sair { margin-top: 0; }
+}
+
+@media (max-width: 768px) {
+  aside.sidebar .sb-usuario {
+    flex-direction: row;
+    align-items: center;
+    margin: 0;
+    padding: 0 8px;
+    border-top: 0;
+    flex-shrink: 0;
+  }
+  aside.sidebar .sb-usuario .btn-tema { width: auto; white-space: nowrap; }
+}
+
+
+/* ===== ALINHAMENTO DO TOPO: faixa azul de TODAS as telas começa na mesma linha da sidebar (16px) ===== */
+.conteudo { padding-top: 16px; }
+.sup-pagina { height: calc(100vh - 52px); } /* antes 92px, descontava a barra de 40px que saiu */
+@media (max-width: 768px) {
+  .conteudo { padding-top: 16px; }
+}
+
+
+/* ===== ADMINISTRATIVO: faixa azul no mesmo topo da sidebar e com respiro antes de "Equipe" ===== */
+#secao-administrativo:has(> .hero-adm:not([hidden])) { margin-top: 0; padding-top: 0; }
+.hero-adm { margin-bottom: 40px; }
+
+/* Status do agendamento (lista no modal "Detalhes do agendamento") */
+.select-status-agendamento { border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px; font-size: 13px; font-weight: 700; font-family: inherit; color: var(--texto); background: var(--input-bg); cursor: pointer; }
+.select-status-agendamento option { color: var(--texto); background: var(--card); font-weight: 400; }
+.select-status-agendamento:disabled { opacity: .6; cursor: wait; }
+.boleto-linha:has(.select-status-agendamento) { align-items: center; }
+.select-status-agendamento[data-status="Concluido"] { border-color: var(--primaria); color: var(--primaria); }
+.select-status-agendamento[data-status="Cancelado"] { border-color: #e74c3c; color: #e74c3c; }
+.select-status-agendamento[data-status="Remarcado"] { border-color: #f7b032; color: #c98a0a; }

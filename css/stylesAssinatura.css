@@ -1,0 +1,402 @@
+/* ==========================================================================
+   stylesAssinatura.css  —  tela de pagamento / assinatura (GET TIME)
+   Mesmo visual da agenda: faixa azul-marinho, cartões arredondados,
+   botões em pílula verde e campos azul-claro.
+
+   Como usar no assinatura.html:
+   1) apagar o bloco <style> ... </style> inteiro
+   2) colocar no <head>:
+        <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="css/stylesAssinatura.css" />
+   Nenhum id/classe usado pelo assinatura.js foi alterado.
+   ========================================================================== */
+
+:root {
+  --navy: #0a1f38;
+  --navy-2: #0d2a47;
+  --primaria: #00c878;
+  --primaria-hover: #00ad68;
+  --on-primaria: #0a1f38;
+  --destaque: #2a75e0;
+
+  --bg: #f3f6fb;
+  --card: #ffffff;
+  --border: #dbe5f2;
+  --texto: #0a1f38;
+  --muted: #64748b;
+  --input-bg: #eaf1fc;
+  --sombra: 0 14px 34px rgba(10, 31, 56, 0.08);
+
+  --erro: #d92d4a;
+  --ok: #059669;
+
+  /* nomes antigos: o assinatura.js usa --roxo e --roxo-claro nos spinners */
+  --roxo: var(--destaque);
+  --roxo-claro: rgba(42, 117, 224, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #081a30;
+    --card: #0d2540;
+    --border: #1b3a5c;
+    --texto: #eef4fb;
+    --muted: #9fb3cc;
+    --input-bg: #12304f;
+    --sombra: 0 14px 34px rgba(0, 0, 0, 0.35);
+    --erro: #ff8a9b;
+    --ok: #34d399;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--bg);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* ---------- Barra do topo (estilo da sidebar) ---------- */
+.topo {
+  max-width: 1120px;
+  margin: 16px auto 0;
+  width: calc(100% - 32px);
+  padding: 14px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #fff;
+  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%);
+  border-radius: 22px;
+  box-shadow: 0 18px 40px rgba(10, 31, 56, 0.22);
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+.logo-icone {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--primaria);
+  color: var(--on-primaria);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+.link-voltar {
+  color: #c9d6e6;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+.link-voltar:hover { color: var(--on-primaria); background: var(--primaria); border-color: var(--primaria); }
+
+/* ---------- Página ---------- */
+.pagina { max-width: 1120px; margin: 0 auto; padding: 16px 16px 60px; }
+
+h1 { font-size: 26px; margin: 0 0 4px; }
+.sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
+h2 { font-size: 17px; font-weight: 800; margin: 0 0 14px; color: var(--texto); }
+
+/* ---------- Faixa azul-marinho (igual à da agenda) ---------- */
+.hero-assinatura {
+  position: relative;
+  overflow: hidden;
+  padding: 38px 42px 96px;
+  border-radius: 24px 24px 24px 72px;
+  color: #fff;
+  background:
+    radial-gradient(520px 260px at 92% 15%, rgba(42, 117, 224, 0.45), transparent 70%),
+    radial-gradient(380px 220px at 78% 105%, rgba(0, 200, 120, 0.22), transparent 70%),
+    linear-gradient(135deg, #081d36, #0d2a47);
+}
+.hero-assinatura::after {
+  content: "";
+  position: absolute;
+  right: 56px;
+  top: 50%;
+  width: 180px;
+  height: 180px;
+  transform: translateY(-50%) rotate(-6deg);
+  opacity: 0.12;
+  pointer-events: none;
+  background: no-repeat center / contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='5' width='20' height='14' rx='2.5'/%3E%3Cpath d='M2 10h20M6 15h4'/%3E%3C/svg%3E");
+}
+.ass-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #6db3ff;
+}
+.hero-assinatura h1 {
+  position: relative;
+  z-index: 1;
+  margin: 8px 0 10px;
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 42px);
+  line-height: 1.1;
+  color: #fff;
+}
+.hero-assinatura .sub {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #c4d3e6;
+}
+
+/* ---------- Layout: formulário + resumo (sobe sobre a faixa) ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+#form-assinatura.layout { margin-top: -64px; position: relative; z-index: 1; }
+
+.bloco {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 24px 26px;
+  margin-bottom: 18px;
+  box-shadow: var(--sombra);
+}
+
+/* ---------- Formulário ---------- */
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.campo { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; min-width: 0; }
+.campo.largo { grid-column: 1 / -1; }
+.campo label { color: var(--texto); }
+
+.campo input,
+.campo select {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: inherit;
+  background: var(--input-bg);
+  color: var(--texto);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.campo input::placeholder { color: var(--muted); opacity: 0.8; }
+.campo input:focus,
+.campo select:focus {
+  outline: none;
+  border-color: var(--destaque);
+  box-shadow: 0 0 0 3px rgba(42, 117, 224, 0.18);
+}
+/* dados vindos do cadastro (não editáveis) */
+.campo input[readonly] { background: var(--bg); color: var(--muted); cursor: not-allowed; border-color: var(--border); }
+
+/* ---------- Forma de pagamento ---------- */
+.metodos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.metodo {
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  transition: all 0.2s ease;
+}
+.metodo:hover { border-color: var(--destaque); }
+.metodo input { accent-color: var(--primaria); width: 17px; height: 17px; margin: 0; }
+.metodo.sel { border-color: var(--primaria); background: rgba(0, 200, 120, 0.1); }
+
+.pix-caixa {
+  border: 1.5px dashed var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+  background: var(--bg);
+}
+.pix-caixa strong { color: var(--texto); }
+.pix-codigo { display: flex; gap: 8px; margin-top: 10px; }
+.pix-codigo input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: var(--input-bg);
+  color: var(--texto);
+}
+
+/* QR Code do Pix e boleto */
+.pix-qr { display: flex; justify-content: center; margin: 14px 0 4px; }
+.pix-qr svg { width: 180px; height: 180px; border-radius: 16px; border: 1px solid var(--border); background: #fff; padding: 6px; }
+.pix-qr:empty { display: none; }
+.pix-dica { text-align: center; font-size: 12px; margin: 8px 0 0; color: var(--muted); }
+.boleto-barras { margin: 14px 0 4px; background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+.boleto-barras svg { display: block; width: 100%; height: 60px; }
+
+/* ---------- Cartões salvos ---------- */
+.cartoes-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; font-size: 14px; font-weight: 700; }
+.lista-cartoes { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.lista-cartoes:empty { display: none; }
+.cartao-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--card);
+  transition: all 0.2s ease;
+}
+.cartao-item:hover { border-color: var(--destaque); }
+.cartao-item input { accent-color: var(--primaria); }
+.cartao-item.sel { border-color: var(--primaria); background: rgba(0, 200, 120, 0.1); }
+.cartao-info { flex: 1; min-width: 0; }
+.cartao-info small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; margin-top: 2px; }
+.cartao-vazio { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.form-cartao { border: 1.5px dashed var(--border); border-radius: 16px; padding: 18px; margin-bottom: 14px; background: var(--bg); }
+.campo .erro, .form-cartao .erro { grid-column: 1 / -1; margin: 0; }
+.linha-botoes { grid-column: 1 / -1; display: flex; gap: 10px; }
+
+/* ---------- Botões (pílula, igual ao Novo Agendamento) ---------- */
+.btn {
+  display: block;
+  width: 100%;
+  background: var(--primaria);
+  color: var(--on-primaria);
+  border: 1px solid var(--primaria);
+  border-radius: 999px;
+  padding: 14px 20px;
+  font-size: 15px;
+  font-weight: 800;
+  font-family: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+.btn:hover { background: var(--primaria-hover); box-shadow: 0 8px 20px rgba(0, 200, 120, 0.28); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.6; cursor: wait; box-shadow: none; }
+
+.btn-sec {
+  background: transparent;
+  border: 1.5px solid var(--border);
+  color: var(--texto);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+.btn-sec:hover { border-color: var(--destaque); color: var(--destaque); }
+
+.btn-mini {
+  background: var(--primaria);
+  color: var(--on-primaria);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+.btn-mini:hover { background: var(--primaria-hover); }
+
+/* ---------- Linhas (cartões claros: sucesso, boleto) ---------- */
+.linha { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.linha span:first-child { color: var(--muted); }
+.linha span:last-child { font-weight: 700; text-align: right; }
+.linha.total { font-size: 18px; font-weight: 800; border-bottom: none; padding-top: 14px; }
+.linha.total span:first-child { color: var(--texto); }
+.desconto { color: var(--ok); }
+
+.aviso { font-size: 12px; color: var(--muted); margin: 12px 0 0; line-height: 1.5; }
+.erro { color: var(--erro); font-size: 12px; font-weight: 600; margin: 0 0 10px; white-space: pre-line; }
+
+/* ---------- Resumo do pedido: cartão azul-marinho ---------- */
+.resumo {
+  position: sticky;
+  top: 16px;
+  margin-bottom: 0;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    radial-gradient(300px 180px at 100% 0%, rgba(42, 117, 224, 0.4), transparent 70%),
+    linear-gradient(180deg, var(--navy) 0%, var(--navy-2) 100%);
+  box-shadow: 0 18px 40px rgba(10, 31, 56, 0.28);
+}
+.resumo h2 { color: #fff; }
+.resumo .linha { border-bottom-color: rgba(255, 255, 255, 0.1); }
+.resumo .linha span:first-child { color: #9fb3cc; }
+.resumo .linha span:last-child { color: #fff; }
+.resumo .linha.total span:first-child { color: #fff; }
+.resumo .linha.total span:last-child { color: var(--primaria); font-size: 20px; }
+.resumo .desconto { color: var(--primaria) !important; }
+.resumo .aviso { color: #9fb3cc; text-align: center; }
+.resumo .erro { color: #ff9a9a; margin-top: 12px; }
+.resumo .btn { margin-top: 18px; }
+.resumo .btn-sec { color: #fff; border-color: rgba(255, 255, 255, 0.28); }
+.resumo .btn-sec:hover { color: var(--on-primaria); background: #fff; border-color: #fff; }
+
+/* ---------- Tela de sucesso ---------- */
+.sucesso { max-width: 520px; margin: 40px auto; text-align: center; }
+.sucesso .icone { font-size: 48px; }
+.sucesso h1 { font-family: "Archivo Black", Inter, system-ui, sans-serif; font-weight: 400; font-size: 28px; }
+.sucesso .bloco { text-align: left; margin-top: 18px; }
+.sucesso .btn { text-decoration: none; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  #form-assinatura.layout { margin-top: -56px; }
+  .resumo { position: static; }
+  .campos { grid-template-columns: 1fr; }
+  .hero-assinatura { padding: 28px 22px 84px; border-radius: 24px; }
+  .hero-assinatura::after { right: 14px; width: 110px; height: 110px; }
+  .bloco { padding: 20px 18px; }
+}
+@media (max-width: 520px) {
+  .metodos { grid-template-columns: 1fr; }
+  .topo { padding: 12px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn, .btn-sec, .btn-mini, .metodo, .cartao-item, .campo input, .campo select { transition: none; }
+}

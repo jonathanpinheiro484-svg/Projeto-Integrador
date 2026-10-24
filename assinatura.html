@@ -3,136 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gestão Integrada Pro - Assinar plano</title>
+<title>GET TIME - Assinar plano</title>
 
 <!-- O JavaScript desta tela fica no js/script.js (função iniciarAssinatura). -->
 <script defer src="js/assinatura.js"></script>
 
-<style>
-:root {
-  --roxo: #6c5ce7;
-  --roxo-claro: #efeaff;
-  --bg: #f5f6f8;
-  --card: #ffffff;
-  --border: #e2e8f0;
-  --texto: #1f2430;
-  --muted: #64748b;
-  --input-bg: #ffffff;
-  --erro: #e11d48;
-  --ok: #059669;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --roxo-claro: #2d264e;
-    --bg: #121319;
-    --card: #1c1e26;
-    --border: #2d313e;
-    --texto: #f1f3f9;
-    --muted: #9aa1b1;
-    --input-bg: #252833;
-  }
-}
-
-* { box-sizing: border-box; }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--texto); background: var(--bg); }
-:focus-visible { outline: 2px solid var(--roxo); outline-offset: 2px; }
-
-.topo { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
-.logo-icone { width: 32px; height: 32px; border-radius: 8px; background: var(--roxo); color: #fff; display: flex; align-items: center; justify-content: center; }
-.link-voltar { color: var(--muted); font-size: 13px; text-decoration: none; }
-.link-voltar:hover { color: var(--roxo); }
-
-.pagina { max-width: 1040px; margin: 0 auto; padding: 28px 20px 60px; }
-h1 { font-size: 24px; margin: 0 0 4px; }
-.sub { color: var(--muted); font-size: 14px; margin: 0 0 22px; }
-h2 { font-size: 15px; margin: 0 0 12px; }
-
-.layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
-.bloco { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
-
-
-
-/* formulário */
-.campos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.campo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-.campo.largo { grid-column: 1 / -1; }
-.campo input { border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px; font-size: 14px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
-.campo input:focus { border-color: var(--roxo); outline: none; }
-
-.metodos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
-.metodo { border: 2px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.metodo input { accent-color: var(--roxo); }
-.metodo.sel { border-color: var(--roxo); background: var(--roxo-claro); }
-.pix-caixa { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; font-size: 13px; color: var(--muted); }
-.pix-codigo { display: flex; gap: 8px; margin-top: 10px; }
-.pix-codigo input { flex: 1; min-width: 0; border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; background: var(--input-bg); color: var(--texto); }
-
-.btn { background: var(--roxo); color: #fff; border: none; border-radius: 8px; padding: 12px 16px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; font-family: inherit; }
-.btn:disabled { opacity: .6; cursor: wait; }
-.btn-sec { background: none; border: 1px solid var(--border); color: var(--texto); border-radius: 7px; padding: 8px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
-
-/* resumo */
-.resumo { position: sticky; top: 16px; margin-bottom: 0; }
-.linha { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; padding: 7px 0; border-bottom: 1px solid var(--border); }
-.linha span:first-child { color: var(--muted); }
-.linha.total { font-size: 17px; font-weight: 800; border-bottom: none; padding-top: 12px; }
-.linha.total span:first-child { color: var(--texto); }
-.desconto { color: var(--ok); }
-.aviso { font-size: 11px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
-.erro { color: var(--erro); font-size: 12px; margin: 0 0 10px; white-space: pre-line; }
-.erro[hidden] { display: none; }
-
-/* Boleto */
-.boleto-barras { margin: 14px 0 4px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
-.boleto-barras svg { display: block; width: 100%; height: 60px; }
-
-/* QR Code do Pix */
-.pix-qr { display: flex; justify-content: center; margin: 14px 0 4px; }
-.pix-qr svg { width: 180px; height: 180px; border-radius: 8px; border: 1px solid var(--border); background: #fff; }
-.pix-qr:empty { display: none; }
-.pix-dica { text-align: center; font-size: 12px; margin: 6px 0 0; }
-
-/* dados da conta (vindos do cadastro, não editáveis) */
-.campo input[readonly] { background: var(--bg); color: var(--muted); cursor: not-allowed; }
-.campo select { border: 1px solid var(--border); border-radius: 7px; padding: 9px 10px; font-size: 14px; font-family: inherit; background: var(--input-bg); color: var(--texto); }
-.campo select:focus { border-color: var(--roxo); outline: none; }
-
-/* cartões salvos */
-.cartoes-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; font-size: 13px; font-weight: 600; }
-.lista-cartoes { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
-.lista-cartoes:empty { display: none; }
-.cartao-item { display: flex; align-items: center; gap: 10px; border: 2px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
-.cartao-item input { accent-color: var(--roxo); }
-.cartao-item.sel { border-color: var(--roxo); background: var(--roxo-claro); }
-.cartao-info { flex: 1; min-width: 0; }
-.cartao-info small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; margin-top: 2px; }
-.cartao-vazio { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
-.form-cartao { border: 1px dashed var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
-.campo .erro, .form-cartao .erro { grid-column: 1 / -1; margin: 0; }
-.linha-botoes { grid-column: 1 / -1; display: flex; gap: 8px; }
-.btn-mini { background: var(--roxo); color: #fff; border: none; border-radius: 7px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
-
-/* sucesso */
-.sucesso { max-width: 480px; margin: 40px auto; text-align: center; }
-.sucesso .icone { font-size: 44px; }
-.sucesso .bloco { text-align: left; margin-top: 18px; }
-[hidden] { display: none !important; }
-
-@media (max-width: 520px) {
-  .metodos { grid-template-columns: 1fr; }
-}
-@media (max-width: 860px) {
-  .layout { grid-template-columns: 1fr; }
-  .resumo { position: static; }
-  .campos { grid-template-columns: 1fr; }
-}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/stylesAssinatura.css" />
 </head>
 <body>
 
 <header class="topo">
-  <div class="logo"><span class="logo-icone">G</span> Gestão Integrada Pro</div>
+  <div class="logo"><span class="logo-icone">G</span> GET TIME</div>
   <a class="link-voltar" id="link-voltar" href="cadastro.html?modo=entrar">Voltar ao login</a>
 </header>
 
@@ -140,8 +22,11 @@ h2 { font-size: 15px; margin: 0 0 12px; }
 
   <!-- ETAPA 1: ESCOLHER, PREENCHER E PAGAR -->
   <div id="etapa-checkout">
-    <h1 id="titulo-pagina">Assine o seu plano</h1>
-    <p class="sub" id="sub-pagina">Informe seus dados e finalize. Você pode trocar de plano depois.</p>
+    <div class="hero-assinatura">
+      <p class="ass-eyebrow">PAGAMENTO SEGURO</p>
+      <h1 id="titulo-pagina">Assine o seu plano</h1>
+      <p class="sub" id="sub-pagina">Informe seus dados e finalize. Você pode trocar de plano depois.</p>
+    </div>
 
     <form id="form-assinatura" class="layout" novalidate>
       <div>

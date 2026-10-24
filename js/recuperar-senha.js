@@ -104,6 +104,30 @@ document.addEventListener("DOMContentLoaded", function () {
     return padrao;
   }
 
+  // Tempo de espera para pedir um novo código (em segundos)
+  const REENVIO_SEGUNDOS = 50;
+  let timerReenvio = null;
+
+  // Bloqueia o botão "Reenviar código" por 50 segundos, mostrando a contagem no próprio botão
+  function iniciarTempoReenvio() {
+    const botao = document.getElementById("reenviar-codigo");
+    if (!botao) return;
+    clearInterval(timerReenvio);
+    let restante = REENVIO_SEGUNDOS;
+    botao.disabled = true;
+    botao.textContent = `Reenviar código (${restante}s)`;
+    timerReenvio = setInterval(function () {
+      restante--;
+      if (restante <= 0) {
+        clearInterval(timerReenvio);
+        botao.disabled = false;
+        botao.textContent = "Reenviar código";
+        return;
+      }
+      botao.textContent = `Reenviar código (${restante}s)`;
+    }, 1000);
+  }
+
   // A mensagem de erro some assim que a pessoa volta a digitar
   formEmail.addEventListener("input", function () { limparMsg("msg-email"); });
   formCodigo.addEventListener("input", function () { limparMsg("msg-codigo"); });
@@ -146,6 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     document.getElementById("email-destino").textContent = emailRecuperacao;
     mostrarEtapa(formCodigo);
+    iniciarTempoReenvio();
     campoCodigo.focus();
   });
 
@@ -203,7 +228,7 @@ document.addEventListener("DOMContentLoaded", function () {
         btnReenviar.disabled = false;
         return;
       }
-      btnReenviar.disabled = false;
+      iniciarTempoReenvio();
 
       mostrarMsg("msg-codigo", "Enviamos um novo código para o seu e-mail.", "ok", campoCodigo);
     });

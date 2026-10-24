@@ -18,7 +18,7 @@ const API_CONFIG = {
   ENDPOINTS: {
     LOGIN: "/Login",
     CADASTRO: "/Cadastro",
-    // Recuperar senha (a API ainda precisa criar estas 3 rotas)
+    // Recuperar senha (rotas criadas pelo Gabriel; precisam da tabela tblRecuperacaoSenha no banco)
     RECUPERAR_SENHA: "/RecuperarSenha",       // { email } -> envia o código por e-mail
     VERIFICAR_CODIGO: "/VerificarCodigo",     // { email, codigo } -> confere o código
     REDEFINIR_SENHA: "/RedefinirSenha",       // { email, codigo, novaSenha } -> grava a nova senha
@@ -139,6 +139,76 @@ async function criarAgendamentoApi(corpo) {
 // Erros: use mensagemErroApiComum(erro) para mostrar na tela (400 = dado inválido, com a mensagem da API).
 async function editarAgendamentoApi(id, corpo) {
   await apiRequest("AGENDAMENTOS", { method: "PUT", body: corpo }, "/" + id);
+}
+
+// Número do status HTTP que está dentro do erro do apiRequest (0 = a requisição nem chegou na API)
+function statusHttpDoErro(erro) {
+  const m = String((erro && erro.message) || "").match(/Erro na API \((\d+)\)/);
+  return m ? Number(m[1]) : 0;
+}
+
+// Muda só o status do agendamento: PATCH /Agendamentos/{id}/status  { status }
+// status: "Agendado" | "Remarcado" | "Cancelado" | "Concluido" (sem acento).
+// Se a rota ainda não existir (404/405) e vier o corpo completo, cai no PUT /Agendamentos/{id} como antes.
+async function atualizarStatusAgendamentoApi(id, status, corpoCompletoParaPut) {
+  try {
+    await apiRequest("AGENDAMENTOS", { method: "PATCH", body: { status } }, "/" + id + "/status");
+  } catch (erro) {
+    const s = statusHttpDoErro(erro);
+    if ((s === 404 || s === 405) && corpoCompletoParaPut) {
+      await editarAgendamentoApi(id, corpoCompletoParaPut);
+      return;
+    }
+    throw erro;
+  }
+}
+
+// Ativa/desativa colaborador: PATCH /Colaboradores/{id}  (só o dono). Manda "ativo" e "status" (1/0).
+async function atualizarStatusColaboradorApi(id, ativo) {
+  await apiRequest("COLABORADORES", { method: "PATCH", body: { ativo: !!ativo, status: ativo ? 1 : 0 } }, "/" + id);
+}
+
+// --- PLANO DO DONO: GET /Plano, PUT /Plano { plano }, DELETE /Plano ---
+// Devolve "FREE", "BASICO", "PREMIUM" ou "" (não reconheceu).
+function normalizarPlanoApi(valor) {
+  let v = valor;
+  if (v && typeof v === "object") v = v.plano ?? v.Plano ?? v.nomePlano ?? v.NomePlano ?? v.tipoPlano ?? v.TipoPlano ?? v.nome ?? v.Nome ?? "";
+  const t = String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  if (!t) return "";
+  if (t.includes("PREMIUM") || t === "PRO" || t.includes("PROFISSIONAL") || t.includes("COMPLETO")) return "PREMIUM";
+  if (t.includes("BASIC")) return "BASICO";
+  if (t.includes("FREE") || t.includes("GRATIS") || t.includes("GRATUITO")) return "FREE";
+  return "";
+}
+async function obterPlanoApi() {
+  return normalizarPlanoApi(await apiRequest("PLANO"));
+}
+async function alterarPlanoApi(plano) {
+  await apiRequest("PLANO", { method: "PUT", body: { plano } });
+}
+async function cancelarPlanoApi() {
+  await apiRequest("PLANO", { method: "DELETE" });
+}
+
+// --- RECUPERAR SENHA ("esqueci a senha") em 3 passos ---
+// A pessoa ainda não está logada, então estas chamadas não dependem do token.
+// Erros: o apiRequest lança "Erro na API (STATUS) ..."; use mensagemErroApiComum(erro, "mensagem padrão")
+// para mostrar na tela (400 = dado inválido/código errado, com a mensagem da API; 404 = rota ainda não existe;
+// 500 = costuma ser a tabela tblRecuperacaoSenha que ainda não foi criada no banco).
+
+// Passo 1: POST /RecuperarSenha { email } -> a API envia o código por e-mail.
+async function recuperarSenhaApi(email) {
+  await apiRequest("RECUPERAR_SENHA", { method: "POST", body: { email } });
+}
+
+// Passo 2: POST /VerificarCodigo { email, codigo } -> confere o código digitado. Dá erro (400) se estiver errado/expirado.
+async function verificarCodigoApi(email, codigo) {
+  await apiRequest("VERIFICAR_CODIGO", { method: "POST", body: { email, codigo } });
+}
+
+// Passo 3: POST /RedefinirSenha { email, codigo, novaSenha } -> grava a nova senha (a API guarda o hash).
+async function redefinirSenhaApi(email, codigo, novaSenha) {
+  await apiRequest("REDEFINIR_SENHA", { method: "POST", body: { email, codigo, novaSenha } });
 }
 
 // --- LOGIN DE COLABORADORES (simulação no front até o backend PHP existir) ---
@@ -305,7 +375,7 @@ const COLAB_SENHA_MAX = 20;
 const AGEND_CLIENTE_MIN = 3, AGEND_CLIENTE_MAX = 60;
 const AGEND_SERVICO_MIN = 3, AGEND_SERVICO_MAX = 60;
 const AGEND_HORA_MIN = 7 * 60;          // 07:00
-const AGEND_HORA_MAX = 14 * 60 + 45;    // 14:45
+const AGEND_HORA_MAX = 18 * 60 + 45;    // 18:45 (a grade da agenda vai das 07h às 19h)
 const AGEND_DURACAO_MIN = 15, AGEND_DURACAO_MAX = 240;
 
 // Nome completo sem abreviar: cada palavra começa com maiúscula e tem 2+ letras
@@ -502,14 +572,14 @@ function validarNovoAgendamento() {
     coletor.falhar("Não é possível agendar em uma data que já passou. Escolha uma data de hoje em diante.", "agend-data");
   }
 
-  // Hora de início: obrigatória, entre 07:00 e 14:45, de 15 em 15 minutos
+  // Hora de início: obrigatória, entre 07:00 e 18:45, de 15 em 15 minutos
   if (!campoHora.value) {
     coletor.falhar("Informe a hora de início.", "agend-hora-inicio");
   } else {
     const [h, m] = campoHora.value.split(":").map(Number);
     const minutos = h * 60 + m;
     if (minutos < AGEND_HORA_MIN || minutos > AGEND_HORA_MAX) {
-      coletor.falhar("A hora de início deve ser entre 07:00 e 14:45 (a agenda funciona das 07h às 15h).", "agend-hora-inicio");
+      coletor.falhar("A hora de início deve ser entre 07:00 e 18:45 (a agenda funciona das 07h às 19h).", "agend-hora-inicio");
     } else if (m % 15 !== 0) {
       coletor.falhar("A hora de início deve ser de 15 em 15 minutos (ex: 08:00, 08:15, 08:30).", "agend-hora-inicio");
     }

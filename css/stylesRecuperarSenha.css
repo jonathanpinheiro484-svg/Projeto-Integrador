@@ -1,0 +1,288 @@
+/* =====================================================
+   RECUPERAR SENHA — recuperar-senha.html
+   Mesmo tema da Agenda: fundo azul-marinho, painel branco,
+   botão verde e cantos bem arredondados.
+   Os ids e classes do HTML/JS não mudam (etapa, ativa, msg, erro, ok...).
+   ===================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap");
+
+:root {
+  --rec-marinho-escuro: #06152b;
+  --rec-marinho: #0a2540;
+  --rec-marinho-claro: #0d3a63;
+  --rec-verde: #12d686;
+  --rec-verde-hover: #0fbf76;
+  --rec-texto: #0b1f3a;
+  --rec-texto-suave: #5b6b82;
+  --rec-borda: #dbe4ef;
+  --rec-fundo-campo: #f3f7fc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--rec-texto);
+  background: var(--rec-marinho-escuro);
+}
+
+/* ---------- Fundo (igual ao cabeçalho da Agenda) ---------- */
+.pagina-recuperar {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(0, 170, 255, 0.22), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(18, 214, 134, 0.14), transparent 40%),
+    linear-gradient(135deg, var(--rec-marinho-escuro) 0%, var(--rec-marinho) 55%, var(--rec-marinho-claro) 100%);
+}
+
+/* ---------- Card branco ---------- */
+.card-recuperar {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  padding: 40px 36px 32px;
+  background: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+}
+
+/* Logo "GET TIME" no topo do card */
+.card-recuperar::before {
+  content: "GET\A TIME";
+  display: block;
+  white-space: pre;
+  margin-bottom: 26px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rec-borda);
+  font-family: "Archivo Black", "Inter", sans-serif;
+  font-size: 22px;
+  line-height: 1.05;
+  letter-spacing: 0.5px;
+  color: var(--rec-marinho);
+}
+
+/* ---------- Etapas ---------- */
+.etapa {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.etapa.ativa {
+  display: flex;
+  animation: rec-entrada 0.35s ease;
+}
+
+.etapa[hidden] {
+  display: none;
+}
+
+@keyframes rec-entrada {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.etapa h1 {
+  margin: 0;
+  font-family: "Archivo Black", "Inter", sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--rec-marinho);
+}
+
+/* Ícone redondo em cima do título (Font Awesome já é carregado no HTML) */
+.etapa h1::before {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 18px;
+  background: rgba(18, 214, 134, 0.14);
+  color: var(--rec-verde-hover);
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 22px;
+}
+
+#etapa-email h1::before  { content: "\f0e0"; } /* envelope */
+#etapa-codigo h1::before { content: "\f3ed"; } /* escudo */
+#etapa-senha h1::before  { content: "\f023"; } /* cadeado */
+
+.etapa p {
+  margin: 0 0 4px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--rec-texto-suave);
+}
+
+.etapa p strong {
+  color: var(--rec-marinho);
+  word-break: break-all;
+}
+
+/* ---------- Campos ---------- */
+.etapa input {
+  width: 100%;
+  height: 50px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--rec-texto);
+  background: var(--rec-fundo-campo);
+  border: 1.5px solid var(--rec-borda);
+  border-radius: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.etapa input::placeholder {
+  color: #8b9ab0;
+}
+
+.etapa input:focus {
+  background: #ffffff;
+  border-color: var(--rec-verde);
+  box-shadow: 0 0 0 4px rgba(18, 214, 134, 0.18);
+}
+
+/* Campo do código: números grandes e espaçados */
+#rec-codigo {
+  height: 62px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 12px;
+  text-indent: 12px; /* compensa o espaçamento da última letra */
+}
+
+#rec-codigo::placeholder {
+  letter-spacing: 12px;
+  color: #c3cddb;
+}
+
+/* Dica das regras da senha */
+.etapa small {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--rec-texto-suave);
+}
+
+/* ---------- Botões ---------- */
+.etapa button[type="submit"] {
+  height: 52px;
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--rec-marinho-escuro);
+  background: var(--rec-verde);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+
+.etapa button[type="submit"]:hover:not(:disabled) {
+  background: var(--rec-verde-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(18, 214, 134, 0.35);
+}
+
+.etapa button[type="submit"]:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.etapa button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* "Reenviar código" */
+.etapa .link-btn {
+  align-self: center;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--rec-marinho-claro);
+  background: none;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.etapa .link-btn:hover:not(:disabled) {
+  color: var(--rec-verde-hover);
+  background: rgba(18, 214, 134, 0.1);
+}
+
+/* ---------- Mensagens (o JS troca a classe entre "erro" e "ok") ---------- */
+.etapa .msg {
+  display: none;
+}
+
+.etapa .msg.erro,
+.etapa .msg.ok {
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.etapa .msg.erro {
+  background: #fdeeee;
+  border: 1px solid #f6c7c7;
+}
+
+.etapa .msg.ok {
+  background: #e7f9f0;
+  border: 1px solid #b6ecd2;
+}
+
+/* ---------- Voltar para o login ---------- */
+.voltar-login {
+  align-self: center;
+  margin-top: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--rec-texto-suave);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.voltar-login:hover {
+  color: var(--rec-marinho);
+}
+
+/* ---------- Celular ---------- */
+@media (max-width: 480px) {
+  .card-recuperar {
+    padding: 30px 22px 26px;
+    border-radius: 24px;
+  }
+
+  .etapa h1 {
+    font-size: 23px;
+  }
+
+  #rec-codigo {
+    font-size: 24px;
+    letter-spacing: 8px;
+    text-indent: 8px;
+  }
+}

@@ -390,6 +390,11 @@ function iniciarDashboard() {
   // Agendamentos apagados só desta tela: o banco pode continuar com eles, mas eles não voltam quando a agenda recarrega
   const CHAVE_AGENDAMENTOS_OCULTOS = "agendamentosOcultos";
   let agendamentosOcultos = lerJsonLocal(CHAVE_AGENDAMENTOS_OCULTOS, []);
+  // Um agendamento escondido é reconhecido por id + data + hora (não só pelo id), para um agendamento novo
+  // do banco que reaproveite o mesmo id nunca ficar bloqueado por um teste antigo.
+  function assinaturaAgendamento(ag) {
+    return `${ag.id}|${ag.data}|${ag.horaInicio}`;
+  }
   let clientesProntos = Promise.resolve(); // vira a promessa de carregarClientes() na inicialização
 
   // >>> API: contratos próximos do vencimento (começa vazio).
@@ -453,6 +458,42 @@ function iniciarDashboard() {
     return m ? m[1].padStart(2, "0") + ":" + m[2] : "";
   }
 
+  // Status do agendamento: no banco fica "Agendado", "Remarcado", "Cancelado" ou "Concluido" (sem acento).
+  // Aceita maiúsculas/minúsculas e acento; se vier vazio ou desconhecido, devolve "" (a tela mostra "Agendado").
+  function normalizarStatusAgendamento(v) {
+    const t = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (t.startsWith("conclu")) return "Concluido";
+    if (t.startsWith("cancel")) return "Cancelado";
+    if (t.startsWith("remarc")) return "Remarcado";
+    if (t.startsWith("agend")) return "Agendado";
+    return "";
+  }
+
+  // Enquanto a API não devolver o status no GET /Agendamentos, ele fica guardado neste navegador (id -> status).
+  // Quando a API passar a devolver o status, o do banco vale e este daqui é ignorado.
+  const CHAVE_STATUS_AGENDAMENTOS = "statusAgendamentosLocal";
+  function lerStatusLocal() {
+    try {
+      const obj = JSON.parse(localStorage.getItem(CHAVE_STATUS_AGENDAMENTOS) || "{}");
+      return obj && typeof obj === "object" ? obj : {};
+    } catch (_) { return {}; }
+  }
+  function guardarStatusLocal(id, status) {
+    try {
+      const obj = lerStatusLocal();
+      obj[id] = status;
+      localStorage.setItem(CHAVE_STATUS_AGENDAMENTOS, JSON.stringify(obj));
+    } catch (_) { /* sem armazenamento: o status só não fica guardado neste navegador */ }
+  }
+
+  // Status que vale: o do banco. Se o banco só devolve o padrão "Agendado" (ou nada) e existe um status
+  // guardado neste navegador, usa o guardado (a API ainda pode não estar gravando o status no PUT).
+  function resolverStatusAgendamento(statusApi, id) {
+    const guardado = lerStatusLocal()[id] || "";
+    if ((!statusApi || statusApi === "Agendado" || statusApi === "Remarcado") && guardado) return guardado;
+    return statusApi || "";
+  }
+
   function normalizarAgendamentoApi(item) {
     if (!item) return null;
     const id = Number(item.id ?? item.Id ?? item.agendamentoId ?? item.AgendamentoId);
@@ -510,7 +551,8 @@ function iniciarDashboard() {
       duracaoMin: duracaoApi > 0 ? duracaoApi : (cadastrados.reduce((s, sv) => s + (Number(sv.duracaoMin) || 0), 0) || 30),
       cor: item.cor ?? item.Cor ?? "#3d5a80",
       valor: Number.isFinite(valorApi) && valorApi > 0 ? valorApi : cadastrados.reduce((s, sv) => s + (Number(sv.valor) || 0), 0),
-      whatsapp: String(telefoneCliente || "").replace(/\D/g, "")
+      whatsapp: String(telefoneCliente || "").replace(/\D/g, ""),
+      status: resolverStatusAgendamento(normalizarStatusAgendamento(item.status ?? item.Status), id)
     };
   }
 
@@ -530,7 +572,12 @@ function iniciarDashboard() {
         console.warn("A API devolveu agendamentos num formato não reconhecido (veja o primeiro item).", listaAg[0]);
         return false;
       }
-      agendamentos = doBanco.filter(ag => !agendamentosOcultos.includes(ag.id)); // o que vale é o que está no banco (menos os apagados só da tela)
+      // o que vale é o que está no banco (menos os apagados só da tela)
+      agendamentos = doBanco.filter(ag => {
+        const escondido = agendamentosOcultos.includes(assinaturaAgendamento(ag));
+        if (escondido) console.warn("[agenda] agendamento escondido porque foi removido só desta tela:", ag.id);
+        return !escondido;
+      });
       salvarAgendamentosLocal(agendamentos);
       renderizarAgenda();
       return true;
@@ -605,15 +652,39 @@ function iniciarDashboard() {
     if (semPlano) liberarSemPlano();
     planoAtual = novoPlano;
 
-    // >>> API: avisar o backend da troca de plano.
-    // try {
-    //   await apiRequest("PLANO", { method: "PUT", body: { plano: novoPlano } });
-    // } catch (erro) {
-    //   console.warn("Não foi possível atualizar o plano na API.", erro.message);
-    // }
+    // API: PUT /Plano (melhor esforço: se falhar, o plano continua valendo neste navegador)
+    if (API_CONFIG.token) {
+      try {
+        await alterarPlanoApi(novoPlano);
+      } catch (erro) {
+        console.warn("Não foi possível atualizar o plano na API.", erro.message);
+      }
+    }
 
     atualizarPlano();
     mudarAba(abaOrigemPlanos);
+  }
+
+  // Compara o plano daqui com o do banco (GET /Plano), sem nunca rebaixar o plano:
+  // - banco pago e aqui Grátis (ex.: dados do navegador apagados) -> passa a usar o do banco;
+  // - aqui pago (assinatura aprovada) e o banco diferente -> manda o plano daqui para o banco (PUT /Plano).
+  async function sincronizarPlanoComApi() {
+    if (usuarioLogado.perfil !== "DONO" || !API_CONFIG.token || semPlano) return;
+    try {
+      const doBanco = await obterPlanoApi();
+      if (!doBanco) return; // não reconheceu a resposta: não mexe em nada
+      const local = normalizarPlanoApi(planoAtual) || "FREE";
+      if (doBanco === local) return;
+      if (local === "FREE" && (doBanco === "BASICO" || doBanco === "PREMIUM")) {
+        planoAtual = doBanco;
+        atualizarPlano();
+        atualizarWhatsApp();
+      } else if (local !== "FREE") {
+        await alterarPlanoApi(local);
+      }
+    } catch (erro) {
+      console.warn("Não foi possível sincronizar o plano com a API.", erro.message);
+    }
   }
 
   // --- TELA DE ASSINATURA ---
@@ -1057,15 +1128,45 @@ function iniciarDashboard() {
   function chaveHistoricoAgenda() {
     return "historicoAgenda:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
   }
+  // Remarcar o mesmo agendamento várias vezes vira UMA linha só: "de <horário de origem> para <horário atual>",
+  // e ela vai se atualizando. Se ele voltar ao horário de origem, a linha some (no fim não houve alteração).
+  function consolidarRemarcacoes(lista) {
+    const resultado = [];
+    lista.forEach(e => {
+      if (!e || e.tipo !== "remarcou") { resultado.push(e); return; }
+      let i = -1;
+      for (let k = resultado.length - 1; k >= 0; k--) {
+        const x = resultado[k];
+        if (x && x.tipo === "remarcou"
+          && x.cliente === e.cliente && (x.servico || "") === (e.servico || "")
+          && (x.agendamentoId == null || e.agendamentoId == null || x.agendamentoId === e.agendamentoId)
+          && x.dataNova === e.dataOriginal && x.horaNova === e.horaOriginal) { i = k; break; }
+      }
+      if (i === -1) { resultado.push(e); return; }
+      const junto = Object.assign({}, resultado[i], {
+        dataNova: e.dataNova,
+        horaNova: e.horaNova,
+        quando: e.quando,
+        colaboradorNome: e.colaboradorNome || resultado[i].colaboradorNome,
+        agendamentoId: e.agendamentoId != null ? e.agendamentoId : resultado[i].agendamentoId
+      });
+      if (junto.dataOriginal === junto.dataNova && junto.horaOriginal === junto.horaNova) {
+        resultado.splice(i, 1); // voltou ao horário de origem
+      } else {
+        resultado[i] = junto;
+      }
+    });
+    return resultado;
+  }
   function lerHistoricoAgenda() {
     const lista = lerJsonLocal(chaveHistoricoAgenda(), []);
-    return Array.isArray(lista) ? lista : [];
+    return Array.isArray(lista) ? consolidarRemarcacoes(lista) : [];
   }
   function registrarHistoricoAgenda(evento) {
     try {
       const lista = lerHistoricoAgenda();
       lista.push(Object.assign({}, evento, { quando: new Date().toISOString() }));
-      localStorage.setItem(chaveHistoricoAgenda(), JSON.stringify(lista));
+      localStorage.setItem(chaveHistoricoAgenda(), JSON.stringify(consolidarRemarcacoes(lista)));
     } catch (e) { /* sem armazenamento: a agenda continua funcionando */ }
   }
 
@@ -1078,7 +1179,22 @@ function iniciarDashboard() {
     const br = iso => iso ? iso.split("-").reverse().join("/") : "";
 
     const [ini, fim] = limites[modoVisualizacao];
-    const eventos = lerHistoricoAgenda().filter(e => e.dataOriginal >= ini && e.dataOriginal <= fim);
+    // O quadro segue o STATUS ATUAL de cada agendamento:
+    // - "remarcou" só conta enquanto o agendamento ainda está Remarcado (se virou Concluído/Cancelado, sai);
+    // - todo agendamento Cancelado conta como "desmarcou" (se voltar a outro status, deixa de contar).
+    const achaAg = id => (id == null ? null : agendamentos.find(a => a.id === id) || null);
+    let eventos = lerHistoricoAgenda().filter(e => e.dataOriginal >= ini && e.dataOriginal <= fim).filter(e => {
+      const a = achaAg(e.agendamentoId);
+      if (e.tipo === "remarcou" && a && a.status !== "Remarcado") return false;
+      if (e.tipo === "desmarcou" && e.agendamentoId != null && a && a.status !== "Cancelado") return false;
+      return true;
+    });
+    agendamentos.filter(a => a.status === "Cancelado" && a.data >= ini && a.data <= fim).forEach(a => {
+      if (eventos.some(e => e.tipo === "desmarcou" && e.agendamentoId === a.id)) return;
+      const colab = colaboradores.find(c => c.id === a.colaboradorId);
+      eventos.push({ tipo: "desmarcou", agendamentoId: a.id, cliente: a.cliente, servico: a.servico || "",
+        colaboradorNome: colab ? colab.nome : "", dataOriginal: a.data, horaOriginal: a.horaInicio, quando: "" });
+    });
     const desmarcados = eventos.filter(e => e.tipo === "desmarcou").length;
     const remarcados = eventos.filter(e => e.tipo === "remarcou").length;
 
@@ -1126,6 +1242,38 @@ function iniciarDashboard() {
     }).join("");
   }
 
+  // Financeiro: lista dos agendamentos CONCLUÍDOS no período escolhido (Dia/Semana/Mês)
+  function renderizarConcluidos(limites) {
+    let caixa = document.getElementById("financeiro-concluidos");
+    if (!caixa) {
+      const tabela = document.getElementById("tabela-financeiro");
+      if (!tabela) return;
+      caixa = document.createElement("div");
+      caixa.id = "financeiro-concluidos";
+      caixa.className = "so-financeiro";
+      caixa.style.cssText = "margin-top:16px;";
+      const alvo = tabela.closest(".so-financeiro") || tabela;
+      alvo.insertAdjacentElement("afterend", caixa);
+    }
+    caixa.hidden = abaAtiva !== "Financeiro";
+    const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    const [ini, fim] = limites[modoVisualizacao];
+    const lista = agendamentos
+      .filter(a => a.status === "Concluido" && a.data >= ini && a.data <= fim)
+      .sort((a, b) => (a.data + a.horaInicio).localeCompare(b.data + b.horaInicio));
+    const total = lista.reduce((soma, a) => soma + (Number(a.valor) || 0), 0);
+    const titulo = `<h4 style="margin:0 0 8px;">Agendamentos concluídos (${modoVisualizacao}) · ${lista.length} · ${formatarMoeda(total)}</h4>`;
+    if (!lista.length) {
+      caixa.innerHTML = titulo + `<p class="grafico-colab-vazio">Nenhum agendamento concluído neste período.</p>`;
+      return;
+    }
+    const linhas = lista.map(a => {
+      const colab = comDono(colaboradores).find(c => c.id === a.colaboradorId);
+      return `<tr><td>${esc(a.cliente)}</td><td>${esc(a.servico || "—")}</td><td>${esc(colab ? colab.nome : "—")}</td><td>${dataBR(a.data)} ${esc(a.horaInicio)}</td><td>${formatarMoeda(Number(a.valor) || 0)}</td></tr>`;
+    }).join("");
+    caixa.innerHTML = titulo + `<table class="tabela-contratos"><thead><tr><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Data</th><th>Valor</th></tr></thead><tbody>${linhas}</tbody></table>`;
+  }
+
   function atualizarFinanceiro() {
     // Receitas e saldo vêm da soma dos agendamentos de cada período (despesas continuam vindo de financeiroPorPeriodo)
     const { limites, linhas } = calcularFaturamentoPorColaborador();
@@ -1141,6 +1289,7 @@ function iniciarDashboard() {
     renderizarRosca(linhas);
     renderizarLinhaMes(linhas, limites);
     renderizarAlteracoes(limites);
+    renderizarConcluidos(limites);
   }
 
   // --- PAGINAÇÃO DA AGENDA ---
@@ -1242,14 +1391,19 @@ function iniciarDashboard() {
 
     // Tenta apagar no banco. Se a API não tiver essa função, o agendamento some só desta tela
     // (o banco pode continuar com ele) e o id fica guardado para ele não voltar quando a agenda recarregar.
+    let apagouNoBanco = false;
     try {
       await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
+      apagouNoBanco = true;
     } catch (erro) {
       console.warn("A API não apagou o agendamento; ele foi removido só desta tela.", erro.message);
     }
 
-    if (!agendamentosOcultos.includes(id)) {
-      agendamentosOcultos.push(id);
+    // Só guarda o id como "escondido" se o banco NÃO apagou; se apagou, o id pode ser reaproveitado por um agendamento novo
+    const agRemovido = agendamentos.find(a => a.id === id);
+    const assinaturaRemovido = agRemovido ? assinaturaAgendamento(agRemovido) : null;
+    if (!apagouNoBanco && assinaturaRemovido && !agendamentosOcultos.includes(assinaturaRemovido)) {
+      agendamentosOcultos.push(assinaturaRemovido);
       localStorage.setItem(CHAVE_AGENDAMENTOS_OCULTOS, JSON.stringify(agendamentosOcultos));
     }
     const agDesmarcado = agendamentos.find(a => a.id === id);
@@ -1388,7 +1542,91 @@ function iniciarDashboard() {
       btnZapDetalhes.onclick = () => abrirWhatsApp(ag);
     }
 
+    // Status do agendamento (lista): grava na API assim que a pessoa troca.
+    // Valores no banco: Agendado | Remarcado | Cancelado | Concluido (PUT /Agendamentos/{id}, campo "status").
+    const selectStatus = document.getElementById("det-status");
+    const msgStatus = document.getElementById("det-status-msg");
+    if (selectStatus) {
+      const pintarStatus = () => selectStatus.setAttribute("data-status", selectStatus.value);
+      const mostrarMsgStatus = (texto) => {
+        if (!msgStatus) return;
+        msgStatus.textContent = texto;
+        msgStatus.style.display = texto ? "block" : "none";
+      };
+      selectStatus.value = ag.status || "Agendado";
+      pintarStatus();
+      mostrarMsgStatus("");
+      selectStatus.onchange = async () => {
+        const anterior = ag.status || "Agendado";
+        const novoStatus = selectStatus.value;
+        pintarStatus();
+        mostrarMsgStatus("");
+        selectStatus.disabled = true;
+        try {
+          // PATCH /Agendamentos/{id}/status. Se a rota não existir, cai no PUT com o corpo completo (como antes).
+          const montado = montarCorpoAgendamentoApi(Object.assign({}, ag, { status: novoStatus }));
+          console.log("[API] enviando status do agendamento:", novoStatus);
+          await atualizarStatusAgendamentoApi(ag.id, novoStatus, montado.erro ? null : montado.corpo);
+          ag.status = novoStatus;
+          guardarStatusLocal(ag.id, novoStatus);
+          const naLista = agendamentos.find(a => a.id === ag.id);
+          if (naLista) naLista.status = novoStatus;
+          salvarAgendamentosLocal(agendamentos);
+          // Cancelado conta como "desmarcou" no quadro do Financeiro (uma vez só por agendamento)
+          if (novoStatus === "Cancelado" && anterior !== "Cancelado") {
+            const jaRegistrado = lerHistoricoAgenda().some(h => h.tipo === "desmarcou" && h.agendamentoId === ag.id && h.dataOriginal === ag.data && h.horaOriginal === ag.horaInicio);
+            if (!jaRegistrado) {
+              const colabCanc = colaboradores.find(c => c.id === ag.colaboradorId);
+              registrarHistoricoAgenda({
+                tipo: "desmarcou",
+                agendamentoId: ag.id,
+                cliente: ag.cliente,
+                servico: ag.servico || "",
+                colaboradorNome: colabCanc ? colabCanc.nome : "",
+                dataOriginal: ag.data,
+                horaOriginal: ag.horaInicio
+              });
+            }
+          }
+          renderizarAgenda(); // atualiza também o Financeiro (desmarcações e concluídos)
+        } catch (erro) {
+          console.warn("[API] erro ao salvar o status do agendamento:", erro.message);
+          selectStatus.value = anterior; // volta para o status que estava gravado
+          pintarStatus();
+          mostrarMsgStatus(erro.message && !/^Erro na API/.test(erro.message)
+            ? erro.message
+            : mensagemErroApiComum(erro, "Não foi possível salvar o status no banco."));
+        } finally {
+          selectStatus.disabled = false;
+        }
+      };
+    }
+
     const fechar = () => { modal.hidden = true; };
+
+    // Botão "Cancelar agendamento": muda o status para Cancelado (o agendamento continua na agenda;
+    // para tirar da agenda de vez, use o ✕ do card)
+    let btnCancelarAg = document.getElementById("btn-cancelar-agendamento-det");
+    if (!btnCancelarAg) {
+      btnCancelarAg = document.createElement("button");
+      btnCancelarAg.type = "button";
+      btnCancelarAg.id = "btn-cancelar-agendamento-det";
+      btnCancelarAg.className = "btn-cancelar";
+      btnCancelarAg.textContent = "Cancelar";
+      btnCancelarAg.style.cssText = "color:#e11d48; border-color:#e11d48;";
+      const btnFechar2 = document.getElementById("btn-fechar-detalhes-2");
+      btnFechar2.parentElement.insertBefore(btnCancelarAg, btnFechar2);
+    }
+    btnCancelarAg.hidden = (ag.status === "Cancelado" || ag.status === "Concluido");
+    btnCancelarAg.onclick = () => {
+      if (!confirm("Cancelar este agendamento? O status vai mudar para Cancelado.")) return;
+      if (selectStatus) {
+        selectStatus.value = "Cancelado";
+        selectStatus.onchange(); // reaproveita o mesmo salvamento do status (API)
+        btnCancelarAg.hidden = true;
+      }
+    };
+
     document.getElementById("btn-fechar-detalhes").onclick = fechar;
     document.getElementById("btn-fechar-detalhes-2").onclick = fechar;
     modal.onclick = (e) => { if (e.target === modal) fechar(); };
@@ -1662,7 +1900,8 @@ function iniciarDashboard() {
         horaInicio: hora.length === 5 ? hora + ":00" : hora, // "08:00:00"
         duracaoMinutos: ag.duracaoMin,
         valor: ag.valor,
-        cor: ag.cor
+        cor: ag.cor,
+        ...(ag.status ? { status: ag.status } : {}) // Agendado | Remarcado | Cancelado | Concluido
       }
     };
   }
@@ -1695,6 +1934,12 @@ function iniciarDashboard() {
       return;
     }
 
+    // Editou e mudou o dia ou a hora = o status vira "Remarcado" (depois ainda dá para trocar na lista de status)
+    const mudouDiaOuHora = !!agendamentoOriginal && (
+      agendamentoOriginal.data !== dataEscolhida ||
+      agendamentoOriginal.horaInicio !== document.getElementById("agend-hora-inicio").value
+    );
+
     const novoAgendamento = {
       id: Date.now(),
       cliente: document.getElementById("agend-cliente").value,
@@ -1706,7 +1951,8 @@ function iniciarDashboard() {
       duracaoMin: parseInt(document.getElementById("agend-duracao").value),
       cor: document.getElementById("agend-cor").value,
       valor: calcularTotalServicos(), // soma dos valores fixos dos serviços marcados
-      whatsapp: whatsappCliente
+      whatsapp: whatsappCliente,
+      status: mudouDiaOuHora ? "Remarcado" : (agendamentoOriginal ? agendamentoOriginal.status : undefined) // mudou dia/hora = Remarcado
     };
 
     // >>> API: POST /Agendamentos (novo) ou PUT /Agendamentos/{id} (edição).
@@ -1723,6 +1969,7 @@ function iniciarDashboard() {
       if (agendamentoEditandoId !== null) {
         await editarAgendamentoApi(agendamentoEditandoId, montado.corpo);
         novoAgendamento.id = agendamentoEditandoId;
+        if (mudouDiaOuHora) guardarStatusLocal(agendamentoEditandoId, "Remarcado");
       } else {
         const criado = await criarAgendamentoApi(montado.corpo);
         console.log("[API] resposta do POST /Agendamentos:", criado);
@@ -1746,6 +1993,7 @@ function iniciarDashboard() {
       const colabRemarcou = colaboradores.find(c => c.id === novoAgendamento.colaboradorId);
       registrarHistoricoAgenda({
         tipo: "remarcou",
+        agendamentoId: novoAgendamento.id,
         cliente: novoAgendamento.cliente,
         servico: novoAgendamento.servico || "",
         colaboradorNome: colabRemarcou ? colabRemarcou.nome : "",
@@ -2543,7 +2791,8 @@ function iniciarDashboard() {
                 dataAdmissao: dataAdmissaoNova,
                 senha: senhaNova,
                 cpf: cpfNovo,
-                email: emailNovo
+                email: emailNovo,
+                cor: document.getElementById("colab-cor").value
               },
     });
       // Se a API devolver o id do colaborador (número), usa o dele em vez do id gerado aqui
@@ -2596,12 +2845,14 @@ function iniciarDashboard() {
     colab.ativo = !colab.ativo;
     guardarColaboradores();
 
-    // >>> API: persistir a troca de status.
-    // try {
-    //   await apiRequest("COLABORADORES", { method: "PATCH", body: { ativo: colab.ativo } }, `/${id}`);
-    // } catch (erro) {
-    //   console.warn("Não foi possível atualizar o status do colaborador na API.", erro.message);
-    // }
+    // API: PATCH /Colaboradores/{id} (melhor esforço: se falhar, a troca vale só neste navegador)
+    if (API_CONFIG.token) {
+      try {
+        await atualizarStatusColaboradorApi(id, colab.ativo);
+      } catch (erro) {
+        console.warn("Não foi possível atualizar o status do colaborador na API.", erro.message);
+      }
+    }
 
     renderizarListaColaboradores();
     atualizarFiltroColaborador();
@@ -2871,13 +3122,17 @@ function iniciarDashboard() {
     modalCancelamento.addEventListener("click", (e) => { if (e.target === modalCancelamento) fecharCancelamento(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !modalCancelamento.hidden) fecharCancelamento(); });
     if (btnConfirmarCanc) {
-      btnConfirmarCanc.addEventListener("click", () => {
-        // >>> API: avisar o backend do cancelamento da assinatura.
+      btnConfirmarCanc.addEventListener("click", async () => {
         if (cancelandoPendente) { // só o boleto pendente: o plano que já está ativo continua como está
           localStorage.removeItem("assinaturaPendente");
           fecharCancelamento();
           atualizarPlano();
           return;
+        }
+        // API: DELETE /Plano (melhor esforço; precisa ser antes de apagar o token)
+        if (API_CONFIG.token) {
+          try { await cancelarPlanoApi(); }
+          catch (erro) { console.warn("Não foi possível cancelar o plano na API.", erro.message); }
         }
         localStorage.removeItem("assinaturaPendente");
         localStorage.removeItem(CHAVE_ASSINATURA);
@@ -2971,6 +3226,7 @@ function iniciarDashboard() {
 
   clientesProntos = carregarClientes();
   carregarDadosIniciais();
+  sincronizarPlanoComApi();
 }
 
 document.addEventListener("DOMContentLoaded", iniciarDashboard);

@@ -271,7 +271,7 @@ function iniciarAssinatura() {
   const PAGINA_PAINEL = "agenda.html";     // página do painel (destino do "Ir para o painel")
   const PAGINA_PLANOS = "planos.html";     // tela de planos (quando entram aqui sem escolher um plano)
   const PAGINA_CADASTRO = "cadastro.html"; // tela de login/cadastro (quando entram aqui sem estar logados)
-  const DESCONTO_ANUAL = 0.20;             // 20% de desconto no plano anual
+  const DESCONTO_ANUAL = 0;                // sem desconto: o anual é 12x o mensal (Básico R$ 960 / Premium R$ 1.800 à vista, como na tela de Planos)
   const CHAVE_ASSINATURA = "assinaturaAtual";
   const CHAVE_SESSAO = "sessaoUsuario";    // a mesma usada pelo js/comum.js e pelo login/cadastro
   const CHAVE_CARTOES = "cartoesSalvos";   // cartões da pessoa (só dados de exibição, nunca número completo/CVV)
@@ -290,15 +290,15 @@ function iniciarAssinatura() {
   // Só para teste: a chave pública fica visível no navegador. Em produção o envio é pelo backend PHP.
   const EMAILJS = { servico: "service_hyuknnn", modelo: "template_25gznvb", chavePublica: "ujHV-oJdL3QrtE_-X" };
 
-  // >>> PREÇOS: Básico, Profissional e Completo seguem os valores da tela de Planos (planos.html).
-  // O Premium (usado pelo painel) continua com o valor de exemplo: troque pelo valor real.
+  // >>> PREÇOS: Básico (R$ 80/mês) e Premium (R$ 150/mês) seguem os valores da tela de Planos da agenda.
+  // Profissional e Completo continuam com os valores do planos.html.
   const PLANOS = {
     FREE: {
       nome: "Grátis", mensal: 0, duracaoDias: 30,
       itens: ["30 dias de uso", "Até 15 colaboradores", "Agenda simples"]
     },
     BASICO: {
-      nome: "Básico", mensal: 39.90,
+      nome: "Básico", mensal: 80,
       itens: ["Agenda", "Cadastro de clientes", "Cadastro de serviços", "Organização de horários"]
     },
     PROFISSIONAL: {
@@ -310,7 +310,7 @@ function iniciarAssinatura() {
       itens: ["Tudo do plano Profissional", "Controle de equipe", "Controle de comissões", "Controle de estoque", "Recursos adicionais"]
     },
     PREMIUM: {
-      nome: "Premium", mensal: 59.90, destaque: "Mais completo",
+      nome: "Premium", mensal: 150, destaque: "Mais completo",
       itens: ["Colaboradores ilimitados", "Relatórios financeiros", "Suporte prioritário"]
     }
   };
@@ -1274,32 +1274,32 @@ function iniciarAssinatura() {
 
     // Campo: rótulo pequeno em cima, valor embaixo (funciona bem em telas estreitas)
     const campo = (rotulo, valor, extra) =>
-      '<tr><td style="padding:10px 16px;border-top:1px solid #eceef3">' +
-      '<div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8">' + esc(rotulo) + "</div>" +
-      '<div style="font-size:15px;font-weight:600;color:#1f2430;margin-top:3px;word-break:break-word;' + (extra || "") + '">' + esc(valor) + "</div></td></tr>";
+      '<tr><td style="padding:11px 18px;border-top:1px solid #e3ebf6">' +
+      '<div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#64748b">' + esc(rotulo) + "</div>" +
+      '<div style="font-size:15px;font-weight:600;color:#0a1f38;margin-top:3px;word-break:break-word;' + (extra || "") + '">' + esc(valor) + "</div></td></tr>";
     // Bloco com faixa de título, como nos documentos fiscais
     const secao = (titulo, corpo) =>
-      '<tr><td style="padding:16px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dfe3ec;border-radius:8px;border-collapse:separate;overflow:hidden">' +
-      '<tr><td style="background:#f1f3f9;padding:9px 16px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4b4a6a">' + esc(titulo) + "</td></tr>" +
+      '<tr><td style="padding:16px 28px 0"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #dbe5f2;border-radius:14px;border-collapse:separate;overflow:hidden">' +
+      '<tr><td style="background:#eaf1fc;padding:10px 18px;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0a1f38">' + esc(titulo) + "</td></tr>" +
       corpo + "</table></td></tr>";
 
     return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
       '<meta name="viewport" content="width=device-width,initial-scale=1"><title>Get Time - Nota da compra</title></head>' +
-      '<body style="margin:0;padding:0;background:#f3f4f8;font-family:Arial,Helvetica,sans-serif;color:#1f2430">' +
-      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f8"><tr><td align="center" style="padding:24px 12px">' +
-      '<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #dfe3ec;border-radius:12px;overflow:hidden">' +
+      '<body style="margin:0;padding:0;background:#f3f6fb;font-family:Arial,Helvetica,sans-serif;color:#0a1f38">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f6fb"><tr><td align="center" style="padding:24px 12px">' +
+      '<table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#ffffff;border:1px solid #dbe5f2;border-radius:22px;overflow:hidden">' +
 
       // Cabeçalho: marca à esquerda, título e número da nota à direita
-      '<tr><td style="padding:24px 28px 18px;border-bottom:4px solid #6c5ce7"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+      '<tr><td style="padding:26px 28px 22px;background:#0a1f38;border-bottom:4px solid #00c878"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
       '<td valign="middle"><table role="presentation" cellpadding="0" cellspacing="0"><tr>' +
-      '<td style="background:#6c5ce7;color:#ffffff;font-size:18px;font-weight:800;width:44px;height:44px;text-align:center;border-radius:10px;letter-spacing:.5px">GT</td>' +
-      '<td style="padding-left:12px;font-size:24px;font-weight:800;color:#1f2430">Get Time</td></tr></table></td>' +
-      '<td valign="middle" align="right"><div style="font-size:15px;font-weight:800;letter-spacing:1px;color:#6c5ce7">NOTA FISCAL</div>' +
-      '<div style="font-size:13px;color:#475569;margin-top:4px">Nº <b>' + esc(numero) + "</b></div></td>" +
+      '<td style="background:#00c878;color:#0a1f38;font-size:18px;font-weight:800;width:44px;height:44px;text-align:center;border-radius:12px;letter-spacing:.5px">GT</td>' +
+      '<td style="padding-left:12px;font-size:24px;font-weight:800;letter-spacing:1px;color:#ffffff">GET TIME</td></tr></table></td>' +
+      '<td valign="middle" align="right"><div style="font-size:15px;font-weight:800;letter-spacing:2px;color:#00c878">NOTA FISCAL</div>' +
+      '<div style="font-size:13px;color:#c4d3e6;margin-top:4px">Nº <b style="color:#ffffff">' + esc(numero) + "</b></div></td>" +
       "</tr></table></td></tr>" +
 
       // Aviso de teste
-      '<tr><td style="padding:16px 28px 0"><div style="background:#fff4d6;border:1px solid #f0d58a;padding:8px 12px;border-radius:6px;font-size:12px;color:#7a5b00">' +
+      '<tr><td style="padding:16px 28px 0"><div style="background:#fff4d6;border:1px solid #f0d58a;padding:9px 14px;border-radius:10px;font-size:12px;color:#7a5b00">' +
       "MODO TESTE: esta nota é só uma simulação e não tem valor fiscal.</div></td></tr>" +
 
       // Emissão
@@ -1313,13 +1313,13 @@ function iniciarAssinatura() {
 
       // Discriminação do serviço
       secao("Discriminação do serviço",
-        '<tr><td style="padding:14px 16px;border-top:1px solid #eceef3"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
-        '<td valign="top"><div style="font-size:15px;font-weight:700">Assinatura do sistema Get Time, plano ' + esc(plano.nome) + "</div>" +
+        '<tr><td style="padding:14px 18px;border-top:1px solid #e3ebf6"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+        '<td valign="top"><div style="font-size:15px;font-weight:700;color:#0a1f38">Assinatura do sistema Get Time, plano ' + esc(plano.nome) + "</div>" +
         '<div style="font-size:12px;color:#64748b;margin-top:4px;line-height:1.5">Cobrança ' + esc(cobranca) + " · Quantidade: 1<br>Período: " + esc(periodo) + "</div></td>" +
         '<td valign="top" align="right" style="padding-left:16px;font-size:15px;font-weight:700;white-space:nowrap">' + esc(moeda(pedido.total)) + "</td></tr></table></td></tr>" +
-        '<tr><td style="background:#efeaff;padding:14px 16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
-        '<td style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#4b4a6a">Valor total da nota</td>' +
-        '<td align="right" style="padding-left:16px;font-size:22px;font-weight:800;color:#3b2fa0;white-space:nowrap">' + esc(moeda(pedido.total)) + "</td></tr></table></td></tr>") +
+        '<tr><td style="background:#e3f9ef;padding:16px 18px;border-top:1px solid #bdeed6"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' +
+        '<td style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0a1f38">Valor total da nota</td>' +
+        '<td align="right" style="padding-left:16px;font-size:24px;font-weight:800;color:#007a4d;white-space:nowrap">' + esc(moeda(pedido.total)) + "</td></tr></table></td></tr>") +
 
       // Pagamento
       secao("Pagamento",
@@ -1332,7 +1332,7 @@ function iniciarAssinatura() {
       secao("Código de verificação (simulado)", campo("Código", codigo, "font-family:Consolas,Menlo,monospace;letter-spacing:1px")) +
 
       // Rodapé
-      '<tr><td style="padding:22px 28px 28px"><p style="margin:0;font-size:12px;line-height:1.6;color:#94a3b8;text-align:center">' +
+      '<tr><td style="padding:22px 28px 28px"><p style="margin:0;font-size:12px;line-height:1.6;color:#64748b;text-align:center">' +
       "Guarde esta nota. Em caso de dúvida, é só responder este e-mail.<br>Get Time · Obrigado por escolher a gente!</p></td></tr>" +
 
       "</table></td></tr></table></body></html>";

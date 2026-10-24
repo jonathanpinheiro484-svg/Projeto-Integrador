@@ -72,7 +72,7 @@ function iniciarColaborador() {
   function extrairLista(resposta) {
     if (Array.isArray(resposta)) return resposta;
     if (resposta && typeof resposta === "object") {
-      for (const chave of ["dados", "data", "items", "itens", "clientes", "servicos", "Servicos", "servicosCadastrados", "result", "resultado", "$values", "value"]) {
+      for (const chave of ["dados", "data", "items", "itens", "clientes", "agendamentos", "Agendamentos", "servicos", "Servicos", "servicosCadastrados", "result", "resultado", "$values", "value"]) {
         if (Array.isArray(resposta[chave])) return resposta[chave];
       }
     }
@@ -473,12 +473,188 @@ function iniciarColaborador() {
     for (let i = inicioSaida; i < saida.length; i++) saida[i].totalColunas = fins.length;
   }
 
+  // =====================================================
+  // AGENDAMENTOS NA API (mesmas rotas da agenda do dono)
+  // Com token da API: lê (GET), cria (POST), edita (PUT) e muda o status (PATCH) no banco.
+  // Sem token (login local do colaborador): continua tudo só neste navegador, como antes.
+  // =====================================================
+  const CHAVE_AGENDAMENTOS_OCULTOS = "agendamentosOcultos";   // a mesma da agenda do dono
+  const CHAVE_STATUS_AGENDAMENTOS = "statusAgendamentosLocal"; // a mesma da agenda do dono
+  const assinaturaAgendamento = ag => `${ag.id}|${ag.data}|${ag.horaInicio}`;
+
+  function lerStatusLocal() {
+    try {
+      const obj = JSON.parse(localStorage.getItem(CHAVE_STATUS_AGENDAMENTOS) || "{}");
+      return obj && typeof obj === "object" ? obj : {};
+    } catch (_) { return {}; }
+  }
+  function guardarStatusLocal(id, status) {
+    try {
+      const obj = lerStatusLocal();
+      obj[id] = status;
+      localStorage.setItem(CHAVE_STATUS_AGENDAMENTOS, JSON.stringify(obj));
+    } catch (_) { /* sem armazenamento */ }
+  }
+  function normalizarStatusAgendamento(v) {
+    const t = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    if (t.startsWith("conclu")) return "Concluido";
+    if (t.startsWith("cancel")) return "Cancelado";
+    if (t.startsWith("remarc")) return "Remarcado";
+    if (t.startsWith("agend")) return "Agendado";
+    return "";
+  }
+  function resolverStatusAgendamento(statusApi, id) {
+    const guardado = lerStatusLocal()[id] || "";
+    if ((!statusApi || statusApi === "Agendado" || statusApi === "Remarcado") && guardado) return guardado;
+    return statusApi || "";
+  }
+  function dataApiParaISO(v) {
+    const t = String(v ?? "").trim();
+    let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : "";
+  }
+  function horaApiParaHHMM(v) {
+    const m = String(v ?? "").match(/(\d{1,2}):(\d{2})/);
+    return m ? m[1].padStart(2, "0") + ":" + m[2] : "";
+  }
+
+  // Agendamento que veio da API -> formato usado pela agenda
+  function normalizarAgendamentoApi(item) {
+    if (!item) return null;
+    const id = Number(item.id ?? item.Id ?? item.agendamentoId ?? item.AgendamentoId);
+    const brutoData = item.data ?? item.Data ?? item.dataAgendamento ?? item.DataAgendamento ?? item.dataHora ?? item.DataHora ?? item.dataHoraInicio ?? item.DataHoraInicio;
+    const data = dataApiParaISO(brutoData);
+    const hora = horaApiParaHHMM(item.horaInicio ?? item.HoraInicio ?? item.hora ?? item.Hora) || horaApiParaHHMM(brutoData);
+    if (!Number.isFinite(id) || !data || !hora) return null;
+
+    const cli = item.cliente ?? item.Cliente;
+    const idCliente = item.clienteId ?? item.ClienteId ?? (cli && typeof cli === "object" ? (cli.id ?? cli.Id) : undefined);
+    const clienteLista = idCliente != null ? clientes.find(c => String(c.id) === String(idCliente)) : null;
+    const nomeCliente = item.clienteNome ?? item.ClienteNome ?? item.nomeCliente ?? item.NomeCliente
+      ?? (cli && typeof cli === "object" ? (cli.nome ?? cli.Nome) : cli) ?? (clienteLista ? clienteLista.nome : "");
+    const telefoneCliente = item.whatsapp ?? item.Whatsapp ?? item.telefone ?? item.Telefone
+      ?? (cli && typeof cli === "object" ? (cli.telefone ?? cli.Telefone) : undefined) ?? (clienteLista ? clienteLista.telefone : "");
+
+    const achaServico = idSv => servicos.find(s => String(s.id) === String(idSv));
+    let nomesServ = [];
+    const listaServ = item.servicos ?? item.Servicos;
+    if (Array.isArray(listaServ)) {
+      nomesServ = listaServ.map(sv => {
+        if (typeof sv === "string") return sv;
+        if (typeof sv === "number") { const a = achaServico(sv); return a ? a.nome : null; }
+        if (!sv) return null;
+        const nome = sv.nome ?? sv.Nome;
+        if (nome) return nome;
+        const a = achaServico(sv.id ?? sv.Id ?? sv.servicoId ?? sv.ServicoId);
+        return a ? a.nome : null;
+      }).filter(Boolean);
+    }
+    if (!nomesServ.length) {
+      const ids = item.servicoIds ?? item.ServicoIds;
+      const listaIds = Array.isArray(ids) ? ids : [item.servicoId ?? item.ServicoId].filter(v => v != null);
+      nomesServ = listaIds.map(idSv => { const a = achaServico(idSv); return a ? a.nome : null; }).filter(Boolean);
+    }
+    const textoServ = item.servicoNome ?? item.ServicoNome ?? item.servico ?? item.Servico ?? "";
+    if (!nomesServ.length && typeof textoServ === "string" && textoServ) nomesServ = [textoServ];
+    const cadastrados = nomesServ.map(n => servicos.find(s => String(s.nome).toLowerCase() === String(n).toLowerCase())).filter(Boolean);
+
+    const duracaoApi = Number(item.duracaoMinutos ?? item.DuracaoMinutos ?? item.duracaoMin ?? item.duracao ?? item.Duracao);
+    const valorApi = Number(item.valor ?? item.Valor ?? item.preco ?? item.Preco ?? item.valorTotal ?? item.ValorTotal);
+    return {
+      id,
+      cliente: String(nomeCliente || ""),
+      servico: nomesServ.length ? listaEmTexto(nomesServ) : "",
+      servicos: nomesServ,
+      colaboradorId: Number(item.colaboradorId ?? item.ColaboradorId ?? 0) || 0,
+      data,
+      horaInicio: hora,
+      duracaoMin: duracaoApi > 0 ? duracaoApi : (cadastrados.reduce((s, sv) => s + (Number(sv.duracaoMin) || 0), 0) || 30),
+      cor: item.cor ?? item.Cor ?? "#3d5a80",
+      valor: Number.isFinite(valorApi) && valorApi > 0 ? valorApi : cadastrados.reduce((s, sv) => s + (Number(sv.valor) || 0), 0),
+      whatsapp: String(telefoneCliente || "").replace(/\D/g, ""),
+      status: resolverStatusAgendamento(normalizarStatusAgendamento(item.status ?? item.Status), id)
+    };
+  }
+
+  // Lê os agendamentos do banco (GET /Agendamentos). Devolve true se leu; false se não tem token ou deu erro.
+  async function recarregarAgendamentosDoBanco() {
+    if (!API_CONFIG.token) return false;
+    try {
+      const dados = await apiRequest("AGENDAMENTOS");
+      const lista = (dados === null || dados === undefined || dados === "") ? [] : extrairLista(dados);
+      if (!lista) return false;
+      const doBanco = lista.map(normalizarAgendamentoApi).filter(Boolean);
+      if (lista.length && !doBanco.length) return false;
+      const ocultos = lerJsonLocal(CHAVE_AGENDAMENTOS_OCULTOS, []);
+      agendamentos = doBanco.filter(ag => !ocultos.includes(assinaturaAgendamento(ag)));
+      salvarAgendamentosLocal(agendamentos);
+      renderizarAgenda();
+      return true;
+    } catch (erro) {
+      console.warn("Não foi possível carregar agendamentos da API.", erro.message);
+      return false;
+    }
+  }
+
+  // Corpo do POST/PUT /Agendamentos (mesmo formato da agenda do dono)
+  function montarCorpoAgendamentoApi(ag) {
+    const nomeCliente = String(ag.cliente || "").trim().toLowerCase();
+    const cliente = clientes.find(c => c.nome.toLowerCase() === nomeCliente);
+    if (!cliente || cliente.id === null || cliente.id === undefined) {
+      return { erro: 'Escolha um cliente cadastrado na lista, ou cadastre um novo em "+ Cadastrar novo cliente".' };
+    }
+    const servicoIds = [];
+    for (const nome of (ag.servicos && ag.servicos.length ? ag.servicos : (ag.servico ? [ag.servico] : []))) {
+      const sv = servicos.find(x => String(x.nome).toLowerCase() === String(nome).toLowerCase());
+      if (!sv || !Number.isFinite(Number(sv.id))) {
+        return { erro: `O serviço "${nome}" não está no banco. Recarregue a página e tente de novo.` };
+      }
+      servicoIds.push(Number(sv.id));
+    }
+    const hora = String(ag.horaInicio || "");
+    return {
+      corpo: {
+        clienteId: Number(cliente.id),
+        colaboradorId: ag.colaboradorId === 0 ? null : ag.colaboradorId,
+        servicoId: servicoIds[0],
+        servicoIds,
+        data: ag.data,
+        horaInicio: hora.length === 5 ? hora + ":00" : hora,
+        duracaoMinutos: ag.duracaoMin,
+        valor: ag.valor,
+        cor: ag.cor,
+        ...(ag.status ? { status: ag.status } : {})
+      }
+    };
+  }
+
   // --- AGENDA: a própria (editável) ou a dos outros (somente consulta) ---
   async function removerAgendamento(id, event) {
     if (event) event.stopPropagation();
     // Só pode apagar da própria agenda
     const alvo = agendamentos.find(a => a.id === id);
     if (!alvo || alvo.colaboradorId !== meuId) return;
+    // Tenta apagar no banco. Se a API não tiver essa rota, o agendamento some só desta tela
+    // e fica guardado como "escondido" para não voltar quando a agenda recarregar do banco.
+    let apagouNoBanco = false;
+    if (API_CONFIG.token) {
+      try {
+        await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
+        apagouNoBanco = true;
+      } catch (erro) {
+        console.warn("A API não apagou o agendamento; ele foi removido só desta tela.", erro.message);
+      }
+      if (!apagouNoBanco) {
+        const ocultos = lerJsonLocal(CHAVE_AGENDAMENTOS_OCULTOS, []);
+        const assinatura = assinaturaAgendamento(alvo);
+        if (!ocultos.includes(assinatura)) {
+          ocultos.push(assinatura);
+          localStorage.setItem(CHAVE_AGENDAMENTOS_OCULTOS, JSON.stringify(ocultos));
+        }
+      }
+    }
     agendamentos = agendamentos.filter(a => a.id !== id);
     salvarAgendamentosLocal(agendamentos);
     renderizarAgenda();
@@ -543,7 +719,7 @@ function iniciarColaborador() {
       window.open("https://wa.me/55" + tel, "_blank", "noopener");
     });
 
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const alvo = agendamentos.find(a => a.id === agendEditandoId);
       if (!alvo || alvo.colaboradorId !== meuId) { fechar(); return; } // só edita a própria agenda
@@ -565,6 +741,21 @@ function iniciarColaborador() {
         if (!telefone) { falhar("Digite um WhatsApp válido com DDD. Exemplo: (11) 91234-5678", campoZapEd); return; }
       }
 
+      // Com token: grava no banco (PUT /Agendamentos/{id}) antes de alterar a tela
+      if (API_CONFIG.token) {
+        const montado = montarCorpoAgendamentoApi(Object.assign({}, alvo, { cliente: nome }));
+        if (montado.erro) { falhar(montado.erro, campoNomeEd); return; }
+        const btnSalvarEd = form.querySelector("#btn-salvar-edicao");
+        if (btnSalvarEd) btnSalvarEd.disabled = true;
+        try {
+          await editarAgendamentoApi(alvo.id, montado.corpo);
+        } catch (erro) {
+          falhar(mensagemErroApiComum(erro, "Não foi possível salvar o agendamento no banco."), null);
+          return;
+        } finally {
+          if (btnSalvarEd) btnSalvarEd.disabled = false;
+        }
+      }
       alvo.cliente = nome;
       alvo.whatsapp = telefone;
       salvarAgendamentosLocal(agendamentos);
@@ -617,6 +808,13 @@ function iniciarColaborador() {
         linha("Duração", "det-agend-duracao") +
         linha("Valor", "det-agend-valor") +
         linha("WhatsApp", "det-agend-whatsapp") +
+        '<div style="display:flex; justify-content:space-between; align-items:center; gap:16px; padding:9px 0; border-bottom:1px solid rgba(128,128,128,.25); font-size:14px;">' +
+          '<span style="color:var(--muted, #8a93a6);">Status</span>' +
+          '<select id="det-agend-status" style="padding:6px 10px; border-radius:8px; border:1px solid rgba(128,128,128,.4); background:transparent; color:inherit; font:inherit; font-weight:600;">' +
+            '<option value="Agendado">Agendado</option><option value="Remarcado">Remarcado</option><option value="Cancelado">Cancelado</option><option value="Concluido">Concluído</option>' +
+          '</select>' +
+        '</div>' +
+        '<small id="det-agend-status-msg" style="display:none; color:#e11d48; margin-top:6px;"></small>' +
         '<div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">' +
           '<button type="button" id="det-agend-zap" style="display:none; margin-right:auto; align-items:center; gap:6px; padding:9px 14px; border:none; background:#25d366; color:#fff; border-radius:8px; cursor:pointer; font:inherit; font-weight:600;">' +
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M12 2C6.5 2 2 6.2 2 11.4c0 2.1.8 4.1 2.1 5.7L3 22l5.2-1.6c1.1.5 2.5.8 3.8.8 5.5 0 10-4.2 10-9.4S17.5 2 12 2z"/></svg>WhatsApp' +
@@ -659,6 +857,37 @@ function iniciarColaborador() {
     colocar("det-agend-valor", formatarMoeda(ag.valor));
     colocar("det-agend-whatsapp", ag.whatsapp ? formatarTelefone(ag.whatsapp) : "Não informado");
     modalDet.querySelector("#det-agend-zap").style.display = ag.whatsapp ? "flex" : "none";
+
+    // Status: PATCH /Agendamentos/{id}/status (com token). Sem token, vale só neste navegador.
+    const selStatus = modalDet.querySelector("#det-agend-status");
+    const msgStatus = modalDet.querySelector("#det-agend-status-msg");
+    selStatus.value = ag.status || "Agendado";
+    msgStatus.style.display = "none";
+    selStatus.onchange = async () => {
+      const anterior = ag.status || "Agendado";
+      const novoStatus = selStatus.value;
+      msgStatus.style.display = "none";
+      selStatus.disabled = true;
+      try {
+        if (API_CONFIG.token) {
+          const montado = montarCorpoAgendamentoApi(Object.assign({}, ag, { status: novoStatus }));
+          await atualizarStatusAgendamentoApi(ag.id, novoStatus, montado.erro ? null : montado.corpo);
+        }
+        ag.status = novoStatus;
+        guardarStatusLocal(ag.id, novoStatus);
+        const naLista = agendamentos.find(a => a.id === ag.id);
+        if (naLista) naLista.status = novoStatus;
+        salvarAgendamentosLocal(agendamentos);
+        renderizarAgenda();
+      } catch (erro) {
+        console.warn("[API] erro ao salvar o status do agendamento:", erro.message);
+        selStatus.value = anterior;
+        msgStatus.textContent = mensagemErroApiComum(erro, "Não foi possível salvar o status no banco.");
+        msgStatus.style.display = "block";
+      } finally {
+        selStatus.disabled = false;
+      }
+    };
     modalDet.style.display = "flex";
   }
 
@@ -790,7 +1019,7 @@ function iniciarColaborador() {
   document.getElementById("btn-fechar-modal").addEventListener("click", fecharModal);
   document.getElementById("btn-cancelar-agendamento").addEventListener("click", fecharModal);
 
-  formAgend.addEventListener("submit", function (e) {
+  formAgend.addEventListener("submit", async function (e) {
     e.preventDefault();
 
     const validacaoAgend = validarAgendamentoComServicos();
@@ -827,8 +1056,32 @@ function iniciarColaborador() {
       valor: calcularTotalServicos(), // soma dos valores fixos dos serviços escolhidos
       whatsapp: whatsappCliente
     };
-    agendamentos.push(novo);
-    salvarAgendamentosLocal(agendamentos);
+    // Com token: grava no banco (POST /Agendamentos). Só entra na agenda o que foi gravado.
+    if (API_CONFIG.token) {
+      const montado = montarCorpoAgendamentoApi(novo);
+      if (montado.erro) {
+        mostrarErroForm(formAgend, montado.erro, document.getElementById("agend-cliente"));
+        return;
+      }
+      const btnConfirmar = formAgend.querySelector('button[type="submit"]');
+      if (btnConfirmar) btnConfirmar.disabled = true;
+      try {
+        const criado = await criarAgendamentoApi(montado.corpo);
+        const idCriado = criado && typeof criado === "object" ? Number(criado.id ?? criado.Id) : NaN;
+        if (Number.isFinite(idCriado)) novo.id = idCriado;
+      } catch (erro) {
+        console.warn("[API] erro ao salvar agendamento:", erro.message);
+        mostrarErroForm(formAgend, mensagemErroApiComum(erro, "Não foi possível salvar o agendamento no banco."), null);
+        return;
+      } finally {
+        if (btnConfirmar) btnConfirmar.disabled = false;
+      }
+      const recarregou = await recarregarAgendamentosDoBanco(); // pega o que ficou gravado de verdade
+      if (!recarregou) { agendamentos.push(novo); salvarAgendamentosLocal(agendamentos); }
+    } else {
+      agendamentos.push(novo);
+      salvarAgendamentosLocal(agendamentos);
+    }
     seletorData.value = data;
     filtro.value = "minha";
     renderizarEquipe();
@@ -1057,8 +1310,12 @@ function iniciarColaborador() {
   filtro.value = "minha";
   renderizarEquipe();
   renderizarAgenda();
-  carregarClientes();
-  recarregarServicosDoBanco();
+  // Clientes e serviços primeiro (os agendamentos do banco precisam deles para mostrar nomes), depois a agenda
+  Promise.all([carregarClientes(), recarregarServicosDoBanco()]).then(recarregarAgendamentosDoBanco);
+  // Voltou para esta aba: relê a agenda do banco
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) recarregarAgendamentosDoBanco();
+  });
 }
 
 document.addEventListener("DOMContentLoaded", iniciarColaborador);
