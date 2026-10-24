@@ -1310,3 +1310,274 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
   .admin-card td:last-child :is(a, button) { transition: none; }
   .colaborador-item:hover { transform: none; }
 }
+
+
+/* =====================================================================
+   VISUAL DA AGENDA APLICADO NAS OUTRAS TELAS
+   Financeiro, Planos e cards antigos da Assinatura.
+   (Suporte, Agenda e Administrativo não foram alterados.)
+   Colado no FINAL do stylesAgenda.css.
+   ===================================================================== */
+
+/* ---------- FINANCEIRO ---------- */
+#secao-financeiro .financeiro-grid { gap: 18px; }
+#secao-financeiro .stat-card,
+#secao-financeiro .financeiro-tabela-wrap {
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgba(10, 31, 56, 0.10);
+}
+#secao-financeiro .stat-card { padding: 20px 24px; }
+#secao-financeiro .stat-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+#secao-financeiro .stat-valor {
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.1;
+}
+#secao-financeiro .financeiro-periodo { font-size: 13px; font-weight: 600; }
+#secao-financeiro .toggle-view { border-radius: 999px; padding: 3px; gap: 2px; }
+#secao-financeiro .toggle-view button { border-radius: 999px; padding: 7px 16px; font-weight: 600; }
+#secao-financeiro .tabela-financeiro th { padding-top: 14px; padding-bottom: 12px; }
+#secao-financeiro .tabela-financeiro tbody tr:hover td { background: var(--hover-menu); }
+
+/* ---------- PLANOS ---------- */
+#secao-planos { width: calc(100% - 120px); max-width: 1400px; margin: 0 auto; } /* folga p/ o botão do WhatsApp */
+
+.pl-hero {
+  background: linear-gradient(135deg, #081d36, #0d2a47);
+  color: #fff;
+  border-radius: 24px;
+  padding: 32px 36px 96px;
+}
+.pl-hero .pl-eyebrow { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .12em; color: #6db3ff; }
+.pl-hero h2 {
+  margin: 8px 0 8px;
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.1;
+}
+.pl-hero p:last-child { margin: 0; font-size: 15px; color: #c4d3e6; }
+
+#secao-planos .planos-grid {
+  position: relative; z-index: 1;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin: -64px 20px 0;
+}
+#aviso-sem-plano {
+  position: relative; z-index: 1;
+  margin: -64px 20px 20px !important;
+  padding: 14px 20px !important;
+  background: var(--card);
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 14px 34px rgba(10, 31, 56, 0.12);
+}
+#aviso-sem-plano:not([hidden]) + .planos-grid { margin-top: 0; }
+
+#secao-planos .card-plano {
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 30px 28px;
+  box-shadow: 0 14px 34px rgba(10, 31, 56, 0.12);
+}
+#secao-planos .card-plano:hover { transform: translateY(-4px); box-shadow: 0 20px 44px rgba(10, 31, 56, 0.18); }
+#secao-planos .card-plano.destaque { border: 2px solid var(--primaria); }
+#secao-planos .card-plano h3 {
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+}
+#secao-planos .card-plano .preco {
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 1.1;
+  margin-bottom: 18px;
+}
+#secao-planos .card-plano .preco span { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px; }
+#secao-planos .card-plano ul { font-size: 14px; gap: 10px; margin-bottom: 24px; color: var(--texto); }
+#secao-planos .btn-selecionar-plano {
+  border-radius: 999px; padding: 13px 20px; font-size: 14px; font-weight: 700;
+}
+#secao-planos .btn-selecionar-plano.atual { background: var(--input-bg); color: var(--muted); }
+
+/* ---------- ASSINATURA: Pix do card ativo (botão criado pelo JS) com o mesmo visual dos outros ---------- */
+.sa-acoes .btn-pagar-pix {
+  width: auto; margin: 0; padding: 13px 28px; border-radius: 999px; font-size: 15px; font-weight: 700;
+  background: var(--primaria); color: var(--on-primaria); border: 0; cursor: pointer;
+}
+.sa-acoes .btn-pagar-pix:hover { background: var(--primaria-hover); }
+.sa-nota-plano:empty { display: none; }
+/* quando há dois cards ao mesmo tempo (ativo + boleto pendente), um respiro entre eles */
+.card-assinatura.sa-novo:not([hidden]) ~ .card-assinatura.sa-novo:not([hidden]) { margin-top: 28px !important; }
+
+/* ---------- TELAS MENORES ---------- */
+@media (max-width: 900px) {
+  #secao-planos { width: 100%; }
+  #secao-planos .planos-grid { grid-template-columns: 1fr; margin: -56px 0 0; }
+  #aviso-sem-plano { margin: -56px 0 20px !important; }
+  .pl-hero { padding: 24px 20px 84px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #secao-planos .card-plano:hover { transform: none; }
+}
+
+/* ---------- FAIXA (BANNER) DO FINANCEIRO E DO ADMINISTRATIVO ---------- */
+.hero-pagina {
+  position: relative;
+  overflow: hidden;
+  padding: 40px 44px 44px;
+  border-radius: 24px;
+  color: #fff;
+  background:
+    radial-gradient(520px 260px at 92% 15%, rgba(42, 117, 224, 0.45), transparent 70%),
+    radial-gradient(380px 220px at 78% 105%, rgba(0, 200, 120, 0.22), transparent 70%),
+    linear-gradient(135deg, #081d36, #0d2a47);
+}
+.hero-pagina .hero-texto { position: relative; z-index: 1; max-width: 560px; }
+.hero-pagina h1 {
+  margin: 8px 0 10px;
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(28px, 3.4vw, 42px);
+  line-height: 1.1;
+}
+.hero-pagina .hero-resumo { margin: 0; font-size: 15px; line-height: 1.5; color: #c4d3e6; }
+/* desenho ao fundo (mesma ideia do calendário da agenda) */
+.hero-pagina::after {
+  content: "";
+  position: absolute;
+  right: 56px;
+  top: 50%;
+  width: 190px;
+  height: 190px;
+  transform: translateY(-50%) rotate(-6deg);
+  opacity: 0.12;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+.hero-fin::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='M7 15l4-4 3 3 5-6'/%3E%3C/svg%3E");
+}
+.hero-adm::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='10' cy='7' r='4'/%3E%3Cpath d='M21 21v-2a4 4 0 0 0-3-3.85M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
+}
+.hero-fin { margin-bottom: 22px; }
+.so-administracao[hidden] { display: none !important; }
+
+@media (max-width: 900px) {
+  .hero-pagina { padding: 28px 22px 32px; }
+  .hero-pagina::after { right: 14px; width: 120px; height: 120px; }
+}
+
+
+/* =====================================================================
+   FINANCEIRO: resumo e gráfico de desmarcações / remarcações
+   ===================================================================== */
+#secao-financeiro .financeiro-grid { grid-template-columns: 1fr 1fr; }
+
+.alt-resumo { display: flex; gap: 40px; margin-top: 4px; }
+.alt-resumo small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+
+.alt-ponto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; }
+.alt-ponto-desmarcou { background: #e11d48; }
+.alt-ponto-remarcou { background: #f7b032; }
+
+#card-alteracoes { grid-column: 1 / -1; }
+.alt-corpo { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; margin-top: 8px; }
+.alt-corpo .rosca-conteudo { margin-top: 0; padding-right: 20px; }
+
+.alt-lista { padding-left: 28px; border-left: 1px solid var(--border); max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.alt-lista:empty { display: none; }
+.alt-item { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; line-height: 1.4; }
+.alt-item .alt-ponto { margin-top: 5px; }
+.alt-item small { display: block; font-size: 12px; color: var(--muted); }
+
+@media (max-width: 900px) {
+  #secao-financeiro .financeiro-grid { grid-template-columns: 1fr; }
+  .alt-corpo { grid-template-columns: 1fr; }
+  .alt-lista { padding-left: 0; border-left: 0; border-top: 1px solid var(--border); padding-top: 14px; }
+}
+
+
+/* =====================================================================
+   TELA DE PLANOS (dentro do sistema) no formato da seção "Nossos planos"
+   da tela inicial: Free branco, Básico azul, Premium escuro com "MAIS COMPLETO"
+   ===================================================================== */
+#secao-planos .card-plano { padding: 26px 24px 24px; border-radius: 18px; }
+#secao-planos .card-plano h3 { font-size: 19px; margin: 0; }
+#secao-planos .plano-sub { margin: 4px 0 0; font-size: 12px; font-weight: 700; color: var(--destaque); }
+/* preço antigo (preenchido por outro script) fica escondido: o bloco abaixo mostra os valores */
+#secao-planos .card-plano .preco[data-preco-plano] { display: none; }
+
+#secao-planos .plano-preco-bloco {
+  margin: 16px 0 0; padding: 16px 0;
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+#secao-planos .plano-preco-bloco p { margin: 0 0 6px; }
+#secao-planos .plano-preco-bloco small { display: block; font-size: 12px; line-height: 1.5; color: var(--muted); }
+#secao-planos .plano-gratis {
+  font-family: "Archivo Black", Inter, system-ui, sans-serif; font-size: 40px; line-height: 1.1;
+}
+#secao-planos .plano-valor {
+  font-family: "Archivo Black", Inter, system-ui, sans-serif; font-size: 44px; line-height: 1.1;
+}
+#secao-planos .plano-valor sup { font-size: 14px; vertical-align: top; position: relative; top: 6px; margin-right: 2px; }
+#secao-planos .plano-valor span { font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 14px; font-weight: 500; }
+
+/* lista com ícones redondos */
+#secao-planos .card-plano ul { margin: 16px 0 24px; gap: 12px; }
+#secao-planos .card-plano li { align-items: flex-start; line-height: 1.35; }
+#secao-planos .card-plano li::before {
+  flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800;
+}
+#secao-planos .card-plano li.ok::before { content: "✓"; background: rgba(0, 200, 120, .16); color: #00a862; }
+#secao-planos .card-plano li.no::before { content: "✕"; background: rgba(100, 116, 139, .16); color: var(--muted); }
+#secao-planos .card-plano li.no { color: var(--muted); }
+
+/* Free: botão azul */
+#secao-planos #btn-plano-free:not(.atual) { background: var(--destaque); color: #fff; }
+#secao-planos #btn-plano-free:not(.atual):hover { filter: brightness(1.08); }
+
+/* Básico: azul */
+#secao-planos .plano-basico {
+  border-color: transparent;
+  background: linear-gradient(160deg, #2a75e0, #1b57b8);
+  color: #fff;
+}
+#secao-planos .plano-basico .plano-sub { color: #cfe2ff; }
+#secao-planos .plano-basico .plano-preco-bloco { border-color: rgba(255, 255, 255, .25); }
+#secao-planos .plano-basico .plano-preco-bloco small { color: #dbe8fb; }
+#secao-planos .plano-basico ul { color: #fff; }
+#secao-planos .plano-basico li.ok::before { background: rgba(255, 255, 255, .22); color: #fff; }
+#secao-planos .plano-basico li.no::before { background: rgba(255, 255, 255, .14); color: #cfe2ff; }
+#secao-planos .plano-basico li.no { color: #cfe2ff; }
+#secao-planos .plano-basico .btn-selecionar-plano:not(.atual) { background: #fff; color: var(--navy); }
+#secao-planos .plano-basico .btn-selecionar-plano:not(.atual):hover { background: #eaf1fc; }
+#secao-planos .plano-basico .btn-selecionar-plano.atual { background: rgba(255, 255, 255, .2); color: #e6efff; }
+
+/* Premium: escuro com borda verde e selo */
+#secao-planos .plano-premium {
+  border: 1px solid var(--primaria);
+  background: linear-gradient(160deg, #0a1f38, #0d2a47);
+  color: #fff;
+}
+#secao-planos .plano-selo {
+  position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
+  padding: 3px 12px; border-radius: 999px;
+  background: var(--primaria); color: var(--on-primaria);
+  font-size: 10px; font-weight: 800; letter-spacing: .06em; white-space: nowrap;
+}
+#secao-planos .plano-premium .plano-sub { color: #6db3ff; }
+#secao-planos .plano-premium .plano-valor { color: var(--primaria); }
+#secao-planos .plano-premium .plano-preco-bloco { border-color: rgba(255, 255, 255, .14); }
+#secao-planos .plano-premium .plano-preco-bloco small { color: #c4d3e6; }
+#secao-planos .plano-premium .plano-preco-bloco small strong { color: var(--primaria); }
+#secao-planos .plano-premium ul { color: #fff; }
+#secao-planos .plano-premium li.ok::before { background: rgba(0, 200, 120, .22); color: var(--primaria); }
+#secao-planos .plano-premium .btn-selecionar-plano.atual { background: rgba(255, 255, 255, .14); color: #c4d3e6; }

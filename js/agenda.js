@@ -387,6 +387,9 @@ function iniciarDashboard() {
 
   // >>> API: agendamentos (começa vazio; guarda no localStorage até ter backend).
   let agendamentos = lerJsonLocal(CHAVE_AGENDAMENTOS, []);
+  // Agendamentos apagados só desta tela: o banco pode continuar com eles, mas eles não voltam quando a agenda recarrega
+  const CHAVE_AGENDAMENTOS_OCULTOS = "agendamentosOcultos";
+  let agendamentosOcultos = lerJsonLocal(CHAVE_AGENDAMENTOS_OCULTOS, []);
   let clientesProntos = Promise.resolve(); // vira a promessa de carregarClientes() na inicialização
 
   // >>> API: contratos próximos do vencimento (começa vazio).
@@ -527,7 +530,7 @@ function iniciarDashboard() {
         console.warn("A API devolveu agendamentos num formato não reconhecido (veja o primeiro item).", listaAg[0]);
         return false;
       }
-      agendamentos = doBanco; // o que vale é o que está no banco
+      agendamentos = doBanco.filter(ag => !agendamentosOcultos.includes(ag.id)); // o que vale é o que está no banco (menos os apagados só da tela)
       salvarAgendamentosLocal(agendamentos);
       renderizarAgenda();
       return true;
@@ -628,6 +631,12 @@ function iniciarDashboard() {
     return reg.boleto ? "boleto" : "";
   }
 
+  // O que cada plano pago inclui (igual ao que aparece na tela de Planos)
+  const inclusoPorPlano = {
+    BASICO: ["Sem limite de tempo", "Agendamentos ilimitados", "Até 10 colaboradores", "Suporte por e-mail", "Notificações por e-mail"],
+    PREMIUM: ["Sem limite de tempo", "Agendamentos ilimitados", "Colaboradores ilimitados", "Relatórios avançados (financeiro)", "Suporte prioritário (chat/telefone)", "Integração com WhatsApp", "Personalização de serviços e horários"]
+  };
+
   function atualizarAssinatura() {
     const cartaoAtiva = document.getElementById("assinatura-ativa");
     const cartaoPendente = document.getElementById("assinatura-pendente");
@@ -644,8 +653,13 @@ function iniciarDashboard() {
     const preencher = (cartao, plano) => {
       cartao.hidden = !plano;
       if (!plano) return;
-      cartao.querySelector("h3").textContent = nomesPlanos[plano];
+      cartao.querySelector("h3").textContent = "Plano " + nomesPlanos[plano];
       cartao.querySelectorAll("button[data-plano]").forEach(btn => { btn.dataset.plano = nomesPlanos[plano]; });
+      // lista "o que está incluso" do plano (mesmos itens da tela de Planos)
+      const lista = cartao.querySelector(".sa-lista");
+      if (lista) lista.innerHTML = (inclusoPorPlano[plano] || []).map(t => `<li>${t}</li>`).join("");
+      const nota = cartao.querySelector(".sa-nota-plano");
+      if (nota) nota.textContent = plano === "BASICO" ? "Relatórios financeiros, suporte prioritário e integração com WhatsApp ficam no plano Premium." : "";
     };
     preencher(cartaoAtiva, planoAtivo);
     preencher(cartaoPendente, planoPendente);
@@ -783,19 +797,14 @@ function iniciarDashboard() {
 
     // Tabela e gráficos do financeiro só aparecem na aba Financeiro (não no Dashboard junto com a agenda)
     document.querySelectorAll("#secao-financeiro .so-financeiro").forEach(el => { el.hidden = abaAtiva !== "Financeiro"; });
+    document.querySelectorAll("#secao-administrativo .so-administracao").forEach(el => { el.hidden = abaAtiva !== "Administracao"; });
 
     if (abaAtiva === "Dashboard") {
-      if (usuarioLogado.perfil === "DONO" && (planoAtual === "PREMIUM" || planoAtual === "PRO")) {
-        secFin.style.display = "block";
-        gridCardsFin.style.display = "grid";
-        gridCardsFin.hidden = false;
-        avisoBloqueioFin.hidden = true;
-      } else {
-        secFin.style.display = "none";
-        gridCardsFin.style.display = "none";
-        gridCardsFin.hidden = true;
-        avisoBloqueioFin.hidden = true;
-      }
+      // Dashboard sem o bloco financeiro (receitas, período dos valores etc.): ele fica só na aba Financeiro
+      secFin.style.display = "none";
+      gridCardsFin.style.display = "none";
+      gridCardsFin.hidden = true;
+      avisoBloqueioFin.hidden = true;
       secAgenda.style.display = "block";
       secAdmin.style.display = (usuarioLogado.perfil === "DONO") ? "block" : "none";
     } else if (abaAtiva === "Financeiro") {
@@ -1042,6 +1051,81 @@ function iniciarDashboard() {
     });
   }
 
+  // --- HISTÓRICO: QUEM DESMARCOU E QUEM REMARCOU ---
+  // Cada vez que um agendamento é apagado ("desmarcou") ou muda de data/horário ("remarcou"), fica um registro
+  // guardado no navegador (separado por e-mail do dono). >>> API: quando houver endpoint, estes registros podem vir dele.
+  function chaveHistoricoAgenda() {
+    return "historicoAgenda:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
+  }
+  function lerHistoricoAgenda() {
+    const lista = lerJsonLocal(chaveHistoricoAgenda(), []);
+    return Array.isArray(lista) ? lista : [];
+  }
+  function registrarHistoricoAgenda(evento) {
+    try {
+      const lista = lerHistoricoAgenda();
+      lista.push(Object.assign({}, evento, { quando: new Date().toISOString() }));
+      localStorage.setItem(chaveHistoricoAgenda(), JSON.stringify(lista));
+    } catch (e) { /* sem armazenamento: a agenda continua funcionando */ }
+  }
+
+  // Barras por cliente (desmarcou x remarcou) + lista com o que aconteceu, no período escolhido (Dia/Semana/Mês).
+  // O período vale para o dia do horário original do agendamento.
+  function renderizarAlteracoes(limites) {
+    const lista = document.getElementById("alt-lista");
+    if (!lista) return;
+    const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    const br = iso => iso ? iso.split("-").reverse().join("/") : "";
+
+    const [ini, fim] = limites[modoVisualizacao];
+    const eventos = lerHistoricoAgenda().filter(e => e.dataOriginal >= ini && e.dataOriginal <= fim);
+    const desmarcados = eventos.filter(e => e.tipo === "desmarcou").length;
+    const remarcados = eventos.filter(e => e.tipo === "remarcou").length;
+
+    document.getElementById("valor-desmarcados").textContent = desmarcados;
+    document.getElementById("valor-remarcados").textContent = remarcados;
+    document.getElementById("titulo-alteracoes-resumo").textContent = `Desmarcações e remarcações (${modoVisualizacao})`;
+    document.getElementById("titulo-alteracoes").textContent = `Quem desmarcou e quem remarcou (${modoVisualizacao})`;
+
+    // Rosca igual à de "Participação por colaborador": fatia vermelha = desmarcou, amarela = remarcou
+    const rosca = document.getElementById("alt-rosca");
+    const legenda = document.getElementById("alt-legenda");
+    const itens = [
+      { nome: "Desmarcou", cor: "#e11d48", valor: desmarcados },
+      { nome: "Remarcou", cor: "#f7b032", valor: remarcados }
+    ].filter(i => i.valor > 0);
+    const total = desmarcados + remarcados;
+
+    const R = 48, C = 2 * Math.PI * R;
+    let desenho = `<circle cx="60" cy="60" r="${R}" fill="none" stroke-width="16" style="stroke: var(--hover-menu)"></circle>`;
+    let acumulado = 0;
+    itens.forEach(i => {
+      const tamanho = (i.valor / total) * C;
+      const visivel = itens.length > 1 ? Math.max(tamanho - 1.5, 0.5) : tamanho;
+      desenho += `<circle cx="60" cy="60" r="${R}" fill="none" stroke="${i.cor}" stroke-width="16" stroke-dasharray="${visivel} ${C - visivel}" stroke-dashoffset="${-acumulado}" transform="rotate(-90 60 60)"></circle>`;
+      acumulado += tamanho;
+    });
+    desenho += `<text x="60" y="58" text-anchor="middle" class="rosca-total">${total}</text><text x="60" y="71" text-anchor="middle">${total === 1 ? "alteração" : "alterações"}</text>`;
+    rosca.innerHTML = desenho;
+
+    if (!total) {
+      legenda.innerHTML = `<p class="grafico-colab-vazio">Ninguém desmarcou nem remarcou neste período.</p>`;
+      lista.innerHTML = "";
+      return;
+    }
+    legenda.innerHTML = itens.map(i => `<div><span class="rosca-pct" style="color:${i.cor}">${Math.round((i.valor / total) * 100)}%</span><span class="rosca-nome">${i.nome} (${i.valor})</span></div>`).join("");
+
+    lista.innerHTML = eventos.slice().sort((a, b) => String(b.quando).localeCompare(String(a.quando))).slice(0, 12).map(e => {
+      const antes = `${br(e.dataOriginal)} às ${esc(e.horaOriginal)}`;
+      const texto = e.tipo === "remarcou"
+        ? `remarcou de ${antes} para ${br(e.dataNova)} às ${esc(e.horaNova)}`
+        : `desmarcou o horário de ${antes}`;
+      const detalhe = [e.servico, e.colaboradorNome].filter(Boolean).map(esc).join(" · ");
+      return `<div class="alt-item"><i class="alt-ponto ${e.tipo === "remarcou" ? "alt-ponto-remarcou" : "alt-ponto-desmarcou"}"></i>
+        <div><strong>${esc(e.cliente || "Sem nome")}</strong> ${texto}${detalhe ? `<small>${detalhe}</small>` : ""}</div></div>`;
+    }).join("");
+  }
+
   function atualizarFinanceiro() {
     // Receitas e saldo vêm da soma dos agendamentos de cada período (despesas continuam vindo de financeiroPorPeriodo)
     const { limites, linhas } = calcularFaturamentoPorColaborador();
@@ -1053,15 +1137,10 @@ function iniciarDashboard() {
     const d = financeiroPorPeriodo[modoVisualizacao];
     document.getElementById("titulo-receitas").textContent = `Receitas (${modoVisualizacao})`;
     document.getElementById("valor-receitas").textContent = formatarMoeda(d.receitas);
-    document.getElementById("valor-despesas").textContent = formatarMoeda(d.despesas);
-    document.getElementById("valor-saldo").textContent = formatarMoeda(d.saldo);
-    document.querySelector(".eixo-max").textContent = d.eixoMaximo.toLocaleString("pt-BR");
-    document.querySelector(".eixo-meio").textContent = (d.eixoMaximo / 2).toLocaleString("pt-BR");
-    document.querySelector('[data-meio="pix"] .barra').style.height = (d.pagamentos.pix / d.eixoMaximo) * 100 + "%";
-    document.querySelector('[data-meio="cartao"] .barra').style.height = (d.pagamentos.cartao / d.eixoMaximo) * 100 + "%";
     renderizarTabelaFinanceiro(limites, linhas);
     renderizarRosca(linhas);
     renderizarLinhaMes(linhas, limites);
+    renderizarAlteracoes(limites);
   }
 
   // --- PAGINAÇÃO DA AGENDA ---
@@ -1152,7 +1231,7 @@ function iniciarDashboard() {
 
   // --- RENDERIZAÇÃO DA AGENDA ---
   const horaInicio = 7;
-  const horaFim = 15;
+  const horaFim = 19;
   const totalHoras = horaFim - horaInicio;
   const agenda = document.getElementById("agenda");
   const seletorData = document.getElementById("seletor-data");
@@ -1161,21 +1240,33 @@ function iniciarDashboard() {
   async function removerAgendamento(id, event) {
     if (event) event.stopPropagation();
 
-    // >>> API: DELETE /Agendamentos/{id}. Só some da agenda o que foi apagado no banco
-    // (senão ele voltaria na próxima vez que a agenda for carregada).
+    // Tenta apagar no banco. Se a API não tiver essa função, o agendamento some só desta tela
+    // (o banco pode continuar com ele) e o id fica guardado para ele não voltar quando a agenda recarregar.
     try {
       await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
     } catch (erro) {
-      console.warn("Não foi possível remover o agendamento na API.", erro.message);
-      alert(mensagemErroApiComum(erro, "Não foi possível remover o agendamento no banco."));
-      return;
+      console.warn("A API não apagou o agendamento; ele foi removido só desta tela.", erro.message);
     }
 
-    if (!(await recarregarAgendamentosDoBanco())) {
-      agendamentos = agendamentos.filter(a => a.id !== id);
-      salvarAgendamentosLocal(agendamentos);
-      renderizarAgenda();
+    if (!agendamentosOcultos.includes(id)) {
+      agendamentosOcultos.push(id);
+      localStorage.setItem(CHAVE_AGENDAMENTOS_OCULTOS, JSON.stringify(agendamentosOcultos));
     }
+    const agDesmarcado = agendamentos.find(a => a.id === id);
+    if (agDesmarcado) {
+      const colab = colaboradores.find(c => c.id === agDesmarcado.colaboradorId);
+      registrarHistoricoAgenda({
+        tipo: "desmarcou",
+        cliente: agDesmarcado.cliente,
+        servico: agDesmarcado.servico || "",
+        colaboradorNome: colab ? colab.nome : "",
+        dataOriginal: agDesmarcado.data,
+        horaOriginal: agDesmarcado.horaInicio
+      });
+    }
+    agendamentos = agendamentos.filter(a => a.id !== id);
+    salvarAgendamentosLocal(agendamentos);
+    renderizarAgenda();
   }
 
   // =====================================================
@@ -1648,6 +1739,21 @@ function iniciarDashboard() {
       return;
     } finally {
       if (btnConfirmar) btnConfirmar.disabled = false;
+    }
+
+    // Editou e mudou o dia ou o horário = remarcou
+    if (agendamentoOriginal && (agendamentoOriginal.data !== novoAgendamento.data || agendamentoOriginal.horaInicio !== novoAgendamento.horaInicio)) {
+      const colabRemarcou = colaboradores.find(c => c.id === novoAgendamento.colaboradorId);
+      registrarHistoricoAgenda({
+        tipo: "remarcou",
+        cliente: novoAgendamento.cliente,
+        servico: novoAgendamento.servico || "",
+        colaboradorNome: colabRemarcou ? colabRemarcou.nome : "",
+        dataOriginal: agendamentoOriginal.data,
+        horaOriginal: agendamentoOriginal.horaInicio,
+        dataNova: novoAgendamento.data,
+        horaNova: novoAgendamento.horaInicio
+      });
     }
 
     // Volta ao banco para pegar o que ficou gravado (ids e valores de verdade).
@@ -2729,6 +2835,7 @@ function iniciarDashboard() {
         if (!semPlano && !confirm("Voltar para o plano Grátis? Você perde os recursos do plano atual.")) return;
         localStorage.removeItem(CHAVE_ASSINATURA);
         limparBoleto();
+        reiniciarTeste(); // plano Grátis novo: o contador volta para 30 dias
         escolherPlano(plano);
         return;
       }
@@ -2875,13 +2982,23 @@ document.addEventListener("DOMContentLoaded", iniciarDashboard);
    Cole em js/comum.js (ou carregue como js/contador-teste.js).
    ===================================================================== */
 const DIAS_TESTE = 30;
-const CHAVE_INICIO_TESTE = 'gt_inicio_teste';
+
+/* O início do teste é guardado POR CONTA (e-mail): outra conta no mesmo navegador começa com 30 dias novos. */
+function chaveInicioTeste() {
+  return 'gt_inicio_teste:' + (localStorage.getItem('emailUsuarioLogado') || 'dono').trim().toLowerCase();
+}
 
 /* Chame UMA vez, no momento do cadastro da conta (quando o teste começa). */
 function iniciarTeste() {
-  if (!localStorage.getItem(CHAVE_INICIO_TESTE)) {
-    localStorage.setItem(CHAVE_INICIO_TESTE, new Date().toISOString());
+  if (!localStorage.getItem(chaveInicioTeste())) {
+    localStorage.setItem(chaveInicioTeste(), new Date().toISOString());
   }
+}
+
+/* Plano novo (ex.: voltou para o Grátis): o teste recomeça do dia 1 de 30. */
+function reiniciarTeste() {
+  localStorage.setItem(chaveInicioTeste(), new Date().toISOString());
+  if (typeof atualizarContadorTeste === 'function') atualizarContadorTeste();
 }
 
 function meiaNoite(data) {
@@ -2891,7 +3008,7 @@ function meiaNoite(data) {
 /* Calcula quantos dias já passaram e quantos faltam. */
 function calcularTeste() {
   iniciarTeste(); // garante uma data de início mesmo em contas antigas
-  const inicio = new Date(localStorage.getItem(CHAVE_INICIO_TESTE));
+  const inicio = new Date(localStorage.getItem(chaveInicioTeste()));
   const MS_DIA = 24 * 60 * 60 * 1000;
   // Math.round evita erro de 1 dia na troca de horário de verão
   const decorridos = Math.round((meiaNoite(new Date()) - meiaNoite(inicio)) / MS_DIA);
@@ -2905,14 +3022,6 @@ function calcularTeste() {
   };
 }
 
-/* Cor da barra conforme os dias que restam: verde (30) → amarelo → laranja → vermelho (0).
-   Usa a matiz (hue) do HSL: 155 = verde do site, 0 = vermelho. */
-function corDaBarra(restantes) {
-  if (restantes <= 0) return '#d32f2f';
-  const hue = Math.round(155 * (restantes / DIAS_TESTE));
-  return 'hsl(' + hue + ', 90%, 42%)';
-}
-
 /* Escreve o resultado na tela (card do plano Grátis na aba Assinatura). */
 function atualizarContadorTeste() {
   const elDias = document.getElementById('trial-dias');
@@ -2923,15 +3032,10 @@ function atualizarContadorTeste() {
   const t = calcularTeste();
   elDias.textContent = t.restantes;
   elRotulo.textContent = t.restantes === 1 ? 'dia restante' : 'dias restantes';
+  elBarra.style.width = t.percentual + '%';
 
-  // barra CHEIA com 30 dias e vai esvaziando até 0
-  elBarra.style.width = (t.restantes / DIAS_TESTE) * 100 + '%';
-  elBarra.style.background = corDaBarra(t.restantes);
-
-  // no zero: o fundo da barra fica avermelhado e o número também
-  const trilho = elBarra.parentElement;
-  if (trilho) trilho.style.background = t.expirado ? 'rgba(211, 47, 47, .22)' : '';
-  elDias.style.color = t.expirado ? '#d32f2f' : '';
+  // cor da barra: verde → âmbar (7 dias ou menos) → vermelho (acabou)
+  elBarra.style.background = t.expirado ? '#d32f2f' : t.restantes <= 7 ? '#ffb020' : '#00c878';
 
   const aviso = document.getElementById('trial-aviso');
   if (aviso) {

@@ -99,7 +99,16 @@
         <main class="conteudo">
           <!-- FINANCEIRO -->
           <section id="secao-financeiro">
-            <h2>Financeiro</h2>
+            <!-- Faixa do topo (só aparece na aba Financeiro; o JS já controla as classes so-financeiro) -->
+            <div class="hero-pagina hero-fin so-financeiro" hidden>
+              <div class="hero-texto">
+                <p class="hero-eyebrow">PAINEL FINANCEIRO</p>
+                <h1>Financeiro</h1>
+                <p class="hero-resumo">
+                  Acompanhe receitas, despesas e o faturamento de cada colaborador.
+                </p>
+              </div>
+            </div>
 
             <div
               id="aviso-bloqueio-financeiro-pagina"
@@ -148,59 +157,19 @@
                 </div>
               </div>
 
-              <div class="stat-card" id="card-despesas">
-                <div class="overlay-bloqueio" hidden>
-                  <div class="box-cadeado">
-                    <span class="icone-cadeado">🔒</span>
+              <!-- Resumo de desmarcações e remarcações do período escolhido -->
+              <div class="stat-card" id="card-alteracoes-resumo">
+                <span class="stat-label" id="titulo-alteracoes-resumo"
+                  >Desmarcações e remarcações (Dia)</span
+                >
+                <div class="alt-resumo">
+                  <div>
+                    <strong class="stat-valor" id="valor-desmarcados">0</strong>
+                    <small>desmarcados</small>
                   </div>
-                  <span class="tag-pro">Exclusivo Premium</span>
-                </div>
-                <div class="conteudo-bloqueavel">
-                  <span class="stat-label">Despesas</span>
-                  <strong class="stat-valor" id="valor-despesas"
-                    >R$ 0,00</strong
-                  >
-                </div>
-              </div>
-
-              <div class="stat-card" id="card-saldo">
-                <div class="overlay-bloqueio" hidden>
-                  <div class="box-cadeado">
-                    <span class="icone-cadeado">🔒</span>
-                  </div>
-                  <span class="tag-pro">Exclusivo Premium</span>
-                </div>
-                <div class="conteudo-bloqueavel">
-                  <span class="stat-label">Saldo Final</span>
-                  <strong class="stat-valor" id="valor-saldo">R$ 0,00</strong>
-                </div>
-              </div>
-
-              <div class="stat-card grafico-card" id="card-grafico">
-                <div class="overlay-bloqueio" hidden>
-                  <div class="box-cadeado">
-                    <span class="icone-cadeado">🔒</span>
-                  </div>
-                  <span class="tag-pro">Exclusivo Premium</span>
-                </div>
-                <div class="conteudo-bloqueavel">
-                  <span class="stat-label">Meios de Pagamento</span>
-                  <div class="grafico-pagamentos">
-                    <div class="eixo-y">
-                      <span class="eixo-max">6.000</span>
-                      <span class="eixo-meio">3.000</span>
-                      <span class="eixo-min">0</span>
-                    </div>
-                    <div class="barras">
-                      <div class="barra-col" data-meio="pix">
-                        <div class="barra"></div>
-                        <label>Pix</label>
-                      </div>
-                      <div class="barra-col" data-meio="cartao">
-                        <div class="barra"></div>
-                        <label>Cartão de Crédito</label>
-                      </div>
-                    </div>
+                  <div>
+                    <strong class="stat-valor" id="valor-remarcados">0</strong>
+                    <small>remarcados</small>
                   </div>
                 </div>
               </div>
@@ -227,6 +196,26 @@
                   <span class="stat-label">Faturamento acumulado no mês</span>
                   <div id="linha-grafico"></div>
                   <div class="linha-legenda" id="linha-legenda"></div>
+                </div>
+              </div>
+
+              <!-- Quem desmarcou e quem remarcou (outra data ou outro horário) -->
+              <div class="stat-card so-financeiro" id="card-alteracoes" hidden>
+                <span class="stat-label" id="titulo-alteracoes"
+                  >Quem desmarcou e quem remarcou (Dia)</span
+                >
+                <div class="alt-corpo">
+                  <div class="rosca-conteudo">
+                    <div class="rosca-legenda" id="alt-legenda"></div>
+                    <svg
+                      class="rosca-svg"
+                      id="alt-rosca"
+                      viewBox="0 0 120 120"
+                      role="img"
+                      aria-label="Desmarcações e remarcações no período"
+                    ></svg>
+                  </div>
+                  <div class="alt-lista" id="alt-lista"></div>
                 </div>
               </div>
 
@@ -329,6 +318,17 @@
 
 <!-- ADMINISTRATIVO -->
 <section id="secao-administrativo">
+
+  <!-- Faixa do topo (só aparece na aba Administrativo) -->
+  <div class="hero-pagina hero-adm so-administracao" hidden>
+    <div class="hero-texto">
+      <p class="hero-eyebrow">PAINEL ADMINISTRATIVO</p>
+      <h1>Administrativo</h1>
+      <p class="hero-resumo">
+        Cadastre sua equipe, seus serviços e seus clientes em um só lugar.
+      </p>
+    </div>
+  </div>
 
   <!-- ===== EQUIPE ===== -->
   <div class="grupo-admin">
@@ -819,10 +819,11 @@
 
           <!-- TELA DE SELEÇÃO DE PLANOS -->
           <section id="secao-planos" style="display: none">
-            <h2>Planos e Assinaturas</h2>
-            <p style="color: var(--muted); font-size: 13px; margin-top: -8px">
-              Escolha o plano ideal para gerenciar o seu negócio.
-            </p>
+            <div class="pl-hero">
+              <p class="pl-eyebrow">PLANOS E ASSINATURAS</p>
+              <h2>Escolha o seu plano</h2>
+              <p>Escolha o plano ideal para gerenciar o seu negócio.</p>
+            </div>
             <p
               id="aviso-sem-plano"
               hidden
@@ -840,17 +841,22 @@
 
             <div class="planos-grid">
               <!-- PLANO FREE -->
-              <div class="card-plano" id="card-plano-free">
+              <div class="card-plano plano-free" id="card-plano-free">
                 <div>
-                  <h3>Grátis</h3>
+                  <h3>Free (Degustação)</h3>
+                  <p class="plano-sub">30 dias de uso</p>
                   <div class="preco" data-preco-plano="FREE"></div>
+                  <div class="plano-preco-bloco">
+                    <p class="plano-gratis">Grátis</p>
+                    <small>Teste por 30 dias, sem cartão de crédito</small>
+                  </div>
                   <ul>
-                    <li>✓ Agendamentos ilimitados durante o período</li>
-                    <li>✓ Até 15 colaboradores</li>
-                    <li>✓ Agenda simples</li>
-                    <li>✕ Sem relatórios</li>
-                    <li>✕ Sem suporte prioritário</li>
-                    <li>✕ Sem integrações externas</li>
+                    <li class="ok">Agendamentos ilimitados durante o período</li>
+                    <li class="ok">Até 15 colaboradores</li>
+                    <li class="ok">Agenda simples</li>
+                    <li class="no">Sem relatórios</li>
+                    <li class="no">Sem suporte prioritário</li>
+                    <li class="no">Sem integrações externas</li>
                   </ul>
                 </div>
                 <button class="btn-selecionar-plano" id="btn-plano-free">
@@ -859,18 +865,24 @@
               </div>
 
               <!-- PLANO BÁSICO -->
-              <div class="card-plano" id="card-plano-basico">
+              <div class="card-plano plano-basico" id="card-plano-basico">
                 <div>
                   <h3>Básico</h3>
+                  <p class="plano-sub">Sem limite de tempo</p>
                   <div class="preco" data-preco-plano="BASICO"></div>
+                  <div class="plano-preco-bloco">
+                    <p class="plano-valor"><sup>R$</sup> 80 <span>/mês</span></p>
+                    <small>Contrato de 12 meses, renovação anual</small>
+                    <small>ou <strong>R$ 960</strong> à vista</small>
+                    <small><strong>Cartão de crédito em até 12x ou Pix</strong></small>
+                  </div>
                   <ul>
-                    <li>✓ Sem limite de tempo</li>
-                    <li>✓ Agendamentos ilimitados</li>
-                    <li>✓ Até 10 colaboradores</li>
-                    <li>✕ Sem relatórios de agenda</li>
-                    <li>✕ Sem relatórios financeiros</li>
-                    <li>✓ Suporte somente por e-mail</li>
-                    <li>✓ Notificações por e-mail</li>
+                    <li class="ok">Agendamentos ilimitados</li>
+                    <li class="ok">Até 10 colaboradores</li>
+                    <li class="no">Sem relatórios de agenda</li>
+                    <li class="no">Sem relatórios financeiros</li>
+                    <li class="ok">Suporte somente por e-mail</li>
+                    <li class="ok">Notificações por e-mail</li>
                   </ul>
                 </div>
                 <div>
@@ -881,18 +893,25 @@
               </div>
 
               <!-- PLANO PREMIUM -->
-              <div class="card-plano" id="card-plano-premium">
+              <div class="card-plano plano-premium" id="card-plano-premium">
+                <span class="plano-selo">MAIS COMPLETO</span>
                 <div>
                   <h3>Premium</h3>
+                  <p class="plano-sub">Sem limite de tempo</p>
                   <div class="preco" data-preco-plano="PREMIUM"></div>
+                  <div class="plano-preco-bloco">
+                    <p class="plano-valor"><sup>R$</sup> 150 <span>/mês</span></p>
+                    <small>Contrato de 12 meses, renovação anual</small>
+                    <small>ou <strong>R$ 1.800</strong> à vista</small>
+                    <small><strong>Cartão de crédito em até 12x ou Pix</strong></small>
+                  </div>
                   <ul>
-                    <li>✓ Sem limite de tempo</li>
-                    <li>✓ Agendamentos ilimitados</li>
-                    <li>✓ Colaboradores ilimitados</li>
-                    <li>✓ Relatórios avançados (financeiro)</li>
-                    <li>✓ Suporte prioritário (chat/telefone)</li>
-                    <li>✓ Integração com WhatsApp</li>
-                    <li>✓ Personalização de serviços e horários</li>
+                    <li class="ok">Agendamentos ilimitados</li>
+                    <li class="ok">Colaboradores ilimitados</li>
+                    <li class="ok">Relatórios avançados (financeiro)</li>
+                    <li class="ok">Suporte prioritário (chat/telefone)</li>
+                    <li class="ok">Integração com WhatsApp</li>
+                    <li class="ok">Personalização de serviços e horários</li>
                   </ul>
                 </div>
                 <div>
@@ -909,67 +928,111 @@
             <p style="color: var(--muted); font-size: 13px; margin-top: -8px">
         
             <div class="assinatura-lista">
-              <!-- Plano ativo -->
-              <div class="card-assinatura" id="assinatura-ativa" hidden>
-                <span class="assinatura-status">Assinatura ativa</span>
-                <h3>—</h3>
-                <div>
-                  <button
-                    type="button"
-                    class="btn-ver-boleto"
-                    data-plano="Premium"
-                  >
-                    📄 Ver boleto
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-trocar-pagamento"
-                    data-plano="Premium"
-                    hidden
-                  >
-                    💳 Trocar forma de pagamento
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-cancelar-assinatura"
-                    data-plano="Premium"
-                    hidden
-                  >
-                    Cancelar assinatura
-                  </button>
+              <!-- Plano ativo (Básico ou Premium): mesmo layout do plano Grátis -->
+              <div class="card-assinatura sa-novo" id="assinatura-ativa" hidden>
+
+                <div class="sa-hero">
+                  <div>
+                    <p class="sa-eyebrow">MINHA ASSINATURA</p>
+                    <h3>—</h3>
+                    <p>Seu plano está ativo.</p>
+                  </div>
+                  <span class="assinatura-status">Assinatura ativa</span>
+                </div>
+
+                <div class="sa-corpo sa-grade-2">
+                  <div class="sa-card">
+                    <h4>Sua assinatura</h4>
+                    <p>Veja o pagamento, troque a forma de pagamento ou cancele quando quiser.</p>
+
+                    <div class="sa-acoes">
+                      <button
+                        type="button"
+                        class="btn-ver-boleto"
+                        data-plano="Premium"
+                      >
+                        📄 Ver boleto
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-trocar-pagamento"
+                        data-plano="Premium"
+                        hidden
+                      >
+                        💳 Trocar forma de pagamento
+                      </button>
+                    </div>
+                    <p class="sa-cancelar-linha">
+                      <button
+                        type="button"
+                        class="btn-cancelar-assinatura"
+                        data-plano="Premium"
+                        hidden
+                      >
+                        Cancelar assinatura
+                      </button>
+                    </p>
+                  </div>
+
+                  <div class="sa-card">
+                    <h4>O que está incluso</h4>
+                    <ul class="sa-lista"></ul>
+                    <p class="sa-nota-plano" style="margin-top: 18px"></p>
+                  </div>
                 </div>
               </div>
 
               <!-- Plano escolhido que ainda aguarda o pagamento do boleto -->
-              <div class="card-assinatura" id="assinatura-pendente" hidden>
-                <span class="assinatura-status pendente"
-                  >Aguardando pagamento do boleto</span
-                >
-                <h3>—</h3>
-                <div>
-                  <button
-                    type="button"
-                    class="btn-ver-boleto"
-                    data-plano="Premium"
-                  >
-                    📄 Ver boleto
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-trocar-pagamento"
-                    data-plano="Premium"
-                    hidden
-                  >
-                    💳 Trocar forma de pagamento
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-cancelar-assinatura"
-                    data-plano="Premium"
-                    hidden
-                  >
-                    Cancelar assinatura
-                  </button>
+              <div class="card-assinatura sa-novo" id="assinatura-pendente" hidden>
+
+                <div class="sa-hero">
+                  <div>
+                    <p class="sa-eyebrow">MINHA ASSINATURA</p>
+                    <h3>—</h3>
+                    <p>Falta pagar o boleto para ativar este plano.</p>
+                  </div>
+                  <span class="assinatura-status pendente">Aguardando pagamento do boleto</span>
+                </div>
+
+                <div class="sa-corpo sa-grade-2">
+                  <div class="sa-card">
+                    <h4>Pagamento pendente</h4>
+                    <p>Pague o boleto para liberar o plano. Você pode trocar a forma de pagamento ou cancelar.</p>
+
+                    <div class="sa-acoes">
+                      <button
+                        type="button"
+                        class="btn-ver-boleto"
+                        data-plano="Premium"
+                      >
+                        📄 Ver boleto
+                      </button>
+                      <button
+                        type="button"
+                        class="btn-trocar-pagamento"
+                        data-plano="Premium"
+                        hidden
+                      >
+                        💳 Trocar forma de pagamento
+                      </button>
+                    </div>
+                    <p class="sa-cancelar-linha">
+                      <button
+                        type="button"
+                        class="btn-cancelar-assinatura"
+                        data-plano="Premium"
+                        hidden
+                      >
+                        Cancelar assinatura
+                      </button>
+                    </p>
+                  </div>
+
+                  <div class="sa-card">
+                    <h4>O que você ganha ao ativar</h4>
+                    <ul class="sa-lista"></ul>
+                    <p class="sa-nota-plano" style="margin-top: 18px"></p>
+                  </div>
                 </div>
               </div>
 
