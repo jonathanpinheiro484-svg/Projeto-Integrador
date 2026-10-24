@@ -858,7 +858,7 @@ function iniciarDashboard() {
   function atualizarFiltroColaborador() {
     const select = document.getElementById("filtro-colaborador");
 
-    select.innerHTML = `<option value="todos">Procurar colaborador...</option>`;
+    select.innerHTML = `<option value="todos">Todos os Colaboradores</option>`;
 
     comDono(colaboradores).filter(c => c.ativo !== false).forEach(c => {
       select.insertAdjacentHTML(

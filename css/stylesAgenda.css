@@ -1313,6 +1313,7 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
 
 
 /* =====================================================================
+<<<<<<< HEAD
    VISUAL DA AGENDA APLICADO NAS OUTRAS TELAS
    Financeiro, Planos e cards antigos da Assinatura.
    (Suporte, Agenda e Administrativo não foram alterados.)
@@ -1581,3 +1582,103 @@ aside.sidebar nav.menu a.menu-item.menu-item--sair:hover {
 #secao-planos .plano-premium ul { color: #fff; }
 #secao-planos .plano-premium li.ok::before { background: rgba(0, 200, 120, .22); color: var(--primaria); }
 #secao-planos .plano-premium .btn-selecionar-plano.atual { background: rgba(255, 255, 255, .14); color: #c4d3e6; }
+=======
+   AJUSTES: ALINHAMENTO + MODO ESCURO
+   Colar no FINAL do stylesAgenda.css (depois do dashboard-repaginado.css).
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1) MODO ESCURO: calendário, formulários e demais cartões NÃO mudam de cor.
+   Em vez de reescrever cada regra, devolvemos aqui as cores do tema claro
+   para dentro desses cartões. Só o fundo da página e a barra do topo
+   continuam escurecendo.
+   Para um cartão voltar a escurecer no modo noturno, é só tirar o seletor
+   dele desta lista.
+   --------------------------------------------------------------------- */
+[data-theme="dark"] :is(
+  .painel-agenda,
+  .admin-card,
+  .modal-card,
+  .stat-card,
+  .financeiro-tabela-wrap,
+  .card-bloqueio-plano,
+  .card-plano,
+  .card-assinatura:not(.sa-novo),
+  .sa-card,
+  .sup-form-card,
+  .sup-faq,
+  .sup-canal,
+  .cad
+) {
+  --bg: #f3f6fb;
+  --card: #ffffff;
+  --border: #dbe5f2;
+  --texto: #0a1f38;
+  --muted: #64748b;
+  --input-bg: #eaf1fc;
+  --hover-menu: #eaf1fc;
+  color: var(--texto);
+  color-scheme: light; /* calendário nativo e listas dos campos também ficam claros */
+}
+
+/* regras do tema escuro com cor fixa que ainda vazavam para dentro dos cartões */
+[data-theme="dark"] .stat-card .overlay-bloqueio .box-cadeado { background: #f8fafc; }
+[data-theme="dark"] .sa-card strong.sa-alerta { color: #b45309; }
+[data-theme="dark"] .sa-card .sa-cancelar-linha .btn-cancelar-assinatura { color: #b42318; }
+
+/* ---------------------------------------------------------------------
+   2) ALINHAMENTOS
+   --------------------------------------------------------------------- */
+
+/* painel da agenda com as mesmas bordas laterais da faixa e dos cartões de baixo */
+.painel-agenda { margin: -68px 0 0; }
+
+/* respiro entre a agenda e a administração */
+#secao-administrativo { margin-top: 28px; }
+
+/* os dois botões da faixa com exatamente a mesma altura e o texto centralizado */
+.btn-verde,
+.btn-borda { min-height: 48px; padding: 0 26px; justify-content: center; line-height: 1; }
+
+/* barra de ferramentas: tudo na mesma linha, na mesma altura, e controles à direita */
+.painel-agenda .agenda-header { align-items: center; }
+.painel-agenda .agenda-titulo-data { align-items: center; }
+#agenda-data-texto { line-height: 1; }
+.agenda-controles { margin-left: auto; align-items: center; justify-content: flex-end; }
+.paginacao { display: inline-flex; align-items: center; height: 40px; }
+.agenda-filtro { gap: 8px; }
+.agenda-filtro label { margin: 0; white-space: nowrap; }
+.agenda-filtro .select-colunas { min-width: 210px; }
+
+/* formulários: cada linha começa alinhada no topo (a dica de um campo não estica o vizinho) */
+.form-2col { align-items: start; }
+.form-2col .campo { min-width: 0; }
+.admin-card .form-agendamento .dica-campo { line-height: 1.35; }
+
+/* cabeçalho dos cartões e listas sempre alinhados à esquerda do cartão */
+.admin-card .admin-card-header { align-items: flex-start; }
+.admin-card th:first-child,
+.admin-card td:first-child { padding-left: 12px; }
+.admin-card th:last-child,
+.admin-card td:last-child { padding-right: 12px; }
+
+@media (max-width: 900px) {
+  .painel-agenda { margin: -60px 0 0; }
+  .agenda-controles { margin-left: 0; width: 100%; justify-content: flex-start; }
+  .agenda-filtro { flex: 1 1 100%; flex-wrap: wrap; }
+  .agenda-filtro .select-colunas { flex: 1; min-width: 0; }
+}
+
+
+
+
+/* espaço entre Equipe, Serviços e Clientes (não depende do display da seção) */
+#secao-administrativo > .grupo-admin + .grupo-admin {
+  margin-top: 48px;
+}
+
+/* respiro entre o painel da agenda e o primeiro grupo */
+#secao-administrativo > .grupo-admin:first-child {
+  margin-top: 8px;
+}
+>>>>>>> 8017f0c7f6e81f98669b839498d0246803a6ee27
