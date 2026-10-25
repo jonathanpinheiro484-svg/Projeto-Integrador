@@ -286,3 +286,17 @@ body {
     text-indent: 8px;
   }
 }
+
+/* Logo com ícone (substitui o texto do ::before) */
+.card-recuperar::before { display: none; }
+.logo-recuperar {
+  margin-bottom: 26px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rec-borda);
+  font-family: "Archivo Black", "Inter", sans-serif;
+  font-size: 22px;
+  color: var(--rec-marinho);
+}
+/* Logo com fundo próprio (igual à foto) */
+.logo-recuperar { display: inline-block; padding: 0; background: none; border-bottom: none; }
+.logo-recuperar .logo-img { height: 54px !important; }

@@ -557,3 +557,11 @@ main { padding-top: 76px; }
   .faq .accordion-button { padding: 16px 18px; font-size: .97rem; }
   .faq .accordion-body { padding: 16px 18px 20px; }
 }
+
+/* ===== Ajustes: só Básico e Premium; botões alinhados ===== */
+.planos-grade { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); max-width: 900px; }
+.plano-card .plano-pagamento { margin-top: 10px; font-weight: 400; }
+.plano-card .plano-pagamento strong { color: var(--preco-cor); font-weight: 700; }
+.botao { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; text-align: center; line-height: 1.2; }
+.menu-acoes { align-items: center; }
+.plano-card .botao { display: flex; }

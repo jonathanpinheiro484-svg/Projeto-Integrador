@@ -33,6 +33,25 @@ function iniciarDashboard() {
   });
 
   // =====================================================
+  // USUÁRIO NOVO COMEÇA ZERADO
+  // Agenda, equipe e status ficam guardados neste navegador. Se entrou uma conta diferente
+  // da última, apaga o que era da conta anterior para a nova começar sem nada.
+  // (Serviços e clientes já vêm do banco, só do dono logado.)
+  // =====================================================
+  (function zerarDadosDeOutraConta() {
+    const sessao = lerJsonLocal(CHAVE_SESSAO, null);
+    if (sessao && sessao.perfil === "COLABORADOR") return; // colaborador usa os dados do próprio dono
+    const emailAtual = (localStorage.getItem("emailUsuarioLogado") || "").trim().toLowerCase();
+    if (!emailAtual) return;
+    const dono = localStorage.getItem("donoDosDadosLocais");
+    if (dono !== emailAtual) {
+      [CHAVE_AGENDAMENTOS, CHAVE_COLABORADORES, "agendamentosOcultos", "colaboradoresRemovidos", "statusAgendamentosLocal"]
+        .forEach(chave => localStorage.removeItem(chave));
+      try { localStorage.setItem("donoDosDadosLocais", emailAtual); } catch (e) { /* sem armazenamento */ }
+    }
+  })();
+
+  // =====================================================
   // DONO NA AGENDA
   // O dono também atende clientes, então aparece como uma coluna da agenda,
   // igual a um colaborador. Ele usa o id 0 (os colaboradores começam no 1),
@@ -297,6 +316,14 @@ function iniciarDashboard() {
       planoAtual = "NENHUM";
     }
   }
+  // Plano vencido: assinatura paga por Pix/boleto cuja data de pagamento já passou
+  const planoVencido = (function () {
+    const reg = lerJsonLocal(CHAVE_ASSINATURA, null);
+    if (!reg || reg.status !== "aprovada" || !reg.validoAte) return false;
+    const metodo = String(reg.metodo || "").toLowerCase();
+    return (metodo === "pix" || metodo === "boleto") && new Date(reg.validoAte) < new Date();
+  })();
+  const MSG_PLANO_VENCIDO = "Seu plano está vencido. Pague a mensalidade na aba Assinatura para voltar a usar este recurso.";
   let abaAtiva = "Dashboard";
   let abaOrigemPlanos = "Dashboard";
   let modoVisualizacao = "Dia";
@@ -316,6 +343,7 @@ function iniciarDashboard() {
   // Há uma cópia de segurança separada por e-mail do dono: se a lista principal for apagada
   // (ex.: ao sair da conta), ela é restaurada a partir da cópia.
   const chaveBackupColaboradores = () => "colaboradoresBackup:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase();
+  const CHAVE_COLAB_REMOVIDOS = "colaboradoresRemovidos"; // ids desativados pelo ✕ (a API não tem DELETE de colaborador)
   let colaboradores = lerJsonLocal(CHAVE_COLABORADORES, []);
   if (!colaboradores.length) {
     const backup = lerJsonLocal(chaveBackupColaboradores(), []);
@@ -369,6 +397,7 @@ function iniciarDashboard() {
         ativo: lerAtivoApi(item)
       };
       if (api.id == null || !api.nome) return;
+      if (lerJsonLocal(CHAVE_COLAB_REMOVIDOS, []).includes(Number(api.id))) return; // foi removido pelo ✕
       const local = locais.find(l => String(l.id) === String(api.id) ||
         (api.email && l.email && String(l.email).toLowerCase() === String(api.email).toLowerCase()));
       if (local) usados.add(chaveDe(local));
@@ -607,11 +636,12 @@ function iniciarDashboard() {
     await clientesProntos; // os nomes/telefones dos clientes e os serviços precisam estar carregados antes de montar a agenda
     await recarregarAgendamentosDoBanco();
 
+    // GET /Financeiro: por enquanto só mostra no console para conferir o formato da resposta
     try {
-      const dadosContratos = await apiRequest("CONTRATOS");
-      if (Array.isArray(dadosContratos)) contratos = dadosContratos;
+      const dadosFinanceiro = await apiRequest("FINANCEIRO");
+      console.log("[API] resposta do financeiro:", dadosFinanceiro);
     } catch (erro) {
-      console.warn("Não foi possível carregar contratos da API.", erro.message);
+      console.warn("Não foi possível carregar o financeiro da API.", erro.message);
     }
 
     atualizarSelectLoginSimulado();
@@ -704,7 +734,7 @@ function iniciarDashboard() {
 
   // O que cada plano pago inclui (igual ao que aparece na tela de Planos)
   const inclusoPorPlano = {
-    BASICO: ["Sem limite de tempo", "Agendamentos ilimitados", "Até 10 colaboradores", "Suporte por e-mail", "Notificações por e-mail"],
+    BASICO: ["Sem limite de tempo", "Agendamentos ilimitados", "Até 10 colaboradores", "Suporte por e-mail"],
     PREMIUM: ["Sem limite de tempo", "Agendamentos ilimitados", "Colaboradores ilimitados", "Relatórios avançados (financeiro)", "Suporte prioritário (chat/telefone)", "Integração com WhatsApp", "Personalização de serviços e horários"]
   };
 
@@ -811,7 +841,6 @@ function iniciarDashboard() {
     if (tagLock) tagLock.hidden = temAcessoFinanceiro;
 
     const planos = [
-      { id: "btn-plano-free", valor: "FREE", texto: "Selecionar Plano", atual: "Plano Atual" },
       { id: "btn-plano-basico", valor: "BASICO", texto: "Escolher Básico", atual: "Plano Atual" },
       { id: "btn-plano-premium", valor: "PREMIUM", texto: "Escolher Premium", atual: "Plano Atual" }
     ];
@@ -1845,6 +1874,7 @@ function iniciarDashboard() {
   }
 
   btnAbrirAgendamento.addEventListener("click", () => {
+    if (planoVencido) { alert(MSG_PLANO_VENCIDO); return; }
     agendamentoEditandoId = null;
     definirModoEdicaoAgendamento(false);
     popularProfissionaisAgendamento();
@@ -2731,6 +2761,7 @@ function iniciarDashboard() {
 
   formColab.addEventListener("submit", async function (e) {
     e.preventDefault();
+    if (planoVencido) { mostrarErroForm(formColab, MSG_PLANO_VENCIDO, null); return; }
 
     sincronizarCargoOutros();
     if (campoCargo.value === "__outros__") {
@@ -2816,12 +2847,21 @@ function iniciarDashboard() {
   });
 
   async function removerColaborador(id) {
-    // >>> API: remover colaborador no backend.
-    // try {
-    //   await apiRequest("COLABORADORES", { method: "DELETE" }, `/${id}`);
-    // } catch (erro) {
-    //   console.warn("Não foi possível remover o colaborador na API.", erro.message);
-    // }
+    if (!confirm("Remover este colaborador? Ele será desativado no banco e sairá da lista.")) return;
+
+    // PATCH /Colaboradores/{id} (a API não tem DELETE, então desativa no banco)
+    if (API_CONFIG.token) {
+      try {
+        await atualizarStatusColaboradorApi(id, false);
+      } catch (erro) {
+        alert(mensagemErroApiComum(erro, "Não foi possível remover o colaborador no banco."));
+        return; // continua na lista porque continua ativo no banco
+      }
+    }
+
+    const removidos = lerJsonLocal(CHAVE_COLAB_REMOVIDOS, []);
+    if (!removidos.includes(id)) removidos.push(id);
+    localStorage.setItem(CHAVE_COLAB_REMOVIDOS, JSON.stringify(removidos));
 
     colaboradores = colaboradores.filter(c => c.id !== id);
     agendamentos = agendamentos.filter(a => a.colaboradorId !== id);
@@ -3072,7 +3112,6 @@ function iniciarDashboard() {
     btnUpgradeFinanceiro.addEventListener("click", () => irParaTelaPlanos("Financeiro"));
   }
   [
-    ["btn-plano-free", "FREE"],
     ["btn-plano-basico", "BASICO"],
     ["btn-plano-premium", "PREMIUM"]
   ].forEach(([idBotao, plano]) => {
@@ -3080,16 +3119,6 @@ function iniciarDashboard() {
     if (!botao) return;
     botao.addEventListener("click", () => {
       if (plano === planoAtual) return; // já é o plano atual
-
-      // Voltar para o Grátis: pede confirmação e cancela a assinatura salva
-      if (plano === "FREE") {
-        if (!semPlano && !confirm("Voltar para o plano Grátis? Você perde os recursos do plano atual.")) return;
-        localStorage.removeItem(CHAVE_ASSINATURA);
-        limparBoleto();
-        reiniciarTeste(); // plano Grátis novo: o contador volta para 30 dias
-        escolherPlano(plano);
-        return;
-      }
 
       // Planos pagos abrem a tela de compra. Quando o pagamento é aprovado, a tela de compra
       // volta para a agenda já com o plano ativo (lido por lerPlanoAssinado).
@@ -3198,8 +3227,37 @@ function iniciarDashboard() {
     renderizarAgenda();
   });
 
+  // =====================================================
+  // PLANO VENCIDO (Pix ou boleto não pago até a data)
+  // Fica restrito: não cria agendamento nem colaborador até pagar. Agenda, Assinatura, Planos
+  // e Suporte continuam abertos. Cartão renova sozinho, então não entra aqui.
+  // =====================================================
+  function mostrarAvisoPlanoVencido() {
+    if (!planoVencido) return;
+    const registro = lerJsonLocal(CHAVE_ASSINATURA, null) || {};
+    const plano = String(registro.plano || "BASICO").toLowerCase();
+    const conteudo = document.querySelector(".conteudo");
+    if (!conteudo || document.getElementById("aviso-plano-vencido")) return;
+    const aviso = document.createElement("div");
+    aviso.id = "aviso-plano-vencido";
+    aviso.setAttribute("role", "alert");
+    aviso.style.cssText = "display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:space-between; margin:0 0 16px; padding:14px 18px; border:1.5px solid #e11d48; border-radius:12px; background:rgba(225,29,72,.08); font-size:14px;";
+    const texto = document.createElement("span");
+    texto.innerHTML = "<strong>Seu plano está vencido.</strong> O pagamento não foi feito até a data. Alguns recursos ficam restritos até você pagar.";
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "btn-salvar btn-perigo";
+    botao.textContent = "Pagar agora";
+    botao.addEventListener("click", () => {
+      window.location.href = `${PAGINA_ASSINATURA}?plano=${plano}&origem=painel`;
+    });
+    aviso.append(texto, botao);
+    conteudo.insertBefore(aviso, conteudo.firstChild);
+  }
+
   // --- INICIALIZAÇÃO DO DASHBOARD ---
   seletorData.value = obterDataHojeISO();
+  mostrarAvisoPlanoVencido();
   atualizarFinanceiro();
   atualizarPlano();
   aplicarPermissoes();

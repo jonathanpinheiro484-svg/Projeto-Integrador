@@ -22,11 +22,10 @@ const API_CONFIG = {
     RECUPERAR_SENHA: "/RecuperarSenha",       // { email } -> envia o código por e-mail
     VERIFICAR_CODIGO: "/VerificarCodigo",     // { email, codigo } -> confere o código
     REDEFINIR_SENHA: "/RedefinirSenha",       // { email, codigo, novaSenha } -> grava a nova senha
-    COLABORADORES: "/colaboradores",
+    COLABORADORES: "/Colaboradores",
     AGENDAMENTOS: "/Agendamentos",           // POST (cria); PUT em /Agendamentos/{id} (edita)
-    FINANCEIRO: "/financeiro",
-    CONTRATOS: "/contratos",
-    PLANO: "/plano",
+    FINANCEIRO: "/Financeiro",
+    PLANO: "/Plano",
     // Rotas que já existem na API (Azure Functions)
     CLIENTES: "/Clientes",                    // POST
     SERVICOS: "/Servicos",                    // GET (lista), POST (cadastra); PUT/DELETE em /Servicos/{id}

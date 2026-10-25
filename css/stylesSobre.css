@@ -517,3 +517,7 @@ main { padding-top: 76px; }
 
 
 }
+
+/* ===== Ajuste: botões alinhados (mesma altura e centralizados) ===== */
+.botao { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; text-align: center; line-height: 1.2; }
+.menu-acoes { align-items: center; }

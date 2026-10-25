@@ -352,6 +352,17 @@ function iniciarAssinatura() {
     return d;
   }
 
+  // Data da próxima cobrança escolhida pela pessoa (sem escolha válida = 1 mês depois, o padrão).
+  // Só vale na compra normal; renovar pelo Pix e trocar a forma de pagamento usam a data padrão.
+  function proximaData() {
+    const padrao = dataRenovacao(planoEscolhido, ciclo, renovarBase);
+    const campo = $("ass-prox-cobranca");
+    if (!campo || !campo.value || modoTrocar || modoRenovar || planoEscolhido === "FREE") return padrao;
+    if (campo.value < campo.min || campo.value > campo.max) return padrao;
+    const [a, m, d] = campo.value.split("-").map(Number);
+    return new Date(a, m - 1, d, 12, 0, 0);
+  }
+
   // =====================================================
   // RENDERIZAÇÃO
   // =====================================================
@@ -363,11 +374,14 @@ function iniciarAssinatura() {
 
     $("titulo-pagina").textContent = modoTrocar ? "Trocar forma de pagamento" : (modoRenovar ? "Renovar plano " + p.nome : "Assinar plano " + p.nome);
     $("res-plano").textContent = p.nome;
-    $("res-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
+    // Cobrança sempre mensal. No cartão ela é automática durante o período de 1 ano (contrato de 12 meses);
+    // no Pix e no boleto a pessoa paga cada mensalidade pelo site.
+    const metodoResumo = modoRenovar ? "pix" : metodoAtual();
+    $("res-ciclo").textContent = gratis ? "30 dias grátis" : (metodoResumo === "cartao" ? "Mensal automático (contrato de 12 meses)" : "Mensal (você paga pelo site)");
     $("res-subtotal").textContent = moeda(subtotal);
     $("linha-desconto").hidden = !(preco.desconto > 0);
     $("res-desconto").textContent = "- " + moeda(preco.desconto);
-    $("res-renovacao").textContent = gratis ? "Nenhuma" : dataRenovacao(planoEscolhido, ciclo, renovarBase).toLocaleDateString("pt-BR");
+    $("res-renovacao").textContent = gratis ? "Nenhuma" : proximaData().toLocaleDateString("pt-BR");
     // Data da compra (hoje), uma linha acima da próxima cobrança
     if (!$("res-renovacao-compra")) {
       const linhaRenov = $("res-renovacao").parentElement;
@@ -387,7 +401,9 @@ function iniciarAssinatura() {
     $("btn-assinar").textContent = gratis ? "Ativar plano grátis" : "Assinar " + p.nome + " · " + moeda(preco.total);
     $("aviso-cobranca").textContent = gratis
       ? "Sem cobrança. Ao fim dos 30 dias, escolha um plano pago para continuar."
-      : (ciclo === "anual" ? "Cobrança única por ano. Você pode cancelar quando quiser." : "Cobrança mensal. Você pode cancelar quando quiser.");
+      : (metodoResumo === "cartao"
+        ? "Cobrança mensal automática no cartão durante o contrato de 12 meses. Você pode cancelar quando quiser."
+        : "Pagamento mensal feito por você no site. Se não pagar até a data, o plano fica vencido e algumas funções ficam restritas.");
 
     // Renovar pelo Pix: mesmo plano e ciclo da assinatura, só com a forma de pagamento Pix
     if (modoRenovar) {
@@ -417,10 +433,10 @@ function iniciarAssinatura() {
   function carregarCadastro(sessao) {
     const u = sessao.usuario || sessao;
     cadastro.nome = String(u.nome || "").trim();
-    cadastro.email = String(u.email || "").trim();
+    cadastro.email = String(u.email || localStorage.getItem("emailUsuarioLogado") || "").trim();
     cadastro.cpf = soDigitos(String(u.cpf || ""));
     if (cadastro.nome) $("ass-nome").value = cadastro.nome;
-    if (cadastro.email) { $("ass-email").value = cadastro.email; $("ass-email").readOnly = true; }
+    // O e-mail NÃO vem preenchido: a pessoa precisa digitar o e-mail do cadastro (conferido na validação)
     if (cadastro.cpf) { $("ass-cpf").value = mascaraCpf(cadastro.cpf); $("ass-cpf").readOnly = true; }
     carregarCartoes();
   }
@@ -615,13 +631,21 @@ function iniciarAssinatura() {
     else if (!NOME_REGEX.test(nome)) falhar("Digite o nome completo, sem abreviar: nome e sobrenome. Exemplo: Fernanda Lima", "ass-nome");
 
     const email = $("ass-email").value.trim();
-    if (!email) falhar("Preencha o e-mail.", "ass-email");
+    if (!email) falhar("Digite o e-mail do seu cadastro.", "ass-email");
+    else if (!EMAIL_REGEX.test(email)) falhar("Digite um e-mail válido.", "ass-email");
+    else if (cadastro.email && email.toLowerCase() !== cadastro.email.toLowerCase()) falhar("O e-mail precisa ser o mesmo do seu cadastro.", "ass-email");
 
 
     if (!$("ass-cpf").value.trim()) falhar("Preencha o CPF.", "ass-cpf");
     else if (soDigitos($("ass-cpf").value).length !== 11) falhar("O CPF deve ter 11 números.", "ass-cpf");
     else if (!cpfValido($("ass-cpf").value)) falhar("O CPF informado não é válido.", "ass-cpf");
     else if (cadastro.cpf && soDigitos($("ass-cpf").value) !== cadastro.cpf) falhar("O CPF precisa ser o mesmo do seu cadastro.", "ass-cpf");
+
+    const campoProx = $("ass-prox-cobranca");
+    if (campoProx && !modoTrocar && !modoRenovar && planoEscolhido !== "FREE" &&
+        (!campoProx.value || campoProx.value < campoProx.min || campoProx.value > campoProx.max)) {
+      falhar("Escolha uma data de próxima cobrança entre amanhã e daqui a 1 mês.", "ass-prox-cobranca");
+    }
 
     if (planoEscolhido !== "FREE" && metodoAtual() === "cartao") {
       const cartao = cartaoSelecionado();
@@ -802,6 +826,7 @@ function iniciarAssinatura() {
       document.querySelectorAll(".metodo").forEach((l) => l.classList.toggle("sel", l.querySelector("input").checked));
       if (metodo === "cartao" && cartoes.length === 0) abrirFormCartao(true); // sem cartão ainda: já abre o cadastro
       limparErro();
+      atualizarResumo(); // o texto da cobrança muda conforme a forma de pagamento
     });
   });
 
@@ -1051,6 +1076,13 @@ function iniciarAssinatura() {
 
     reg.metodo = metodo;
     reg.cartaoFinal = cartaoUsado ? cartaoUsado.final : null;
+    if (metodo === "cartao") {
+      const fimContrato = new Date();
+      fimContrato.setFullYear(fimContrato.getFullYear() + 1);
+      reg.contratoAte = fimContrato.toISOString();
+    } else {
+      delete reg.contratoAte;
+    }
     delete reg.boletoVencimento;
     delete reg.boletoLinha;
     localStorage.setItem(CHAVE_ASSINATURA, JSON.stringify(reg));
@@ -1106,7 +1138,7 @@ function iniciarAssinatura() {
     const gratis = planoEscolhido === "FREE";
     const preco = calcularPreco(planoEscolhido, ciclo);
     const metodo = gratis ? null : (modoRenovar ? "pix" : metodoAtual());
-    const validoAte = dataRenovacao(planoEscolhido, ciclo, renovarBase);
+    const validoAte = proximaData(); // data da próxima cobrança (a escolhida pela pessoa)
     if (metodo === "boleto") boletoAtual = gerarBoleto(preco.total); // o boleto só é gerado agora, ao apertar Assinar
     const boleto = metodo === "boleto" ? boletoAtual : null;
     const pendente = !!boleto && !BOLETO_LIBERA_NA_HORA; // boleto: o plano só libera depois do pagamento
@@ -1201,6 +1233,11 @@ function iniciarAssinatura() {
       contratadoEm: new Date().toISOString(),
       validoAte: validoAte.toISOString()
     };
+    if (metodo === "cartao") {
+      const fimContrato = new Date();
+      fimContrato.setFullYear(fimContrato.getFullYear() + 1);
+      registro.contratoAte = fimContrato.toISOString(); // período de 1 ano (contrato de 12 meses)
+    }
     if (boleto) {
       registro.boletoVencimento = boleto.vencimento.toISOString();
       registro.boletoLinha = boleto.linha;
@@ -1400,7 +1437,7 @@ function iniciarAssinatura() {
         ? "Pague o boleto até " + boletoAtual.vencimento.toLocaleDateString("pt-BR") + ". O plano " + p.nome + " será liberado assim que o pagamento for confirmado."
         : (modoRenovar ? "Seu plano " + p.nome + " foi renovado." : "Seu plano " + p.nome + " já está ativo."));
     $("suc-plano").textContent = p.nome;
-    $("suc-ciclo").textContent = gratis ? "30 dias grátis" : (ciclo === "anual" ? "Anual" : "Mensal");
+    $("suc-ciclo").textContent = gratis ? "30 dias grátis" : (metodo === "cartao" ? "Mensal automático (contrato de 12 meses)" : "Mensal");
     $("suc-total").textContent = moeda(total);
     const nota = $("suc-nota");
     nota.hidden = gratis;
@@ -1500,6 +1537,19 @@ function iniciarAssinatura() {
 
   $("btn-ir-painel").href = PAGINA_PAINEL;
 
+  // Próxima cobrança: a pessoa escolhe de amanhã até 1 mês (padrão = 1 mês)
+  (function prepararProximaCobranca() {
+    const campo = $("ass-prox-cobranca");
+    if (!campo) return;
+    const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    const amanha = new Date(); amanha.setDate(amanha.getDate() + 1);
+    const limite = new Date(); limite.setMonth(limite.getMonth() + 1);
+    campo.min = iso(amanha);
+    campo.max = iso(limite);
+    campo.value = iso(limite);
+    campo.addEventListener("change", atualizarResumo);
+  })();
+
   // O plano vem da tela de Planos: assinatura.html?plano=profissional
   const params = new URLSearchParams(window.location.search);
   modoTrocar = params.get("modo") === "trocar-pagamento";
@@ -1575,6 +1625,9 @@ function iniciarAssinatura() {
   $("btn-cancelar-compra").addEventListener("click", () => {
     window.location.href = (params.get("origem") === "painel" || modoTrocar) ? PAGINA_PAINEL : PAGINA_PLANOS;
   });
+
+  // Trocar a forma de pagamento e renovar pelo Pix não escolhem data de cobrança
+  if ($("campo-prox-cobranca")) $("campo-prox-cobranca").hidden = modoTrocar || modoRenovar;
 
   if (podeContinuar) atualizarTela();
 }
