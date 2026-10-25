@@ -550,3 +550,37 @@ document.addEventListener("DOMContentLoaded", iniciarAuth);
         var formLogin = document.getElementById("form-login");
         if (formLogin) new MutationObserver(garantirLinkEsqueci).observe(formLogin, { childList: true });
     })();
+
+    /* gt-aviso-plano.js
+   Troca o texto da barra do topo conforme o lado do slider (cadastro ou login).
+   Não depende do cadastro.js: ele observa a classe "active" do #container,
+   então funciona com o ?modo=cadastro da URL e com os cliques em Entrar / Cadastrar.
+   Colocar no fim do body, DEPOIS do cadastro.js. */
+(function () {
+  var TEXTOS = {
+    cadastro: {
+      titulo: "Ainda em dúvida sobre os planos?",
+      sub: "Crie sua conta e teste <em>30 dias grátis</em>, sem cartão."
+    },
+    login: {
+      titulo: "Ainda não assinou nenhum plano?",
+      sub: "Escolha um plano e volte a usar o sistema."
+    }
+  };
+
+  var container = document.getElementById("container");
+  var titulo = document.getElementById("gt-aviso-titulo");
+  var sub = document.getElementById("gt-aviso-sub");
+  if (!container || !titulo || !sub) return;
+
+  function atualizar() {
+    /* "active" = formulário de cadastro aberto. Se na sua tela ficar ao contrário,
+       troque "cadastro" e "login" nesta linha. */
+    var t = TEXTOS[container.classList.contains("active") ? "cadastro" : "login"];
+    titulo.textContent = t.titulo;
+    sub.innerHTML = t.sub;
+  }
+
+  atualizar();
+  new MutationObserver(atualizar).observe(container, { attributes: true, attributeFilter: ["class"] });
+})();

@@ -111,7 +111,7 @@ body {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 20px 40px;
+    padding: 10px 40px;
     background-color: var(--cor-fundo);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -637,3 +637,88 @@ body {
 .container .erro-campo {
     font-family: var(--fonte-site, 'Segoe UI', system-ui, sans-serif);
 }
+
+
+/* =====================================================================
+   AVISO DE PLANO NA BARRA DO TOPO — GET TIME (versão 2)
+   Colar no FINAL do CSS da página de cadastro.
+   Autônomo: não depende do gt-cta.css.
+   ===================================================================== */
+
+/* botão de contorno (estilo Alura) */
+.gt-btn-contorno {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 22px;
+  border: 2px solid #2a75e0; border-radius: 999px;
+  background: rgba(42, 117, 224, 0.14); color: #fff;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none;
+  white-space: nowrap; cursor: pointer; transition: background 0.2s, box-shadow 0.2s;
+}
+.gt-btn-contorno:hover { background: #2a75e0; box-shadow: 0 0 0 4px rgba(42, 117, 224, 0.25); }
+.gt-btn-contorno:focus-visible { outline: 2px solid #00c878; outline-offset: 3px; }
+.gt-btn-contorno svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; }
+.gt-btn-contorno:hover svg { transform: translateX(4px); }
+
+/* a barra */
+.gt-aviso {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; align-items: center; gap: 16px;
+  padding: 5px 5px 5px 10px;
+  border: 1px solid rgba(109, 179, 255, 0.3); border-radius: 999px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(42, 117, 224, 0.5), transparent 60%),
+    radial-gradient(circle at 95% 100%, rgba(0, 200, 120, 0.22), transparent 55%),
+    linear-gradient(135deg, #081d36, #0d2a47);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+/* brilhos azuis nas bordas */
+.gt-aviso::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(109, 179, 255, 0.95) 1px, transparent 1.6px),
+    radial-gradient(rgba(255, 255, 255, 0.7) 1px, transparent 1.6px);
+  background-size: 30px 30px, 49px 49px;
+  background-position: 0 0, 15px 19px;
+  -webkit-mask-image: radial-gradient(ellipse at center, transparent 35%, #000 100%);
+          mask-image: radial-gradient(ellipse at center, transparent 35%, #000 100%);
+}
+/* faixa de luz que passa de tempos em tempos chamando a atenção */
+.gt-aviso::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, 0.12) 50%, transparent 62%);
+  transform: translateX(-100%);
+  animation: gt-brilho 6s ease-in-out infinite;
+}
+@keyframes gt-brilho { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+.gt-aviso-icone {
+  width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: 50%; color: #06281a;
+  background: linear-gradient(135deg, #1af0a0, #00c878);
+  box-shadow: 0 0 0 4px rgba(0, 200, 120, 0.18), 0 6px 16px rgba(0, 200, 120, 0.35);
+}
+.gt-aviso-icone svg { width: 22px; height: 22px; fill: currentColor; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+
+.gt-aviso-texto { display: flex; flex-direction: column; gap: 3px; line-height: 1.2; white-space: nowrap; }
+.gt-aviso-texto strong { font-size: 15px; font-weight: 700; }
+.gt-aviso-texto span { font-size: 12.5px; color: #9fc3ee; }
+.gt-aviso-texto em { font-style: normal; font-weight: 700; color: #1af0a0; }
+
+@media (max-width: 760px) {
+  .gt-aviso { flex-direction: column; gap: 10px; padding: 16px; border-radius: 24px; text-align: center; }
+  .gt-aviso-icone { display: none; }
+  .gt-aviso-texto { white-space: normal; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gt-aviso::after { animation: none; display: none; }
+  .gt-btn-contorno svg { transition: none; }
+}
+
+/* encaixe no header da tela de cadastro: a barra fica à direita, no lugar do menu antigo */
+.topo .gt-aviso { margin-left: auto; flex-shrink: 0; }
+@media (max-width: 760px) { .topo .gt-aviso { margin: 12px 0 0; width: 100%; } }
+
+
+
