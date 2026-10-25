@@ -360,7 +360,8 @@ function iniciarDashboard() {
   }
 
   // Junta a lista que veio da API com a que já está no navegador.
-  // Nunca apaga quem só existe aqui (ex.: a API devolveu lista vazia) e mantém a cor escolhida.
+  // O BANCO é a fonte da equipe: quem só existe aqui no navegador NÃO entra (usuário novo = lista vazia).
+  // Do navegador só aproveita a cor escolhida de quem também está no banco.
   // A API pode devolver a lista direto ou dentro de um objeto ({ dados: [...] }, { items: [...] }...)
   function extrairLista(resposta) {
     if (Array.isArray(resposta)) return resposta;
@@ -410,7 +411,6 @@ function iniciarDashboard() {
         ativo: api.ativo !== undefined && api.ativo !== null ? api.ativo : (local ? local.ativo !== false : true)
       });
     });
-    locais.forEach(l => { if (!usados.has(chaveDe(l))) resultado.push(l); });
     return resultado;
   }
 
