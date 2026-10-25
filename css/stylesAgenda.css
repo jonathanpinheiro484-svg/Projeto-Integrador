@@ -1771,3 +1771,144 @@ aside.sidebar .sb-usuario .btn-tema {
 .select-status-agendamento[data-status="Concluido"] { border-color: var(--primaria); color: var(--primaria); }
 .select-status-agendamento[data-status="Cancelado"] { border-color: #e74c3c; color: #e74c3c; }
 .select-status-agendamento[data-status="Remarcado"] { border-color: #f7b032; color: #c98a0a; }
+
+
+/* =====================================================================
+   MODAIS — GET TIME (versão 2)
+   SUBSTITUI o bloco "MODAIS — GET TIME" que você colou antes no fim do
+   stylesAgenda.css (apague aquele bloco inteiro e cole este no lugar).
+   ===================================================================== */
+
+/* ---------- 1) Fundo e cartão (todos os modais) ---------- */
+.modal-overlay {
+  height: 100dvh; padding: 16px;
+  background: rgba(8, 29, 54, 0.62);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+}
+.modal-card {
+  position: relative;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 24px;
+  box-shadow: 0 30px 70px rgba(10, 31, 56, 0.35);
+}
+
+/* cabeçalho */
+.modal-header {
+  align-items: flex-start; gap: 12px;
+  margin-bottom: 16px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-header h3 {
+  font-family: "Archivo Black", Inter, system-ui, sans-serif;
+  font-weight: 400; font-size: 21px; line-height: 1.15;
+}
+.modal-sub { margin: 4px 0 0; font-size: 13px; font-weight: 400; color: var(--muted); }
+
+/* botão de fechar (✕) redondinho */
+.modal-header > button {
+  flex-shrink: 0; width: 36px; height: 36px; padding: 0; line-height: 1;
+  display: grid; place-items: center; border-radius: 50%;
+  transition: background 0.15s;
+}
+.modal-header > button:hover { background: var(--hover-menu) !important; }
+.modal-header > button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+
+/* botões */
+.modal-card .form-botoes {
+  gap: 10px; margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.modal-card .btn-salvar,
+.modal-card .btn-cancelar { padding: 12px 26px; border-radius: 999px; font-size: 14px; font-weight: 700; }
+.modal-card .btn-salvar:hover { filter: brightness(1.05); }
+.modal-card .btn-cancelar:hover { background: var(--hover-menu); }
+.modal-card .btn-link { margin-top: 2px; font-size: 13px; color: var(--destaque); }
+
+/* campos (mesmo padrão dos formulários da Administração) */
+.modal-card .form-agendamento .campo { gap: 6px; min-width: 0; }
+.modal-card .form-agendamento .campo > label { font-size: 13px; font-weight: 600; }
+.modal-card .form-agendamento label .dica-campo { font-weight: 400; }
+.modal-card .form-agendamento .dica-campo { font-size: 12px; line-height: 1.4; }
+.modal-card .form-agendamento input:not([type="color"]):not([type="checkbox"]),
+.modal-card .form-agendamento select {
+  height: 44px; padding: 0 14px; font-size: 14px;
+  border: 1px solid transparent; border-radius: 12px;
+}
+.modal-card .form-agendamento input::placeholder { color: var(--muted); opacity: 0.85; }
+.modal-card .form-agendamento .input-cor {
+  width: 100%; height: 44px; padding: 5px; cursor: pointer;
+  border: 1px solid var(--border); border-radius: 12px; background: var(--input-bg);
+}
+.input-cor::-webkit-color-swatch-wrapper { padding: 0; }
+.input-cor::-webkit-color-swatch { border: 0; border-radius: 8px; }
+.input-cor::-moz-color-swatch { border: 0; border-radius: 8px; }
+
+/* ---------- 2) Modal de agendamento: cabeçalho / miolo que rola / rodapé ---------- */
+#modal-agendamento .modal-card { max-width: 580px; }
+
+.modal-card--form { display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+.modal-card--form .modal-header { flex-shrink: 0; margin: 0; padding: 22px 28px 16px; }
+
+#form-novo-agendamento { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 0; }
+
+/* só o miolo rola, com barra fininha (nada de barra gorda no canto do cartão) */
+.modal-corpo {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; align-content: start; align-items: start;
+  padding: 18px 28px 20px;
+  scrollbar-width: thin; scrollbar-color: #c3d2e6 transparent;
+}
+.modal-corpo::-webkit-scrollbar { width: 8px; }
+.modal-corpo::-webkit-scrollbar-thumb { background: #c3d2e6; border-radius: 999px; }
+
+.modal-card--form .form-botoes {
+  flex-shrink: 0; margin: 0; padding: 14px 28px;
+  background: var(--card); border-top: 1px solid var(--border);
+}
+
+/* títulos dos grupos (Cliente, Atendimento, Horário e valor) */
+.form-secao {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 0 -2px;
+  font-size: 13px; font-weight: 800; color: var(--destaque);
+}
+.form-secao::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.form-secao:first-child { margin-top: 0; }
+
+.modal-corpo .campo-full { grid-column: 1 / -1; }
+/* sem o campo de telefone (planos sem WhatsApp), o nome ocupa a linha toda */
+.modal-corpo .campo:has(+ #campo-whatsapp[hidden]) { grid-column: 1 / -1; }
+
+/* mensagem de "nenhum serviço cadastrado" e dicas: sem espaços gigantes */
+.campo-servico > p,
+.campo-servico > small,
+.campo-servico > .dica-campo { margin: 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
+
+/* serviços marcáveis (o agenda.js cria a lista): viram "pílulas" */
+#modal-agendamento .servicos-grupo {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px; max-height: 150px; padding: 10px;
+  border: 1px solid var(--border); border-radius: 14px; background: var(--input-bg);
+}
+#modal-agendamento .servicos-grupo label {
+  padding: 8px 12px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--card);
+  transition: border-color 0.15s, background 0.15s;
+}
+#modal-agendamento .servicos-grupo label:hover { border-color: var(--destaque); }
+#modal-agendamento .servicos-grupo label:has(input:checked) { border-color: var(--primaria); background: rgba(0, 200, 120, 0.12); }
+
+/* ---------- 3) Celular ---------- */
+@media (max-width: 560px) {
+  .modal-card { padding: 18px; }
+  .modal-card--form { padding: 0; }
+  .modal-card--form .modal-header { padding: 18px 18px 14px; }
+  .modal-corpo { grid-template-columns: 1fr; padding: 16px 18px; }
+  .modal-card--form .form-botoes { padding: 12px 18px; flex-direction: column-reverse; }
+  .modal-card .form-botoes { flex-direction: column-reverse; }
+  .modal-card .form-botoes button,
+  .modal-card .form-botoes a { width: 100%; text-align: center; }
+}

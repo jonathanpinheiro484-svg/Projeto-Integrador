@@ -463,7 +463,7 @@
               type="tel"
               id="colab-telefone"
               autocomplete="off"
-              placeholder="123456789"
+              placeholder="(11) 912429798"
               required
               maxlength="13"
             />
@@ -1078,92 +1078,100 @@
       </div>
     </div>
 
-    <!-- MODAL DE NOVO AGENDAMENTO -->
+    <!-- ===== agenda.html =====
+     
+     <div class="modal-corpo"> 
+
+    <-- MODAL DE NOVO AGENDAMENTO -->
+
     <div class="modal-overlay" id="modal-agendamento" hidden>
-      <div class="modal-card">
+      <div class="modal-card modal-card--form">
         <div class="modal-header">
-          <h3 id="modal-agendamento-titulo">Agendar Cliente</h3>
+          <div>
+            <h3 id="modal-agendamento-titulo">Agendar Cliente</h3>
+            <p class="modal-sub">Escolha o cliente, o serviço e o horário.</p>
+          </div>
           <button
             type="button"
             id="btn-fechar-modal"
-            style="
-              background: none;
-              border: none;
-              color: var(--texto);
-              cursor: pointer;
-              font-size: 16px;
-            "
+            aria-label="Fechar"
+            style="background: none; border: none; color: var(--texto); cursor: pointer; font-size: 16px"
           >
             ✕
           </button>
         </div>
+
         <form id="form-novo-agendamento" class="form-agendamento">
-          <div class="campo">
-            <label>Nome do cliente</label>
-            <input
-              type="text"
-              id="agend-cliente"
-              placeholder="Digite ou escolha um cliente cadastrado"
-              required
-              autocomplete="off"
-              list="lista-clientes"
-            />
-            <datalist id="lista-clientes"></datalist>
-            <button type="button" id="btn-novo-cliente-modal" class="btn-link">
-              + Cadastrar novo cliente
-            </button>
-          </div>
+          <div class="modal-corpo">
 
-          <div class="campo" id="campo-whatsapp">
-            <label for="agend-whatsapp"
-              >Telefone do cliente
-              <span class="dica-campo">(opcional)</span></label
-            >
-            <input
-              type="tel"
-              id="agend-whatsapp"
-              placeholder="Digite ou escolha um telefone cadastrado"
-              inputmode="tel"
-              maxlength="15"
-              autocomplete="off"
-              list="lista-telefones"
-            />
-            <datalist id="lista-telefones"></datalist>
-            <span class="dica-campo"
-              >Com DDD. Ao escolher o nome ou o telefone de um cliente
-              cadastrado, o outro campo é preenchido sozinho.</span
-            >
-          </div>
+            <p class="form-secao">Cliente</p>
 
-          <div class="campo">
-            <label>Serviço</label>
-            <select id="agend-servico" required>
-              <option value="">Selecione o serviço...</option>
-            </select>
-          </div>
-
-          <div class="campo">
-            <label>Profissional Responsável</label>
-            <select id="agend-profissional" required></select>
-          </div>
-
-          <div class="campo">
-            <label>Data</label>
-            <input type="date" id="agend-data" required />
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
             <div class="campo">
-              <label>Hora Início</label>
+              <label for="agend-cliente">Nome do cliente</label>
               <input
-                type="time"
-                id="agend-hora-inicio"
-                value="08:00"
+                type="text"
+                id="agend-cliente"
+                placeholder="Digite ou escolha um cliente"
                 required
+                autocomplete="off"
+                list="lista-clientes"
               />
+              <datalist id="lista-clientes"></datalist>
+              <button type="button" id="btn-novo-cliente-modal" class="btn-link">
+                + Cadastrar novo cliente
+              </button>
             </div>
+
+            <div class="campo" id="campo-whatsapp">
+              <label for="agend-whatsapp">
+                Telefone <span class="dica-campo">(opcional)</span>
+              </label>
+              <input
+                type="tel"
+                id="agend-whatsapp"
+                placeholder="(11) 91234-5678"
+                inputmode="tel"
+                maxlength="15"
+                autocomplete="off"
+                list="lista-telefones"
+              />
+              <datalist id="lista-telefones"></datalist>
+              <span class="dica-campo">Com DDD. Preenche sozinho ao escolher um cliente.</span>
+            </div>
+
+            <p class="form-secao">Atendimento</p>
+
+            <div class="campo campo-full campo-servico">
+              <label for="agend-servico">Serviço</label>
+              <select id="agend-servico" required>
+                <option value="">Selecione o serviço...</option>
+              </select>
+            </div>
+
             <div class="campo">
-              <label>Duração (min)</label>
+              <label for="agend-profissional">Profissional responsável</label>
+              <select id="agend-profissional" required></select>
+            </div>
+
+            <div class="campo">
+              <label for="agend-cor">Cor do card</label>
+              <input type="color" id="agend-cor" class="input-cor" value="#3d5a80" />
+            </div>
+
+            <p class="form-secao">Horário e valor</p>
+
+            <div class="campo">
+              <label for="agend-data">Data</label>
+              <input type="date" id="agend-data" required />
+            </div>
+
+            <div class="campo">
+              <label for="agend-hora-inicio">Hora de início</label>
+              <input type="time" id="agend-hora-inicio" value="08:00" required />
+            </div>
+
+            <div class="campo">
+              <label for="agend-duracao">Duração (min)</label>
               <input
                 type="number"
                 id="agend-duracao"
@@ -1173,54 +1181,43 @@
                 tabindex="-1"
                 aria-describedby="dica-duracao"
               />
-              <small class="dica-campo" id="dica-duracao"
-                >Vem da duração cadastrada no serviço.</small
-              >
             </div>
-          </div>
 
-          <div class="campo">
-            <label>Valor (R$)</label>
-            <input
-              type="text"
-              id="agend-valor"
-              value=""
-              placeholder="—"
-              readonly
-              tabindex="-1"
-            />
-            <small class="dica-campo">Valor cadastrado no serviço.</small>
-          </div>
+            <div class="campo">
+              <label for="agend-valor">Valor (R$)</label>
+              <input
+                type="text"
+                id="agend-valor"
+                value=""
+                placeholder="—"
+                readonly
+                tabindex="-1"
+                aria-describedby="dica-duracao"
+              />
+            </div>
 
-          <div class="campo">
-            <label>Cor do Card</label>
-            <input
-              type="color"
-              id="agend-cor"
-              value="#3d5a80"
-              style="height: 38px; padding: 2px; cursor: pointer"
-            />
+            <small class="dica-campo campo-full" id="dica-duracao" style="margin-top: -4px">
+              A duração e o valor vêm do serviço escolhido, cadastrado em Administração.
+            </small>
+
           </div>
 
           <div class="form-botoes">
-            <button
-              type="submit"
-              class="btn-salvar"
-              id="btn-confirmar-agendamento"
-            >
-              Confirmar Agendamento
-            </button>
-            <button
-              type="button"
-              id="btn-cancelar-agendamento"
-              class="btn-cancelar"
-            >
+            <button type="button" id="btn-cancelar-agendamento" class="btn-cancelar">
               Cancelar
+            </button>
+            <button type="submit" class="btn-salvar" id="btn-confirmar-agendamento">
+              Confirmar Agendamento
             </button>
           </div>
         </form>
       </div>
     </div>
+
+
+
+
+
 
     <!-- MODAL: DETALHES DO AGENDAMENTO (aparece ao clicar no card da agenda; daqui se edita) -->
     <div class="modal-overlay" id="modal-detalhes-agendamento" hidden>
