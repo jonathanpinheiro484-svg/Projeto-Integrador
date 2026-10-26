@@ -24,6 +24,7 @@ function mensagemErroApi(erro, contexto) {
 
   if (status === 400 && corpo) return corpo;
   if (status === 401) return "E-mail ou senha inválidos.";
+  if (status === 403 && corpo) return corpo; // ex.: "Usuário inativo. Fale com o dono do salão."
   if (status === 500 && contexto === "cadastro") return "Não foi possível cadastrar. Confira se o e-mail ou o CPF já foram cadastrados.";
   return `Erro ${status} ao falar com a API.`;
 }
@@ -460,23 +461,7 @@ function iniciarAuth() {
       // mesmo que esse mesmo e-mail também tenha sido cadastrado como colaborador.
       const ehDonoConhecido = localStorage.getItem("ultimoEmailDono") === email.toLowerCase();
 
-      // E-mail cadastrado pelo dono para um colaborador: valida a senha
-      const credenciais = lerJsonLocal(CHAVE_CREDENCIAIS, {});
-      const cred = credenciais[email.toLowerCase()];
-      if (cred && !ehDonoConhecido) {
-        const hashDigitado = await gerarHashSenha(senha);
-        const colabs = lerJsonLocal(CHAVE_COLABORADORES, []);
-        const colab = colabs.find(c => c.id === cred.colaboradorId);
-        if (hashDigitado !== cred.senhaHash || !colab || colab.ativo === false) {
-          mostrarErroForm(formLogin, "E-mail ou senha inválidos.", senhaInput);
-          return;
-        }
-        localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "COLABORADOR", colaboradorId: colab.id, nome: colab.nome }));
-        window.location.href = "colaborador.html";
-        return;
-      }
-
-      // Dono: confere e-mail e senha na API
+      // Dono e colaborador: confere e-mail e senha na API (ela devolve o token e o Perfil)
       const botaoLogin = formLogin.querySelector("button");
       if (botaoLogin) botaoLogin.disabled = true;
       let nomeApi = "";
@@ -501,16 +486,14 @@ function iniciarAuth() {
       const perfilApi = perfilInformadoPelaApi(respostaApi);
       const colabLocal = acharColaboradorLocal(email);
       if (perfilApi === "colaborador" || (perfilApi !== "dono" && !ehDonoConhecido && colabLocal)) {
-        const colabId = colabLocal ? colabLocal.id : idColaboradorDaApi(respostaApi);
-        if (colabId === null || colabId === undefined || (colabLocal && colabLocal.ativo === false)) {
-          mostrarErroForm(formLogin, colabLocal ? "E-mail ou senha inválidos." : "Não foi possível abrir a agenda deste colaborador neste navegador. Peça ao dono para conferir o seu cadastro.", senhaInput);
+        // O id do colaborador vem da API (ColaboradorId). O colaborador inativo a API já recusa com 403.
+        const idApi = idColaboradorDaApi(respostaApi);
+        const colabId = idApi !== null ? idApi : (colabLocal ? colabLocal.id : null);
+        if (colabId === null || colabId === undefined) {
+          mostrarErroForm(formLogin, "Não foi possível abrir a agenda deste colaborador. Peça ao dono para conferir o seu cadastro.", senhaInput);
           if (botaoLogin) botaoLogin.disabled = false;
           return;
         }
-        // Guarda as credenciais aqui para os próximos logins (sem apagar os dados do dono)
-        const credenciaisNovas = lerJsonLocal(CHAVE_CREDENCIAIS, {});
-        credenciaisNovas[email.toLowerCase()] = { colaboradorId: colabId, senhaHash: await gerarHashSenha(senha) };
-        localStorage.setItem(CHAVE_CREDENCIAIS, JSON.stringify(credenciaisNovas));
         localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "COLABORADOR", colaboradorId: colabId, nome: (colabLocal && colabLocal.nome) || nomeApi }));
         window.location.href = "colaborador.html";
         return;

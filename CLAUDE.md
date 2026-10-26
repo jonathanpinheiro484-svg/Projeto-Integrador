@@ -31,18 +31,22 @@ qualquer chamada à API.
 ## Estado atual
 
 - **Cadastro do Dono** (`cadastro.html` + `js/cadastro.js`): ligado a `POST /api/Cadastro`.
-- **Login** (`login.html` + `js/cadastro.js`): o Dono entra pela API e o token fica salvo.
-  O `login.html` passou a carregar o `js/comum.js` (antes não carregava, e o login quebrava).
-- **Cadastro de colaborador** (`agenda.html`, aba Administrativo + `js/agenda.js`): ligado a
-  `POST /api/Colaboradores`. O formulário ganhou telefone (`colab-telefone`), CPF
-  (`colab-cpf`) e data de admissão (`colab-data-admissao`). Se a API recusar, o erro
-  aparece na tela e nada é salvo no navegador. Depois do sucesso, o colaborador continua
-  sendo guardado também no `localStorage`, porque a agenda ainda lê de lá.
-  **Falta testar** (com a API atualizada pela `master`).
-- **Login do colaborador**: ainda simulado no navegador, porque o token da API não diz se
-  a pessoa é Dono ou Colaborador.
-- **Demais telas** (agenda, planos, assinatura): simuladas com `localStorage`, porque a API
-  ainda não tem as rotas delas.
+- **Login** (`login.html` + `js/cadastro.js`): Dono **e colaborador** entram pela API
+  (`POST /Login`). O token fica salvo e o `Perfil` da resposta decide a tela. O colaborador
+  inativo recebe 403 com a mensagem na tela.
+- **Recuperar senha** (`recuperar-senha.html`): ligado às três rotas da API.
+- **Agenda do Dono** (`agenda.html` + `js/agenda.js`) e **tela do colaborador**
+  (`colaborador.html` + `js/colaborador.js`): serviços, clientes, colaboradores,
+  agendamentos (criar, editar, status) e plano vêm da API. O `localStorage` ainda guarda
+  cópias e alguns extras só da tela (status "Remarcado", agendamentos escondidos,
+  histórico de avisos).
+- **Remover agendamento**: a API não tem `DELETE`, então o front marca como `Cancelado`.
+- **Financeiro**: a tela calcula pelos agendamentos que vêm da API. O `GET /Financeiro` já
+  existe, mas por enquanto o front só mostra a resposta no console.
+- **Assinatura** (`assinatura.html`): o plano aprovado é enviado para `PUT /Plano` quando
+  o Dono abre a agenda (`sincronizarPlanoComApi`). Cartão, boleto e
+  pagamento continuam simulados no `localStorage` (a API não tem essas rotas).
+- **Falta testar** tudo isso com a API atualizada pela `master` (ajustes de 26/10/2026).
 - No final de alguns scripts está o carrossel da página inicial ("NÃO MEXER"). Nas
   páginas sem carrossel, ele pode gerar um erro no console
   (`Cannot read properties of null`). Esse erro não afeta o resto do site.

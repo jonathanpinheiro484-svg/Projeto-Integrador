@@ -1771,6 +1771,7 @@ aside.sidebar .sb-usuario .btn-tema {
 .select-status-agendamento[data-status="Concluido"] { border-color: var(--primaria); color: var(--primaria); }
 .select-status-agendamento[data-status="Cancelado"] { border-color: #e74c3c; color: #e74c3c; }
 .select-status-agendamento[data-status="Remarcado"] { border-color: #f7b032; color: #c98a0a; }
+.select-status-agendamento[data-status="NaoCompareceu"] { border-color: #7f8c8d; color: #5d6d6e; }
 
 
 /* =====================================================================

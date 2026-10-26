@@ -500,6 +500,7 @@ function iniciarColaborador() {
     if (t.startsWith("conclu")) return "Concluido";
     if (t.startsWith("cancel")) return "Cancelado";
     if (t.startsWith("remarc")) return "Remarcado";
+    if (t.startsWith("naocompar") || t.startsWith("nao compar") || t.startsWith("falt")) return "NaoCompareceu";
     if (t.startsWith("agend")) return "Agendado";
     return "";
   }
@@ -636,23 +637,20 @@ function iniciarColaborador() {
     // Só pode apagar da própria agenda
     const alvo = agendamentos.find(a => a.id === id);
     if (!alvo || alvo.colaboradorId !== meuId) return;
-    // Tenta apagar no banco. Se a API não tiver essa rota, o agendamento some só desta tela
-    // e fica guardado como "escondido" para não voltar quando a agenda recarregar do banco.
-    let apagouNoBanco = false;
+    // A API não apaga agendamento: marca como Cancelado (PATCH /Agendamentos/{id}/status).
+    // No banco ele continua, então fica guardado como "escondido" para não voltar quando a agenda recarregar.
     if (API_CONFIG.token) {
       try {
-        await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
-        apagouNoBanco = true;
+        await cancelarAgendamentoApi(id);
       } catch (erro) {
-        console.warn("A API não apagou o agendamento; ele foi removido só desta tela.", erro.message);
+        alert(mensagemErroApiComum(erro, "Não foi possível remover o agendamento no banco."));
+        return;
       }
-      if (!apagouNoBanco) {
-        const ocultos = lerJsonLocal(CHAVE_AGENDAMENTOS_OCULTOS, []);
-        const assinatura = assinaturaAgendamento(alvo);
-        if (!ocultos.includes(assinatura)) {
-          ocultos.push(assinatura);
-          localStorage.setItem(CHAVE_AGENDAMENTOS_OCULTOS, JSON.stringify(ocultos));
-        }
+      const ocultos = lerJsonLocal(CHAVE_AGENDAMENTOS_OCULTOS, []);
+      const assinatura = assinaturaAgendamento(alvo);
+      if (!ocultos.includes(assinatura)) {
+        ocultos.push(assinatura);
+        localStorage.setItem(CHAVE_AGENDAMENTOS_OCULTOS, JSON.stringify(ocultos));
       }
     }
     agendamentos = agendamentos.filter(a => a.id !== id);
@@ -811,7 +809,7 @@ function iniciarColaborador() {
         '<div style="display:flex; justify-content:space-between; align-items:center; gap:16px; padding:9px 0; border-bottom:1px solid rgba(128,128,128,.25); font-size:14px;">' +
           '<span style="color:var(--muted, #8a93a6);">Status</span>' +
           '<select id="det-agend-status" style="padding:6px 10px; border-radius:8px; border:1px solid rgba(128,128,128,.4); background:transparent; color:inherit; font:inherit; font-weight:600;">' +
-            '<option value="Agendado">Agendado</option><option value="Remarcado">Remarcado</option><option value="Cancelado">Cancelado</option><option value="Concluido">Concluído</option>' +
+            '<option value="Agendado">Agendado</option><option value="Remarcado">Remarcado</option><option value="Cancelado">Cancelado</option><option value="Concluido">Concluído</option><option value="NaoCompareceu">Não compareceu</option>' +
           '</select>' +
         '</div>' +
         '<small id="det-agend-status-msg" style="display:none; color:#e11d48; margin-top:6px;"></small>' +

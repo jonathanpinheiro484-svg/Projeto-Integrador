@@ -22,12 +22,11 @@ const API_CONFIG = {
     RECUPERAR_SENHA: "/RecuperarSenha",       // { email } -> envia o código por e-mail
     VERIFICAR_CODIGO: "/VerificarCodigo",     // { email, codigo } -> confere o código
     REDEFINIR_SENHA: "/RedefinirSenha",       // { email, codigo, novaSenha } -> grava a nova senha
-    COLABORADORES: "/Colaboradores",
-    AGENDAMENTOS: "/Agendamentos",           // POST (cria); PUT em /Agendamentos/{id} (edita)
-    FINANCEIRO: "/Financeiro",
-    PLANO: "/Plano",
-    // Rotas que já existem na API (Azure Functions)
-    CLIENTES: "/Clientes",                    // POST
+    COLABORADORES: "/Colaboradores",          // POST (cadastra), GET (lista); PATCH em /Colaboradores/{id} (ativa/desativa)
+    AGENDAMENTOS: "/Agendamentos",           // POST (cria), GET (lista); PUT em /Agendamentos/{id}; PATCH em /Agendamentos/{id}/status. Não tem DELETE.
+    FINANCEIRO: "/Financeiro",                // GET (só o dono); aceita ?data=AAAA-MM-DD
+    PLANO: "/Plano",                          // GET, PUT { plano: "BASICO" | "PREMIUM" }, DELETE (cancela)
+    CLIENTES: "/Clientes",                    // POST, GET; PUT/DELETE em /Clientes/{id}
     SERVICOS: "/Servicos",                    // GET (lista), POST (cadastra); PUT/DELETE em /Servicos/{id}
     VALIDAR_TOKEN: "/ValidarToken",           // GET (usa o token do login no cabeçalho Authorization)
   },
@@ -81,7 +80,9 @@ function mensagemErroApiComum(erro, padrao) {
   } catch (_) { /* a resposta era texto puro */ }
   if (status === 401) return "Sua sessão expirou. Entre novamente.";
   if (status === 404) return "Esta função ainda não está disponível na API.";
-  if (status === 400 && corpo) return corpo;
+  // 400 = dado inválido; 403 = sem permissão (ex.: "Usuário não é dono"); 409 = conflito
+  // (ex.: horário já ocupado, telefone já cadastrado). Nos três a API manda um texto pronto para a tela.
+  if ((status === 400 || status === 403 || status === 409) && corpo) return corpo;
   return padrao || `Erro ${status} ao falar com a API.`;
 }
 
@@ -147,11 +148,13 @@ function statusHttpDoErro(erro) {
 }
 
 // Muda só o status do agendamento: PATCH /Agendamentos/{id}/status  { status }
-// status: "Agendado" | "Remarcado" | "Cancelado" | "Concluido" (sem acento).
+// A API só aceita "Agendado" | "Concluido" | "NaoCompareceu" | "Cancelado" (sem acento).
+// "Remarcado" existe só na tela: para a API ele vai como "Agendado" (a tela guarda o "Remarcado" no navegador).
 // Se a rota ainda não existir (404/405) e vier o corpo completo, cai no PUT /Agendamentos/{id} como antes.
 async function atualizarStatusAgendamentoApi(id, status, corpoCompletoParaPut) {
+  const statusApi = status === "Remarcado" ? "Agendado" : status;
   try {
-    await apiRequest("AGENDAMENTOS", { method: "PATCH", body: { status } }, "/" + id + "/status");
+    await apiRequest("AGENDAMENTOS", { method: "PATCH", body: { status: statusApi } }, "/" + id + "/status");
   } catch (erro) {
     const s = statusHttpDoErro(erro);
     if ((s === 404 || s === 405) && corpoCompletoParaPut) {
@@ -162,9 +165,15 @@ async function atualizarStatusAgendamentoApi(id, status, corpoCompletoParaPut) {
   }
 }
 
-// Ativa/desativa colaborador: PATCH /Colaboradores/{id}  (só o dono). Manda "ativo" e "status" (1/0).
+// Ativa/desativa colaborador: PATCH /Colaboradores/{id} { ativo }  (só o dono).
 async function atualizarStatusColaboradorApi(id, ativo) {
-  await apiRequest("COLABORADORES", { method: "PATCH", body: { ativo: !!ativo, status: ativo ? 1 : 0 } }, "/" + id);
+  await apiRequest("COLABORADORES", { method: "PATCH", body: { ativo: !!ativo } }, "/" + id);
+}
+
+// "Remove" um agendamento: a API não tem DELETE /Agendamentos, então ele é marcado como Cancelado.
+// No banco ele continua existindo (e conta como cancelado no financeiro).
+async function cancelarAgendamentoApi(id) {
+  await apiRequest("AGENDAMENTOS", { method: "PATCH", body: { status: "Cancelado" } }, "/" + id + "/status");
 }
 
 // --- PLANO DO DONO: GET /Plano, PUT /Plano { plano }, DELETE /Plano ---
@@ -216,7 +225,7 @@ async function redefinirSenhaApi(email, codigo, novaSenha) {
 // IMPORTANTE: quando o backend existir, a validação de e-mail/senha deve ser
 // feita LÁ (PHP + password_hash), e estas chaves do localStorage saem.
 const CHAVE_COLABORADORES = "colaboradoresCadastrados"; // lista de colaboradores
-const CHAVE_CREDENCIAIS = "credenciaisColaboradores";   // { email: { colaboradorId, senhaHash } }
+const CHAVE_CREDENCIAIS = "credenciaisColaboradores";   // { email: { colaboradorId } } (a senha fica só na API)
 const CHAVE_SESSAO = "sessaoUsuario";                   // { perfil, colaboradorId?, nome? }
 const CHAVE_AGENDAMENTOS = "agendamentosSalvos";        // lista de agendamentos (dono e colaboradores veem os mesmos)
 

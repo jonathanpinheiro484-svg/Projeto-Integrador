@@ -487,13 +487,15 @@ function iniciarDashboard() {
     return m ? m[1].padStart(2, "0") + ":" + m[2] : "";
   }
 
-  // Status do agendamento: no banco fica "Agendado", "Remarcado", "Cancelado" ou "Concluido" (sem acento).
+  // Status do agendamento: no banco fica "Agendado", "Concluido", "NaoCompareceu" ou "Cancelado" (sem acento).
+  // "Remarcado" existe só na tela (fica guardado neste navegador; para a API ele vai como "Agendado").
   // Aceita maiúsculas/minúsculas e acento; se vier vazio ou desconhecido, devolve "" (a tela mostra "Agendado").
   function normalizarStatusAgendamento(v) {
     const t = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     if (t.startsWith("conclu")) return "Concluido";
     if (t.startsWith("cancel")) return "Cancelado";
     if (t.startsWith("remarc")) return "Remarcado";
+    if (t.startsWith("naocompar") || t.startsWith("nao compar") || t.startsWith("falt")) return "NaoCompareceu";
     if (t.startsWith("agend")) return "Agendado";
     return "";
   }
@@ -1418,20 +1420,19 @@ function iniciarDashboard() {
   async function removerAgendamento(id, event) {
     if (event) event.stopPropagation();
 
-    // Tenta apagar no banco. Se a API não tiver essa função, o agendamento some só desta tela
-    // (o banco pode continuar com ele) e o id fica guardado para ele não voltar quando a agenda recarregar.
-    let apagouNoBanco = false;
+    // A API não apaga agendamento: marca como Cancelado (PATCH /Agendamentos/{id}/status).
+    // Se a API recusar, mostra o erro e o agendamento continua na agenda.
     try {
-      await apiRequest("AGENDAMENTOS", { method: "DELETE" }, `/${id}`);
-      apagouNoBanco = true;
+      await cancelarAgendamentoApi(id);
     } catch (erro) {
-      console.warn("A API não apagou o agendamento; ele foi removido só desta tela.", erro.message);
+      alert(mensagemErroApiComum(erro, "Não foi possível remover o agendamento no banco."));
+      return;
     }
 
-    // Só guarda o id como "escondido" se o banco NÃO apagou; se apagou, o id pode ser reaproveitado por um agendamento novo
+    // No banco ele continua (como Cancelado): guarda como "escondido" para não voltar quando a agenda recarregar
     const agRemovido = agendamentos.find(a => a.id === id);
     const assinaturaRemovido = agRemovido ? assinaturaAgendamento(agRemovido) : null;
-    if (!apagouNoBanco && assinaturaRemovido && !agendamentosOcultos.includes(assinaturaRemovido)) {
+    if (assinaturaRemovido && !agendamentosOcultos.includes(assinaturaRemovido)) {
       agendamentosOcultos.push(assinaturaRemovido);
       localStorage.setItem(CHAVE_AGENDAMENTOS_OCULTOS, JSON.stringify(agendamentosOcultos));
     }
@@ -1572,7 +1573,7 @@ function iniciarDashboard() {
     }
 
     // Status do agendamento (lista): grava na API assim que a pessoa troca.
-    // Valores no banco: Agendado | Remarcado | Cancelado | Concluido (PUT /Agendamentos/{id}, campo "status").
+    // Valores no banco: Agendado | Concluido | NaoCompareceu | Cancelado (PATCH /Agendamentos/{id}/status).
     const selectStatus = document.getElementById("det-status");
     const msgStatus = document.getElementById("det-status-msg");
     if (selectStatus) {
@@ -2836,7 +2837,7 @@ function iniciarDashboard() {
 
     colaboradores.push(novoColab);
     guardarColaboradores();
-    credenciais[emailNovo] = { colaboradorId: novoColab.id, senhaHash: await gerarHashSenha(senhaNova) };
+    credenciais[emailNovo] = { colaboradorId: novoColab.id }; // só para avisar e-mail repetido; a senha fica só na API
     localStorage.setItem(CHAVE_CREDENCIAIS, JSON.stringify(credenciais));
     atualizarSelectLoginSimulado();
     atualizarOpcoesSeletorColunas();

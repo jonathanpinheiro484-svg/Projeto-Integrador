@@ -82,11 +82,14 @@ Respostas:
 
 - **200**, JSON:
   ```json
-  { "Mensagem": "...", "Token": "<jwt>" }
+  { "Mensagem": "...", "Token": "<jwt>", "Perfil": "Dono" | "Colaborador",
+    "Nome": "...", "ColaboradorId": 12 }
   ```
   Atenção: é `Token` com **T maiúsculo**. Ler `resposta.token` dá `undefined`.
+  `ColaboradorId` vem `null` quando quem entrou é o Dono.
 - **400**, texto simples: `Email e senha não podem estar vazio` ou
   `login ou senha invalidos`.
+- **403**, texto simples: `Usuário inativo. Fale com o dono do salão.` (colaborador desativado).
 
 Sobre o token:
 
@@ -94,8 +97,8 @@ Sobre o token:
 - Guarde só o token (a função `salvarTokenApi` já faz isso). **Nunca guarde a senha.**
 - Nas chamadas que exigem login, envie o cabeçalho `Authorization: Bearer <token>`. A
   `apiRequest` já envia sozinha se houver token salvo.
-- O token ainda não informa se a pessoa é Dono ou Colaborador. Por isso o login do
-  colaborador continua simulado no navegador (`CHAVE_CREDENCIAIS`) até a API decidir isso.
+- Dono e colaborador entram pela mesma rota. O front decide a tela pelo `Perfil`
+  (`agenda.html` para o Dono, `colaborador.html` para o colaborador).
 
 ### GET /api/ValidarToken: só para teste (vai sair)
 
@@ -137,11 +140,60 @@ Respostas:
 - **403**, texto simples: `Usuário não é dono` (quem está logado é um colaborador).
 - **500**, sem corpo: email ou CPF já cadastrados. Ainda não é tratado pela API.
 
+### Demais rotas (conferidas na `master` da API em 26/10/2026)
+
+Todas exigem login (`Authorization: Bearer <token>`, que a `apiRequest` manda sozinha). O
+dono **sempre** vem do token, nunca do corpo. Na coluna "Quem", "Dono" quer dizer que o
+colaborador recebe **403** `Usuário não é dono`.
+
+| Rota | Quem | Entrada | Resposta 200 |
+|---|---|---|---|
+| `GET /Colaboradores` | Dono e colab. | — | JSON: lista `{ Id, Nome, Cargo, Telefone, DataAdmissao, Ativo }` (ativos e inativos) |
+| `PATCH /Colaboradores/{id}` | Dono | `{ "ativo": true \| false }` | texto. 404 se não achar |
+| `POST /Servicos` | Dono | `{ "nome", "duracaoMinutos", "preco" }` | texto |
+| `GET /Servicos` | Dono e colab. | — | JSON: lista `{ Id, Nome, DuracaoMinutos, Preco }` (só ativos) |
+| `PUT /Servicos/{id}` | Dono | igual ao POST | texto. 404 se não achar |
+| `DELETE /Servicos/{id}` | Dono | — | texto (só inativa no banco). 404 se não achar |
+| `POST /Clientes` | Dono e colab. | `{ "nome", "telefone" }` | texto. **409** `Telefone de cliente ja cadastrado` |
+| `GET /Clientes` | Dono e colab. | — | JSON: lista `{ Id, Nome, Telefone }` (só ativos) |
+| `PUT /Clientes/{id}` | Dono e colab. | `{ "nome", "telefone" }` | texto. 404 se não achar |
+| `DELETE /Clientes/{id}` | Dono e colab. | — | texto (só inativa no banco). 404 se não achar |
+| `POST /Agendamentos` | Dono e colab. | ver abaixo | JSON `{ Id, Mensagem }` |
+| `GET /Agendamentos` | Dono e colab. | — | JSON: lista, ver abaixo |
+| `PUT /Agendamentos/{id}` | Dono e colab. | igual ao POST | texto. 404 se não achar |
+| `PATCH /Agendamentos/{id}/status` | Dono e colab. | `{ "status": "..." }` | texto. 400 status inválido, 404 se não achar |
+| `GET /Plano` | Dono e colab. | — | JSON `{ Plano, Status, Preco, DataInicio, DataFim }` (`Plano` = `FREE` sem assinatura) |
+| `PUT /Plano` | Dono | `{ "plano": "BASICO" \| "PREMIUM" }` | texto. 400 para outro valor |
+| `DELETE /Plano` | Dono | — | texto. 404 `Nenhuma assinatura ativa para cancelar.` |
+| `GET /Financeiro` | Dono | `?data=AAAA-MM-DD` (opcional; sem ela, hoje) | JSON, ver abaixo |
+| `POST /RecuperarSenha` | sem login | `{ "email" }` | texto (sempre 200, para não revelar quais e-mails existem) |
+| `POST /VerificarCodigo` | sem login | `{ "email", "codigo" }` | texto. 400 `Código incorreto ou expirado.` |
+| `POST /RedefinirSenha` | sem login | `{ "email", "codigo", "novaSenha" }` | texto. 400 se a senha for inválida ou o código errado |
+
+**Agendamento**
+
+- Entrada (POST e PUT): `{ "clienteId", "servicoId", "colaboradorId", "data": "AAAA-MM-DD", "horaInicio": "HH:MM:SS" }`.
+  `colaboradorId` `null` = o próprio Dono atende. Preço, duração e hora de fim a API copia do serviço.
+- Erros: **400** (`Cliente não encontrado.`, `Serviço não encontrado.`, `Colaborador não encontrado.`
+  ou validação) e **409** `Este profissional já tem um agendamento nesse horário.`
+- Saída do GET: `{ Id, ClienteId, ClienteNome, ServicoId, ServicoNome, ColaboradorId,
+  ColaboradorNome, Data, HoraInicio, HoraFim, Preco, DuracaoMinutos, Status }`.
+- `Status` aceito: **`Agendado`, `Concluido`, `NaoCompareceu`, `Cancelado`** (sem acento).
+  "Remarcado" **não existe** na API: a tela mostra, mas envia como `Agendado`.
+- **Não existe `DELETE /Agendamentos/{id}`.** Para "remover", o front marca como `Cancelado`
+  (`cancelarAgendamentoApi` no `js/comum.js`).
+
+**Financeiro** (`GET /Financeiro`)
+
+`{ DataReferencia, Dia, Semana, Mes, PorColaborador }`. `Dia`, `Semana` e `Mes` têm
+`{ Inicio, Fim, Receitas, Atendimentos, Cancelados, Faltas }`. Receita = só agendamentos
+`Concluido`; a semana vai de segunda a domingo. `PorColaborador` é uma lista
+`{ ColaboradorId, Nome, Dia, Semana, Mes }` (o Dono aparece com `Nome` = `Dono`).
+
 ## Rotas que ainda NÃO existem
 
-`/agendamentos`, `/contratos`, `/financeiro`, `/plano` e `/assinaturas` aparecem no
-`js/comum.js`, mas **não existem na API**. Chamar qualquer uma delas dá erro 404. As telas
-que dependem delas continuam usando `localStorage` até a API ganhar essas rotas.
+`/contratos` e `/assinaturas` (pagamento, cartão, boleto). A tela de assinatura continua
+guardando o pagamento no `localStorage`; o plano escolhido vai para `PUT /Plano`.
 
 ## Senha: mesma regra no cadastro e no login
 
