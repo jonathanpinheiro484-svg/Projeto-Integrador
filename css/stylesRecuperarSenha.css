@@ -300,3 +300,43 @@ body {
 /* Logo com fundo próprio (igual à foto) */
 .logo-recuperar { display: inline-block; padding: 0; background: none; border-bottom: none; }
 .logo-recuperar .logo-img { height: 54px !important; }
+
+
+/* ===== Cabeçalho do card: logo e ícone centralizados ===== */
+
+.card-recuperar {
+  text-align: center;
+}
+
+/* Logo centralizado */
+.card-recuperar .logo-recuperar {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 34px;
+}
+
+/* Ícone: círculo com anel suave, centralizado */
+.etapa h1::before {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 28px;
+  border-radius: 50%;
+  background: rgba(18, 214, 134, 0.18);
+  box-shadow: 0 0 0 10px rgba(18, 214, 134, 0.08); /* anel externo */
+}
+
+/* Campo do e-mail e da senha seguem alinhados à esquerda */
+.etapa input {
+  text-align: left;
+}
+
+/* O campo do código continua centralizado */
+#rec-codigo {
+  text-align: center;
+}
+
+/* Mensagens de erro/ok mais legíveis alinhadas à esquerda */
+.etapa .msg.erro,
+.etapa .msg.ok {
+  text-align: left;
+}
