@@ -1,0 +1,71 @@
+:root {
+  --marinho-escuro: #06152b; --marinho: #0a2540; --marinho-claro: #0d3a63;
+  --verde: #12d686; --verde-hover: #0fbf76;
+  --texto: #0b1f3a; --suave: #5b6b82; --borda: #dbe4ef; --fundo-campo: #f3f7fc;
+}
+* { box-sizing: border-box; }
+html { overscroll-behavior: contain; }
+body {
+  margin: 0; min-height: 100vh; color: var(--texto);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  background:
+    radial-gradient(circle at 85% 10%, rgba(0, 170, 255, 0.22), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(18, 214, 134, 0.14), transparent 40%),
+    linear-gradient(135deg, var(--marinho-escuro) 0%, var(--marinho) 55%, var(--marinho-claro) 100%);
+  background-attachment: fixed;
+  padding: 32px 16px 56px;
+}
+.card {
+  max-width: 780px; margin: 0 auto; padding: 40px 40px 34px;
+  background: #fff; border-radius: 28px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+}
+
+/* Dentro do modal da agenda: o cartão preenche a janela e só existe uma barra de rolagem */
+html.embutido body { padding: 0; min-height: 0; background: #fff; }
+html.embutido .card { max-width: none; margin: 0; padding-top: 8px; border-radius: 0; box-shadow: none; }
+
+/* Barra de rolagem fina, dentro do modal */
+html.embutido::-webkit-scrollbar { width: 12px; }
+html.embutido::-webkit-scrollbar-track { background: transparent; margin: 6px 0; }
+html.embutido::-webkit-scrollbar-thumb {
+  background: #b9c6d8;
+  border-radius: 999px;
+  border: 3px solid #fff;
+}
+html.embutido::-webkit-scrollbar-thumb:hover { background: #93a5bd; }
+@supports not selector(::-webkit-scrollbar) {
+  html.embutido { scrollbar-width: thin; scrollbar-color: #b9c6d8 transparent; }
+}
+
+.logo { font-family: "Archivo Black", "Inter", sans-serif; font-size: 22px; line-height: 1.05; color: var(--marinho); }
+.logo span { display: block; color: var(--verde-hover); }
+h1 { margin: 22px 0 6px; font-family: "Archivo Black", "Inter", sans-serif; font-weight: 400; font-size: 28px; line-height: 1.15; color: var(--marinho); }
+.versao { margin: 0 0 22px; font-size: 13px; color: var(--suave); }
+.resumo {
+  margin: 0 0 26px; padding: 16px 18px; border-radius: 16px; font-size: 14.5px; line-height: 1.6;
+  background: rgba(18, 214, 134, 0.12); border: 1px solid rgba(18, 214, 134, 0.35);
+}
+h2 { margin: 28px 0 8px; font-size: 17px; font-weight: 700; color: var(--marinho); }
+p, li { font-size: 14.5px; line-height: 1.65; color: var(--suave); }
+p { margin: 0 0 10px; }
+ul { margin: 0 0 10px; padding-left: 20px; }
+li { margin-bottom: 4px; }
+strong { color: var(--texto); }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 13.5px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--borda); vertical-align: top; color: var(--suave); }
+th { background: var(--fundo-campo); color: var(--marinho); font-weight: 700; }
+.tabela { overflow-x: auto; }
+.rodape { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--borda); }
+.btn {
+  display: inline-block; padding: 13px 26px; border-radius: 999px; border: none; cursor: pointer;
+  font-family: inherit; font-size: 14.5px; font-weight: 700; text-decoration: none;
+  color: var(--marinho-escuro); background: var(--verde); transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.btn:hover { background: var(--verde-hover); transform: translateY(-1px); box-shadow: 0 10px 22px rgba(18, 214, 134, 0.35); }
+.btn:focus-visible, a:focus-visible { outline: 3px solid rgba(42, 117, 224, 0.5); outline-offset: 2px; }
+.nota { font-size: 12.5px; color: var(--suave); margin: 0; }
+@media (max-width: 560px) {
+  .card { padding: 28px 20px 24px; border-radius: 22px; }
+  h1 { font-size: 23px; }
+  html.embutido .card { border-radius: 0; }
+}

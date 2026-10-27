@@ -44,6 +44,54 @@
     <script src="js/contador-teste.js" defer></script>
 <script src="js/bloqueio-teste.js" defer></script>
   </head>
+
+<dialog id="modalPolitica">
+  <iframe id="framePolitica" title="Política de Privacidade"></iframe>
+</dialog>
+
+<style>
+  #modalPolitica {
+    width: min(820px, 96vw);
+    height: 92vh;
+    padding: 0;
+    border: 0;
+    border-radius: 28px;
+    overflow: hidden;
+    background: transparent;
+  }
+  #modalPolitica::backdrop {
+    background: rgba(6, 21, 43, 0.75);
+    backdrop-filter: blur(3px);
+  }
+  #modalPolitica iframe { width: 100%; height: 100%; border: 0; }
+</style>
+
+<script>
+  const modalPolitica = document.getElementById('modalPolitica');
+  const framePolitica = document.getElementById('framePolitica');
+
+  function abrirPolitica(url) {
+    if (framePolitica.getAttribute('src') !== url) framePolitica.src = url;
+    modalPolitica.showModal();
+  }
+
+  // qualquer link para a política abre no modal
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a.menu-lgpd');
+    if (!link) return;
+    e.preventDefault();
+    abrirPolitica(link.getAttribute('href'));
+  });
+
+  // o botão Voltar de dentro da política manda fechar
+  window.addEventListener('message', (e) => {
+    if (e.source === framePolitica.contentWindow && e.data === 'fechar-politica') modalPolitica.close();
+  });
+
+  // clicar no fundo escuro fecha (Esc já fecha sozinho)
+  modalPolitica.addEventListener('click', (e) => { if (e.target === modalPolitica) modalPolitica.close(); });
+</script>
+
   <body>
     <button
       type="button"
@@ -99,10 +147,10 @@
       <span>Assinatura</span>
     </a>
 
-    <a class="menu-lgpd" href="privacidade.html" target="_blank" rel="noopener">
-      <svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9-4.8-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
-      <span>Privacidade (LGPD)</span>
-    </a>
+   <a class="menu-lgpd" href="privacidade.html">
+  <svg class="ico" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8.3-8 9-4.8-.7-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+  <span>Privacidade (LGPD)</span>
+</a>
 
     <div class="sb-usuario">
       <div class="sb-usuario-nome">
@@ -1375,8 +1423,7 @@
           </div>
           <label class="lgpd-check" for="cli-lgpd">
             <input type="checkbox" id="cli-lgpd" />
-            <span>Confirmo que o cliente autorizou o uso do nome e do telefone para agendamentos e lembretes (<a href="privacidade.html" target="_blank" rel="noopener">LGPD</a>).</span>
-          </label>
+            <span>Confirmo que o cliente autorizou o uso do nome e do telefone para agendamentos e lembretes (<a href="privacidade.html">Política de Privacidade</a>).</span>
           <div class="form-botoes">
             <button type="submit" class="btn-salvar" id="btn-salvar-cliente">
               Salvar Cliente

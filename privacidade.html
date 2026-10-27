@@ -5,59 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Política de Privacidade (LGPD) | Get Time</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-<style>
-  :root {
-    --marinho-escuro: #06152b; --marinho: #0a2540; --marinho-claro: #0d3a63;
-    --verde: #12d686; --verde-hover: #0fbf76;
-    --texto: #0b1f3a; --suave: #5b6b82; --borda: #dbe4ef; --fundo-campo: #f3f7fc;
-  }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; min-height: 100vh; color: var(--texto);
-    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    background:
-      radial-gradient(circle at 85% 10%, rgba(0, 170, 255, 0.22), transparent 45%),
-      radial-gradient(circle at 10% 90%, rgba(18, 214, 134, 0.14), transparent 40%),
-      linear-gradient(135deg, var(--marinho-escuro) 0%, var(--marinho) 55%, var(--marinho-claro) 100%);
-    background-attachment: fixed;
-    padding: 32px 16px 56px;
-  }
-  .card {
-    max-width: 780px; margin: 0 auto; padding: 40px 40px 34px;
-    background: #fff; border-radius: 28px; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
-  }
-  .logo { font-family: "Archivo Black", "Inter", sans-serif; font-size: 22px; line-height: 1.05; color: var(--marinho); }
-  .logo span { display: block; color: var(--verde-hover); }
-  h1 { margin: 22px 0 6px; font-family: "Archivo Black", "Inter", sans-serif; font-weight: 400; font-size: 28px; line-height: 1.15; color: var(--marinho); }
-  .versao { margin: 0 0 22px; font-size: 13px; color: var(--suave); }
-  .resumo {
-    margin: 0 0 26px; padding: 16px 18px; border-radius: 16px; font-size: 14.5px; line-height: 1.6;
-    background: rgba(18, 214, 134, 0.12); border: 1px solid rgba(18, 214, 134, 0.35);
-  }
-  h2 { margin: 28px 0 8px; font-size: 17px; font-weight: 700; color: var(--marinho); }
-  p, li { font-size: 14.5px; line-height: 1.65; color: var(--suave); }
-  p { margin: 0 0 10px; }
-  ul { margin: 0 0 10px; padding-left: 20px; }
-  li { margin-bottom: 4px; }
-  strong { color: var(--texto); }
-  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; font-size: 13.5px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--borda); vertical-align: top; color: var(--suave); }
-  th { background: var(--fundo-campo); color: var(--marinho); font-weight: 700; }
-  .tabela { overflow-x: auto; }
-  .rodape { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--borda); }
-  .btn {
-    display: inline-block; padding: 13px 26px; border-radius: 999px; border: none; cursor: pointer;
-    font-family: inherit; font-size: 14.5px; font-weight: 700; text-decoration: none;
-    color: var(--marinho-escuro); background: var(--verde); transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-  }
-  .btn:hover { background: var(--verde-hover); transform: translateY(-1px); box-shadow: 0 10px 22px rgba(18, 214, 134, 0.35); }
-  .btn:focus-visible, a:focus-visible { outline: 3px solid rgba(42, 117, 224, 0.5); outline-offset: 2px; }
-  .nota { font-size: 12.5px; color: var(--suave); margin: 0; }
-  @media (max-width: 560px) { .card { padding: 28px 20px 24px; border-radius: 22px; } h1 { font-size: 23px; } }
-</style>
+<script>
+  /* Se esta página estiver dentro do modal da agenda, marca o <html> para aplicar o layout embutido */
+  if (window.parent !== window) document.documentElement.classList.add('embutido');
+</script>
+<link rel="stylesheet" href="css/stylesPrivacidade.css" />
 </head>
 <body>
   <main class="card">
+    <br>
     <div class="logo">GET<span>TIME</span></div>
     <h1>Política de Privacidade</h1>
     <p class="versao">Lei Geral de Proteção de Dados (Lei nº 13.709/2018) · Versão 1.0 · 26/10/2026</p>
@@ -119,8 +75,15 @@
 
     <div class="rodape">
       <p class="nota">Dúvidas? Use o menu Suporte do sistema.</p>
-      <a class="btn" href="index.html" onclick="if (window.opener) { window.close(); } else { history.back(); } return false;">Voltar</a>
+      <a class="btn" href="agenda.html" onclick="if (window.parent !== window) { parent.postMessage('fechar-politica', '*'); } else if (window.opener) { window.close(); } else { history.back(); } return false;">Voltar</a>
     </div>
   </main>
+
+  <script>
+    /* Esc dentro da política também fecha o modal da agenda */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && window.parent !== window) parent.postMessage('fechar-politica', '*');
+    });
+  </script>
 </body>
 </html>
