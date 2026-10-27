@@ -365,6 +365,13 @@ function iniciarAuth() {
 
     senhaInput.addEventListener("focus", atualizarPainel);
 
+    // LGPD: o aviso de erro some assim que a pessoa marca a caixa
+    const lgpdMarca = document.getElementById("cad-lgpd");
+    if (lgpdMarca) lgpdMarca.addEventListener("change", function () {
+      const el = document.getElementById("cad-lgpd-erro");
+      if (el) el.textContent = lgpdMarca.checked ? "" : "Marque para continuar";
+    });
+
     // ---------- Envio do formulário ----------
     formCadastro.addEventListener("submit", async function (e) {
       e.preventDefault();
@@ -377,8 +384,17 @@ function iniciarAuth() {
         if (validarCampo(c) && !primeiroErro) primeiroErro = c;
       });
       atualizarPainel();
+
+      // LGPD: precisa concordar com a Política de Privacidade
+      const lgpdCheck = document.getElementById("cad-lgpd");
+      const lgpdErro = document.getElementById("cad-lgpd-erro");
+      if (lgpdCheck && lgpdErro) lgpdErro.textContent = lgpdCheck.checked ? "" : "Marque para continuar";
       if (primeiroErro) {
         primeiroErro.input.focus();
+        return;
+      }
+      if (lgpdCheck && !lgpdCheck.checked) {
+        lgpdCheck.focus();
         return;
       }
 
@@ -414,6 +430,8 @@ function iniciarAuth() {
       }
 
       prepararContaDono(email, nome, true);
+      // LGPD: guarda quando a pessoa aceitou a Política de Privacidade (versão 1.0)
+      try { localStorage.setItem("consentimentoLgpd:" + email.toLowerCase(), JSON.stringify({ aceito: true, versao: "1.0", origem: "cadastro", data: new Date().toISOString() })); } catch (_) { /* sem armazenamento */ }
       localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ perfil: "DONO" }));
       window.location.href = destinoCompra || "agenda.html";
     });

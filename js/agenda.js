@@ -2375,6 +2375,9 @@ function iniciarDashboard() {
       mostrarErroForm(formCliente, "Já existe um cliente cadastrado com esse telefone.", campoTelefoneCliente);
       return;
     }
+    // LGPD: quem cadastra confirma que o cliente autorizou o uso dos dados
+    const lgpdCli = document.getElementById("cli-lgpd");
+    if (lgpdCli && !lgpdCli.checked) { mostrarErroForm(formCliente, "Confirme que o cliente autorizou o uso do nome e do telefone (LGPD).", lgpdCli); return; }
     limparErroForm(formCliente);
 
     btnSalvarCliente.disabled = true;

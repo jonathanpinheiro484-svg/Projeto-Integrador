@@ -2126,3 +2126,29 @@ aside.sidebar .sb-usuario .btn-tema {
 .agendamento .tag-Remarcado { background: #ffb020; color: #0a1f38; }
 .agendamento .tag-Concluido { background: #00c878; color: #06281a; }
 .agendamento .tag-Cancelado { background: #e11d48; color: #fff; }
+
+
+/* =====================================================================
+   LGPD: link no menu lateral e caixa de autorização no cadastro de cliente
+   ===================================================================== */
+aside.sidebar nav.menu a.menu-lgpd {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;
+  color: var(--sb-text); font-size: 13.5px; font-weight: 500; text-decoration: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+aside.sidebar nav.menu a.menu-lgpd .ico {
+  width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+aside.sidebar nav.menu a.menu-lgpd:hover { background: rgba(255, 255, 255, 0.07); color: #fff; }
+aside.sidebar nav.menu a.menu-lgpd:focus-visible { outline: 2px solid var(--sb-green); outline-offset: 2px; }
+
+.form-agendamento .lgpd-check {
+  display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 8px;
+  font-size: 12px; line-height: 1.45; color: var(--muted); cursor: pointer;
+}
+.form-agendamento .lgpd-check input {
+  flex: none; width: 17px; height: 17px; margin: 1px 0 0; padding: 0;
+  accent-color: var(--primaria); cursor: pointer;
+}
+.form-agendamento .lgpd-check a { color: var(--destaque, #2a75e0); font-weight: 700; text-decoration: underline; }

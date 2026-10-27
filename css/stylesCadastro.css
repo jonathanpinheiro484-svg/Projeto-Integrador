@@ -56,7 +56,7 @@
 
     /* Medidas */
     --largura-card:       680px;
-    --altura-card:        540px;     /* altura do card (se o cadastro ficar apertado, aumente: 580px) */
+    --altura-card:        590px;     /* altura do card (aumentada para caber a caixa da LGPD no cadastro) */
     --raio-card:          30px;
     --raio-campo:         8px;
 
@@ -721,4 +721,33 @@ body {
 @media (max-width: 760px) { .topo .gt-aviso { margin: 12px 0 0; width: 100%; } }
 
 
-
+/* =====================================================================
+   LGPD: caixa "Li e concordo com a Política de Privacidade"
+   ===================================================================== */
+.container .lgpd-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    margin: 6px 0 2px;
+    font-size: 12px;
+    line-height: 1.45;
+    text-align: left;
+    color: var(--cor-texto-suave);
+    cursor: pointer;
+}
+.container .lgpd-check input {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: 2px 0 0;
+    padding: 0;
+    accent-color: var(--cor-principal);
+    cursor: pointer;
+}
+.container .lgpd-check a {
+    color: var(--cor-destaque);
+    font-weight: 600;
+    text-decoration: underline;
+}
+.container .lgpd-check a:hover { color: var(--cor-destaque-hover); }

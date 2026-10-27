@@ -1138,8 +1138,18 @@ function iniciarAssinatura() {
 
   async function processarEnvio() {
     const { erros, primeiro } = validarFormulario();
-    if (erros.length > 0) { mostrarErro(erros.join("\n"), primeiro); return; }
+    // LGPD: precisa concordar com a Política de Privacidade (na simples troca de pagamento não precisa de novo)
+    const lgpdCheck = $("lgpd-assinatura");
+    let campoFoco = primeiro;
+    if (lgpdCheck && !modoTrocar && !lgpdCheck.checked) {
+      erros.push("Marque que leu e concorda com a Política de Privacidade (LGPD).");
+      if (!campoFoco) campoFoco = lgpdCheck;
+    }
+    if (erros.length > 0) { mostrarErro(erros.join("\n"), campoFoco); return; }
     limparErro();
+    if (lgpdCheck && lgpdCheck.checked) {
+      try { localStorage.setItem("consentimentoLgpd:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase(), JSON.stringify({ aceito: true, versao: "1.0", origem: "assinatura", data: new Date().toISOString() })); } catch (_) { /* sem armazenamento */ }
+    }
 
     if (modoTrocar) { await salvarTrocaPagamento(); return; }
 

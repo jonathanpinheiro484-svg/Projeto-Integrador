@@ -400,3 +400,20 @@ h2 { font-size: 17px; font-weight: 800; margin: 0 0 14px; color: var(--texto); }
 @media (prefers-reduced-motion: reduce) {
   .btn, .btn-sec, .btn-mini, .metodo, .cartao-item, .campo input, .campo select { transition: none; }
 }
+
+
+/* ---------- LGPD: caixa "Li e concordo" (dentro do resumo azul-marinho) ---------- */
+.lgpd-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+  cursor: pointer;
+}
+.lgpd-check input { flex: none; width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--primaria); cursor: pointer; }
+.lgpd-check a { color: var(--destaque); font-weight: 700; text-decoration: underline; }
+.resumo .lgpd-check { color: #c4d3e6; }
+.resumo .lgpd-check a { color: var(--primaria); }
