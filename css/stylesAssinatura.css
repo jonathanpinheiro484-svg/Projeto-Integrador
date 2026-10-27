@@ -401,19 +401,14 @@ h2 { font-size: 17px; font-weight: 800; margin: 0 0 14px; color: var(--texto); }
   .btn, .btn-sec, .btn-mini, .metodo, .cartao-item, .campo input, .campo select { transition: none; }
 }
 
-
-/* ---------- LGPD: caixa "Li e concordo" (dentro do resumo azul-marinho) ---------- */
-.lgpd-check {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 16px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-  cursor: pointer;
+/* Botão "Cancelar operação do Pix" (aparece junto com o QR Code) */
+.pix-cancelar { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border); text-align: center; }
+.pix-cancelar .pix-dica { margin: 0 0 8px; }
+.btn-cancelar-pix {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 22px; border-radius: 999px; cursor: pointer; font-family: inherit;
+  font-size: 13px; font-weight: 700; color: #c0153b;
+  background: rgba(225, 29, 72, 0.06); border: 1.5px solid rgba(225, 29, 72, 0.35);
+  transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
-.lgpd-check input { flex: none; width: 17px; height: 17px; margin: 1px 0 0; accent-color: var(--primaria); cursor: pointer; }
-.lgpd-check a { color: var(--destaque); font-weight: 700; text-decoration: underline; }
-.resumo .lgpd-check { color: #c4d3e6; }
-.resumo .lgpd-check a { color: var(--primaria); }
+.btn-cancelar-pix:hover { background: #e11d48; border-color: #e11d48; color: #fff; box-shadow: 0 6px 16px rgba(225, 29, 72, 0.3); }

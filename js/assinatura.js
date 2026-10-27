@@ -352,21 +352,13 @@ function iniciarAssinatura() {
     return d;
   }
 
-  // true se a data (AAAA-MM-DD) cai em sábado ou domingo
-  function fimDeSemana(iso) {
-    if (!iso) return false;
-    const [a, m, d] = iso.split("-").map(Number);
-    const dia = new Date(a, m - 1, d).getDay();
-    return dia === 0 || dia === 6;
-  }
-
   // Data da próxima cobrança escolhida pela pessoa (sem escolha válida = 1 mês depois, o padrão).
   // Só vale na compra normal; renovar pelo Pix e trocar a forma de pagamento usam a data padrão.
   function proximaData() {
     const padrao = dataRenovacao(planoEscolhido, ciclo, renovarBase);
     const campo = $("ass-prox-cobranca");
     if (!campo || !campo.value || modoTrocar || modoRenovar || planoEscolhido === "FREE") return padrao;
-    if (campo.value < campo.min || campo.value > campo.max || fimDeSemana(campo.value)) return padrao;
+    if (campo.value < campo.min || campo.value > campo.max) return padrao;
     const [a, m, d] = campo.value.split("-").map(Number);
     return new Date(a, m - 1, d, 12, 0, 0);
   }
@@ -651,8 +643,8 @@ function iniciarAssinatura() {
 
     const campoProx = $("ass-prox-cobranca");
     if (campoProx && !modoTrocar && !modoRenovar && planoEscolhido !== "FREE" &&
-        (!campoProx.value || campoProx.value < campoProx.min || campoProx.value > campoProx.max || fimDeSemana(campoProx.value))) {
-      falhar("Escolha uma data de próxima cobrança entre amanhã e daqui a 1 mês, de segunda a sexta (não vale sábado nem domingo).", "ass-prox-cobranca");
+        (!campoProx.value || campoProx.value < campoProx.min || campoProx.value > campoProx.max)) {
+      falhar("Escolha uma data de próxima cobrança entre amanhã e daqui a 1 mês.", "ass-prox-cobranca");
     }
 
     if (planoEscolhido !== "FREE" && metodoAtual() === "cartao") {
@@ -834,6 +826,7 @@ function iniciarAssinatura() {
       document.querySelectorAll(".metodo").forEach((l) => l.classList.toggle("sel", l.querySelector("input").checked));
       if (metodo === "cartao" && cartoes.length === 0) abrirFormCartao(true); // sem cartão ainda: já abre o cadastro
       limparErro();
+      avisoPixCancelado();
       atualizarResumo(); // o texto da cobrança muda conforme a forma de pagamento
     });
   });
@@ -868,6 +861,25 @@ function iniciarAssinatura() {
   $("form-novo-cartao").addEventListener("input", () => { $("erro-cartao").hidden = true; });
   // Enter dentro do cadastro do cartão salva o cartão (e não envia o pedido inteiro)
   $("form-novo-cartao").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); salvarNovoCartao(); } });
+
+  // Aviso (laranja) mostrado depois que a pessoa cancela o Pix; sem texto, remove o aviso
+  function avisoPixCancelado(texto) {
+    let el = $("aviso-pix-cancelado");
+    if (!texto) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement("p");
+      el.id = "aviso-pix-cancelado";
+      el.className = "pix-dica";
+      el.setAttribute("role", "status");
+      el.style.cssText = "margin:10px 0 0;color:#b45309;font-weight:600";
+      $("pix-resultado").insertAdjacentElement("beforebegin", el);
+    }
+    el.textContent = texto;
+  }
+
+  // Botão "Cancelar operação do Pix": aparece junto com o QR Code
+  const btnCancelarPix = $("btn-cancelar-pix");
+  if (btnCancelarPix) btnCancelarPix.addEventListener("click", () => { if (cancelarPixAtual) cancelarPixAtual(); });
 
   $("btn-copiar-pix").addEventListener("click", async () => {
     try {
@@ -1014,6 +1026,9 @@ function iniciarAssinatura() {
 
   // Espera o pagamento de verdade: mostra o tempo que falta e consulta o backend de 3 em 3 segundos.
   // Devolve true quando pagou, ou false se o tempo acabou sem pagamento.
+  // Guarda a função que cancela a espera atual do Pix (usada pelo botão "Cancelar operação do Pix")
+  let cancelarPixAtual = null;
+
   function aguardarPagamentoPix() {
     return new Promise((resolve) => {
       const inicio = Date.now();
@@ -1021,7 +1036,7 @@ function iniciarAssinatura() {
       let consultando = false;
       const timer = setInterval(async () => {
         const restante = PIX_VALIDADE_MS - (Date.now() - inicio);
-        if (restante <= 0) { clearInterval(timer); resolve(false); return; }
+        if (restante <= 0) { clearInterval(timer); cancelarPixAtual = null; resolve(false); return; }
         const texto = $("pix-status-texto");
         if (texto) {
           const min = Math.floor(restante / 60000);
@@ -1033,9 +1048,11 @@ function iniciarAssinatura() {
           consultando = true;
           const pago = await consultarPagamentoPix();
           consultando = false;
-          if (pago) { clearInterval(timer); resolve(true); }
+          if (pago) { clearInterval(timer); cancelarPixAtual = null; resolve(true); }
         }
       }, 1000);
+      // Cancelar operação: para a espera e devolve "cancelado" (a pessoa vai escolher cartão ou boleto)
+      cancelarPixAtual = () => { clearInterval(timer); cancelarPixAtual = null; resolve("cancelado"); };
     });
   }
 
@@ -1138,18 +1155,8 @@ function iniciarAssinatura() {
 
   async function processarEnvio() {
     const { erros, primeiro } = validarFormulario();
-    // LGPD: precisa concordar com a Política de Privacidade (na simples troca de pagamento não precisa de novo)
-    const lgpdCheck = $("lgpd-assinatura");
-    let campoFoco = primeiro;
-    if (lgpdCheck && !modoTrocar && !lgpdCheck.checked) {
-      erros.push("Marque que leu e concorda com a Política de Privacidade (LGPD).");
-      if (!campoFoco) campoFoco = lgpdCheck;
-    }
-    if (erros.length > 0) { mostrarErro(erros.join("\n"), campoFoco); return; }
+    if (erros.length > 0) { mostrarErro(erros.join("\n"), primeiro); return; }
     limparErro();
-    if (lgpdCheck && lgpdCheck.checked) {
-      try { localStorage.setItem("consentimentoLgpd:" + (localStorage.getItem("emailUsuarioLogado") || "dono").trim().toLowerCase(), JSON.stringify({ aceito: true, versao: "1.0", origem: "assinatura", data: new Date().toISOString() })); } catch (_) { /* sem armazenamento */ }
-    }
 
     if (modoTrocar) { await salvarTrocaPagamento(); return; }
 
@@ -1184,6 +1191,7 @@ function iniciarAssinatura() {
     if (metodo === "pix") {
       let pago = false;
       while (!pago) { // se o tempo acabar, a pessoa escolhe: gerar um novo Pix ou trocar a forma de pagamento
+        avisoPixCancelado(); // some o aviso de "Pix cancelado", se houver
         // 1) Gera o Pix
         await Processamento.rodar({
           titulo: "Gerando seu Pix",
@@ -1200,6 +1208,17 @@ function iniciarAssinatura() {
         btn.textContent = "Aguardando o pagamento do Pix...";
         $("pix-resultado").scrollIntoView({ behavior: "smooth", block: "center" });
         pago = await aguardarPagamentoPix();
+        if (pago === "cancelado") { // a pessoa cancelou o Pix para pagar de outra forma
+          $("pix-resultado").hidden = true;
+          $("pix-codigo").value = "";
+          $("pix-qr").innerHTML = "";
+          atualizarTela(); // volta o botão e o resumo ao normal
+          btn.disabled = false;
+          avisoPixCancelado("Pix cancelado. Escolha Cartão de crédito ou Boleto acima, ou clique em Assinar para gerar um novo Pix.");
+          const formas = document.querySelector(".metodo");
+          if (formas) formas.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
         if (!pago) { // o Pix expirou sem pagamento
           $("pix-resultado").hidden = true;
           btn.textContent = "Pix expirado";
@@ -1564,23 +1583,8 @@ function iniciarAssinatura() {
     const limite = new Date(); limite.setMonth(limite.getMonth() + 1);
     campo.min = iso(amanha);
     campo.max = iso(limite);
-    // o padrão (1 mês depois) não pode cair no fim de semana: recua para a sexta
-    const padraoUtil = new Date(limite);
-    while (padraoUtil.getDay() === 0 || padraoUtil.getDay() === 6) padraoUtil.setDate(padraoUtil.getDate() - 1);
-    campo.value = iso(padraoUtil);
-    let ultimaValida = campo.value;
-    let avisouFimDeSemana = false;
-    campo.addEventListener("change", () => {
-      if (fimDeSemana(campo.value)) {
-        campo.value = ultimaValida; // sábado e domingo não são aceitos: volta para a última data válida
-        avisouFimDeSemana = true;
-        mostrarErro("Não é possível escolher sábado ou domingo. Escolha um dia de segunda a sexta.", campo);
-      } else {
-        ultimaValida = campo.value;
-        if (avisouFimDeSemana) { limparErro(); avisouFimDeSemana = false; }
-      }
-      atualizarResumo();
-    });
+    campo.value = iso(limite);
+    campo.addEventListener("change", atualizarResumo);
   })();
 
   // O plano vem da tela de Planos: assinatura.html?plano=profissional
