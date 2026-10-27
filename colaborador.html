@@ -142,17 +142,17 @@ oradores.css">
 
                 <div class="campo">
                   <label for="suporte-email">Seu e-mail</label>
-                  <input type="email" name="email" id="suporte-email" placeholder="Ex: cliente@email.com" required />
+                  <input type="email" name="email" id="suporte-email" placeholder="Ex: cliente@email.com" required maxlength="80" pattern="[^\s@]+@[^\s@]+\.[A-Za-z]{2,}" title="Digite um e-mail válido, com @ e domínio (ex: nome@empresa.com)." autocomplete="email" autocapitalize="none" spellcheck="false" />
                 </div>
 
                 <div class="campo">
                   <label for="suporte-assunto">Assunto</label>
-                  <input type="text" name="Assunto" id="suporte-assunto" placeholder="Ex: Dúvida sobre a agenda" required />
+                  <input type="text" name="Assunto" id="suporte-assunto" placeholder="Ex: Dúvida sobre a agenda" required minlength="5" maxlength="80" autocomplete="off" />
                 </div>
 
                 <div class="campo sup-campo-msg">
                   <label for="suporte-mensagem">Mensagem</label>
-                  <textarea name="Mensagem" id="suporte-mensagem" placeholder="Descreva sua dúvida ou problema..." required></textarea>
+                  <textarea name="Mensagem" id="suporte-mensagem" placeholder="Descreva sua dúvida ou problema..." required minlength="10" maxlength="1000"></textarea>
                 </div>
 
                 <p class="sup-nota">
@@ -233,7 +233,7 @@ oradores.css">
 
         <div class="campo">
           <label for="agend-cliente">Nome do cliente</label>
-          <input type="text" id="agend-cliente" placeholder="Digite ou escolha um cliente" required autocomplete="off" />
+          <input type="text" id="agend-cliente" placeholder="Digite ou escolha um cliente" required maxlength="60" autocomplete="off" />
           <button type="button" id="btn-novo-cliente-modal" class="btn-link">+ Cadastrar novo cliente</button>
         </div>
 

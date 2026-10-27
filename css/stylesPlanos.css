@@ -565,3 +565,5 @@ main { padding-top: 76px; }
 .botao { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; min-height: 44px; text-align: center; line-height: 1.2; }
 .menu-acoes { align-items: center; }
 .plano-card .botao { display: flex; }
+/* ===== Plano Grátis volta a aparecer: Grátis + Básico + Premium (3 cards) ===== */
+.planos-grade { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); max-width: 1100px; }

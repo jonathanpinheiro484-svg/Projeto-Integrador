@@ -295,7 +295,7 @@ function iniciarAssinatura() {
   const PLANOS = {
     FREE: {
       nome: "Grátis", mensal: 0, duracaoDias: 30,
-      itens: ["30 dias de uso", "Até 15 colaboradores", "Agenda simples"]
+      itens: ["30 dias de uso", "Até 3 colaboradores", "Suporte somente por e-mail"]
     },
     BASICO: {
       nome: "Básico", mensal: 80,

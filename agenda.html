@@ -477,7 +477,13 @@
               id="colab-email"
               placeholder="Fernanda@agendaexpress.com"
               required
+              minlength="6"
               maxlength="80"
+              pattern="[^\s@]+@[^\s@]+\.[A-Za-z]{2,}"
+              title="Digite um e-mail válido, com @ e domínio (ex: nome@empresa.com), sem espaços."
+              inputmode="email"
+              autocapitalize="none"
+              spellcheck="false"
               autocomplete="off"
             />
           </div>
@@ -492,10 +498,10 @@
               autocomplete="new-password"
               minlength="8"
               maxlength="20"
-              pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s]).{8,20}"
-              title="A senha deve ter de 8 a 20 caracteres, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !)."
+              pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[^A-Za-z0-9\s])\S{8,20}"
+              title="A senha deve ter de 8 a 20 caracteres, sem espaços, com pelo menos 1 letra maiúscula, 1 letra minúscula e 1 símbolo (ex: @ # $ !)."
             />
-            <small class="dica-campo">De 8 a 20 caracteres, com 1 maiúscula, 1 minúscula e 1 símbolo (@ # $ !).</small>
+            <small class="dica-campo">De 8 a 20 caracteres, sem espaços, com 1 maiúscula, 1 minúscula e 1 símbolo (@ # $ !).</small>
           </div>
 
           <div class="campo">
@@ -505,6 +511,7 @@
               id="colab-senha-confirmar"
               placeholder="Digite a senha novamente"
               required
+              minlength="8"
               maxlength="20"
               autocomplete="new-password"
             />
@@ -516,9 +523,12 @@
               type="tel"
               id="colab-telefone"
               autocomplete="off"
-              placeholder="(11) 912429798"
+              placeholder="(11) 91234-5678"
+              inputmode="numeric"
               required
-              maxlength="13"
+              maxlength="15"
+              pattern="\(\d{2}\) \d{4,5}-\d{4}"
+              title="Digite o telefone com DDD. Exemplo: (11) 91234-5678"
             />
           </div>
 
@@ -528,9 +538,12 @@
               type="text"
               id="colab-cpf"
               autocomplete="off"
-              placeholder="778.235.029-33"
+              placeholder="000.000.000-00"
+              inputmode="numeric"
               required
               maxlength="14"
+              pattern="\d{3}\.\d{3}\.\d{3}-\d{2}"
+              title="Digite os 11 números do CPF. Exemplo: 123.456.789-09"
             />
           </div>
 
@@ -595,6 +608,7 @@
               type="text"
               id="serv-nome"
               placeholder="Digite o nome do serviço"
+              minlength="3"
               maxlength="60"
               autocomplete="off"
               hidden
@@ -608,6 +622,7 @@
               id="serv-valor"
               placeholder="Ex: 45,00"
               min="0"
+              max="9999.99"
               step="0.01"
               inputmode="decimal"
             />
@@ -738,6 +753,12 @@
                         id="suporte-email"
                         placeholder="Ex: cliente@email.com"
                         required
+                        maxlength="80"
+                        pattern="[^\s@]+@[^\s@]+\.[A-Za-z]{2,}"
+                        title="Digite um e-mail válido, com @ e domínio (ex: nome@empresa.com)."
+                        autocomplete="email"
+                        autocapitalize="none"
+                        spellcheck="false"
                       />
                     </div>
 
@@ -749,6 +770,9 @@
                         id="suporte-assunto"
                         placeholder="Ex: Dúvida sobre o plano Premium"
                         required
+                        minlength="5"
+                        maxlength="80"
+                        autocomplete="off"
                       />
                     </div>
 
@@ -759,6 +783,8 @@
                         id="suporte-mensagem"
                         placeholder="Descreva sua dúvida ou problema..."
                         required
+                        minlength="10"
+                        maxlength="1000"
                       ></textarea>
                     </div>
 
@@ -1194,6 +1220,7 @@
                 id="agend-cliente"
                 placeholder="Digite ou escolha um cliente"
                 required
+                maxlength="60"
                 autocomplete="off"
               />
               <button type="button" id="btn-novo-cliente-modal" class="btn-link">

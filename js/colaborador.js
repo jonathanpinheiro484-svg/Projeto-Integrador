@@ -1364,6 +1364,26 @@ function iniciarColaborador() {
   formSuporte.addEventListener("submit", function (e) {
     e.preventDefault();
     suporteErro.style.display = "none";
+
+    // Limpa espaços das pontas e confere o que o navegador não pega (ex.: mensagem só com espaços)
+    const campoSupEmail = document.getElementById("suporte-email");
+    const campoSupAssunto = document.getElementById("suporte-assunto");
+    const campoSupMsg = document.getElementById("suporte-mensagem");
+    campoSupEmail.value = campoSupEmail.value.trim();
+    campoSupAssunto.value = campoSupAssunto.value.trim().replace(/\s{2,}/g, " ");
+    campoSupMsg.value = campoSupMsg.value.trim();
+    const checagens = [
+      [!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(campoSupEmail.value), "Digite um e-mail válido, ex: nome@empresa.com.", campoSupEmail],
+      [campoSupAssunto.value.length < 5, "O assunto deve ter pelo menos 5 caracteres.", campoSupAssunto],
+      [campoSupMsg.value.length < 10, "A mensagem deve ter pelo menos 10 caracteres.", campoSupMsg]
+    ];
+    const falha = checagens.find(c => c[0]);
+    if (falha) {
+      falha[2].setCustomValidity(falha[1]);
+      falha[2].reportValidity();
+      falha[2].setCustomValidity("");
+      return;
+    }
     btnEnviar.disabled = true;
     const textoOriginal = btnEnviar.textContent;
     btnEnviar.textContent = "Enviando...";

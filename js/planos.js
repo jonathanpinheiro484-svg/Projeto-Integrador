@@ -26,6 +26,13 @@ function iniciarPlanos() {
       localStorage.removeItem(CHAVE_SESSAO);
       const temConta = !!localStorage.getItem("nomeUsuarioCadastrado");
       const modo = temConta ? "entrar" : "cadastro";
+
+      // Plano Grátis não tem tela de compra: cria a conta (ou entra) e cai direto na agenda,
+      // onde o teste de 30 dias começa a contar. Por isso não manda "&plano=" na URL.
+      if (plano === "gratis") {
+        window.location.href = `${PAGINA_CADASTRO}?modo=${modo}`;
+        return;
+      }
       window.location.href = `${PAGINA_CADASTRO}?modo=${modo}&plano=${plano}`;
     });
   });

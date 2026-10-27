@@ -54,6 +54,30 @@
             ========================== -->
 
             <div class="planos-grade">
+                <!-- Plano Grátis -->
+                <div class="plano-card free">
+                    <h2>Grátis</h2>
+                    <p class="limite">30 dias de uso</p>
+
+                    <div class="plano-preco-bloco">
+                        <p class="plano-preco" data-preco-plano="FREE">
+                            <span class="preco-moeda">R$</span><span class="preco-valor">0</span><span
+                                class="preco-periodo">/30 dias</span>
+                        </p>
+                        <p class="plano-contrato">Sem cartão e sem compromisso</p>
+                        <p class="plano-pagamento"><strong>Depois dos 30 dias, é preciso escolher um plano pago</strong> para continuar usando o sistema.</p>
+                    </div>
+
+                    <ul class="plano-lista">
+                        <li><span class="icon check">✔️</span> Agendamentos ilimitados</li>
+                        <li><span class="icon check">✔️</span> Até 3 colaboradores</li>
+                        <li><span class="icon cross">❌</span> Sem relatórios financeiros</li>
+                        <li><span class="icon check">✔️</span> Suporte somente por e-mail</li>
+                    </ul>
+                    <a href="cadastro.html?modo=cadastro" data-plano="gratis"
+                        class="botao primario">Começar grátis</a>
+                </div>
+
                 <!-- Plano Básico -->
                 <div class="plano-card basico">
                     <h2>Básico</h2>
@@ -111,6 +135,10 @@
 
             <div class="planos-rodape">
                 <div class="rodape-item">
+                    <strong>Teste grátis por 30 dias</strong>
+                    <span>Sem cartão. Depois, escolha o Básico ou o Premium</span>
+                </div>
+                <div class="rodape-item">
                     <strong>Contrato de 12 meses</strong>
                     <span>Mensalidade de R$ 80 (Básico) ou R$ 150 (Premium)</span>
                 </div>
@@ -151,15 +179,33 @@
                         <h3 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                 data-bs-target="#plano-tres" aria-expanded="false" aria-controls="plano-tres">
-                                Qual a diferença entre o Básico e o Premium?
+                                Qual a diferença entre o Grátis, o Básico e o Premium?
                             </button>
                         </h3>
                         <div id="plano-tres" class="accordion-collapse collapse" data-bs-parent="#accordionPlanos">
                             <div class="accordion-body">
-                                O Premium inclui colaboradores ilimitados, relatórios financeiros avançados,
-                                suporte prioritário por chat e telefone, integração com WhatsApp e personalização
-                                de serviços e horários. O Básico atende até 10 colaboradores, com suporte
-                                por e-mail.
+                                O Grátis é um teste de 30 dias, com até 3 colaboradores e suporte somente por
+                                e-mail. O Básico atende até 10 colaboradores, também com suporte por e-mail. O Premium
+                                inclui colaboradores ilimitados, relatórios financeiros avançados, suporte
+                                prioritário por chat e telefone, integração com WhatsApp e personalização
+                                de serviços e horários.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h3 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#plano-gratis" aria-expanded="false" aria-controls="plano-gratis">
+                                O que acontece quando acabam os 30 dias do plano Grátis?
+                            </button>
+                        </h3>
+                        <div id="plano-gratis" class="accordion-collapse collapse" data-bs-parent="#accordionPlanos">
+                            <div class="accordion-body">
+                                Quando o período grátis termina, o sistema mostra um aviso pedindo para você trocar
+                                de plano. Enquanto o plano não for escolhido, não é possível criar novos agendamentos
+                                nem cadastrar colaboradores. Seus dados continuam guardados e você volta a usar tudo
+                                assim que contratar o Básico ou o Premium.
                             </div>
                         </div>
                     </div>

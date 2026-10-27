@@ -324,6 +324,10 @@ function iniciarDashboard() {
     return (metodo === "pix" || metodo === "boleto") && new Date(reg.validoAte) < new Date();
   })();
   const MSG_PLANO_VENCIDO = "Seu plano está vencido. Pague a mensalidade na aba Assinatura para voltar a usar este recurso.";
+  // Plano Grátis: 30 dias de uso (contador no fim deste arquivo). Passou disso, pede para trocar de plano.
+  const MSG_TESTE_EXPIRADO = "Seu período grátis de 30 dias terminou. Troque de plano para voltar a criar agendamentos e cadastrar colaboradores.";
+  const testeGratisExpirado = () =>
+    usuarioLogado.perfil === "DONO" && planoAtual === "FREE" && calcularTeste().expirado;
   let abaAtiva = "Dashboard";
   let abaOrigemPlanos = "Dashboard";
   let modoVisualizacao = "Dia";
@@ -694,6 +698,7 @@ function iniciarDashboard() {
     }
 
     atualizarPlano();
+    mostrarAvisoTesteExpirado();
     mudarAba(abaOrigemPlanos);
   }
 
@@ -1937,6 +1942,7 @@ function iniciarDashboard() {
 
   btnAbrirAgendamento.addEventListener("click", () => {
     if (planoVencido) { alert(MSG_PLANO_VENCIDO); return; }
+    if (testeGratisExpirado()) { alert(MSG_TESTE_EXPIRADO); return; }
     agendamentoEditandoId = null;
     definirModoEdicaoAgendamento(false);
     popularProfissionaisAgendamento();
@@ -2420,6 +2426,26 @@ function iniciarDashboard() {
     formSuporte.addEventListener("submit", function (e) {
       e.preventDefault();
       suporteErro.style.display = "none";
+
+      // Limpa espaços das pontas e confere o que o navegador não pega (ex.: mensagem só com espaços)
+      const campoSupEmail = document.getElementById("suporte-email");
+      const campoSupAssunto = document.getElementById("suporte-assunto");
+      const campoSupMsg = document.getElementById("suporte-mensagem");
+      campoSupEmail.value = campoSupEmail.value.trim();
+      campoSupAssunto.value = campoSupAssunto.value.trim().replace(/\s{2,}/g, " ");
+      campoSupMsg.value = campoSupMsg.value.trim();
+      const checagens = [
+        [!/^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/.test(campoSupEmail.value), "Digite um e-mail válido, ex: nome@empresa.com.", campoSupEmail],
+        [campoSupAssunto.value.length < 5, "O assunto deve ter pelo menos 5 caracteres.", campoSupAssunto],
+        [campoSupMsg.value.length < 10, "A mensagem deve ter pelo menos 10 caracteres.", campoSupMsg]
+      ];
+      const falha = checagens.find(c => c[0]);
+      if (falha) {
+        falha[2].setCustomValidity(falha[1]);
+        falha[2].reportValidity();
+        falha[2].setCustomValidity("");
+        return;
+      }
       btnEnviarSuporte.disabled = true;
       const textoOriginal = btnEnviarSuporte.textContent;
       btnEnviarSuporte.textContent = "Enviando...";
@@ -2576,8 +2602,24 @@ function iniciarDashboard() {
       const duracao = parseInt(campoDuracaoServ.value, 10);
 
       if (!nome) { mostrarErroForm(formServico, "Escolha o serviço na lista (ou digite o nome em Outros).", campoNomeFoco()); return; }
+      if (nome.length < 3 || nome.length > 60) {
+        mostrarErroForm(formServico, "O nome do serviço deve ter de 3 a 60 caracteres.", campoNomeFoco());
+        return;
+      }
+      if (!/^[\p{L}\p{N}][\p{L}\p{N}\s&'.\-\/()]*$/u.test(nome) || !/\p{L}/u.test(nome)) {
+        mostrarErroForm(formServico, "O nome do serviço deve ter letras e não pode começar com símbolo.", campoNomeFoco());
+        return;
+      }
       if (campoValorServ.value.trim() === "" || !isFinite(valor) || valor < 0) {
         mostrarErroForm(formServico, "Digite um valor válido para o serviço (ex: 45,00).", campoValorServ);
+        return;
+      }
+      if (valor > 9999.99) {
+        mostrarErroForm(formServico, "O valor do serviço não pode passar de R$ 9.999,99.", campoValorServ);
+        return;
+      }
+      if (!/^\d+([.,]\d{1,2})?$/.test(String(campoValorServ.value).trim())) {
+        mostrarErroForm(formServico, "Use no máximo 2 casas decimais no valor (ex: 45,00).", campoValorServ);
         return;
       }
       if (!duracao || duracao < 5 || duracao > 600) {
@@ -2907,7 +2949,47 @@ function iniciarDashboard() {
     });
   }
 
+  // Senhas muito comuns que passam nas regras de maiúscula/minúscula/símbolo mas são fracas
+  const SENHAS_FRACAS = ["senha@123", "senha123@", "senha@12", "password@1", "admin@123", "mudar@123", "qwerty@123", "abc@12345", "abcd@1234"];
+  const EMAIL_COMPLETO_REGEX = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+
+  function validarEmailESenhaColaborador() {
+    const campoEmail = document.getElementById("colab-email");
+    const campoSenha = document.getElementById("colab-senha");
+    const campoConf = document.getElementById("colab-senha-confirmar");
+    const campoNome = document.getElementById("colab-nome");
+    if (campoEmail) {
+      const email = campoEmail.value.trim();
+      campoEmail.value = email;
+      if (!EMAIL_COMPLETO_REGEX.test(email)) {
+        return { erro: "E-mail inválido: use o formato nome@empresa.com, sem espaços.", campo: campoEmail };
+      }
+    }
+    if (campoSenha) {
+      const senha = campoSenha.value;
+      if (/\s/.test(senha)) return { erro: "A senha não pode ter espaços.", campo: campoSenha };
+      if (campoEmail && senha.toLowerCase() === campoEmail.value.trim().toLowerCase()) {
+        return { erro: "A senha não pode ser igual ao e-mail.", campo: campoSenha };
+      }
+      if (campoNome) {
+        const partesNome = campoNome.value.toLowerCase().split(/\s+/).filter(p => p.length >= 4);
+        if (partesNome.some(p => senha.toLowerCase().includes(p))) {
+          return { erro: "A senha não pode conter o nome do colaborador.", campo: campoSenha };
+        }
+      }
+      if (SENHAS_FRACAS.includes(senha.toLowerCase())) {
+        return { erro: "Essa senha é muito comum. Escolha uma senha mais difícil de adivinhar.", campo: campoSenha };
+      }
+    }
+    if (campoSenha && campoConf && campoSenha.value !== campoConf.value) {
+      return { erro: "A confirmação da senha não é igual à senha digitada.", campo: campoConf };
+    }
+    return null;
+  }
+
   function validarCamposColaboradorExtras() {
+    const erroAcesso = validarEmailESenhaColaborador();
+    if (erroAcesso) return erroAcesso;
     if (campoColabTel && !telefoneValido(campoColabTel.value)) {
       return { erro: "Telefone inválido: digite o DDD e o número completo, ex: (11) 91234-5678.", campo: campoColabTel };
     }
@@ -2923,6 +3005,7 @@ function iniciarDashboard() {
   formColab.addEventListener("submit", async function (e) {
     e.preventDefault();
     if (planoVencido) { mostrarErroForm(formColab, MSG_PLANO_VENCIDO, null); return; }
+    if (testeGratisExpirado()) { mostrarErroForm(formColab, MSG_TESTE_EXPIRADO, null); return; }
 
     sincronizarCargoOutros();
     if (campoCargo.value === "__outros__") {
@@ -2941,11 +3024,11 @@ function iniciarDashboard() {
     }
     limparErroForm(formColab);
 
-    const limiteColaboradores = { FREE: 15, BASICO: 10, PREMIUM: Infinity };
+    const limiteColaboradores = { FREE: 3, BASICO: 10, PREMIUM: Infinity };
     const limite = limiteColaboradores[planoAtual];
 
     if (colaboradores.length >= limite) {
-      alert(`O plano ${planoAtual} permite até ${limite} colaboradores.`);
+      alert(`O plano ${nomesPlanos[planoAtual] || planoAtual} permite até ${limite} colaboradores. Troque de plano para cadastrar mais.`);
       return;
     }
 
@@ -3416,9 +3499,35 @@ function iniciarDashboard() {
     conteudo.insertBefore(aviso, conteudo.firstChild);
   }
 
+  // =====================================================
+  // TESTE GRÁTIS ACABOU (plano Grátis, 30 dias)
+  // Mostra um aviso fixo no topo pedindo para trocar de plano. Enquanto estiver no Grátis, não cria
+  // agendamento nem colaborador; agenda, Assinatura, Planos e Suporte continuam abertos.
+  // =====================================================
+  function mostrarAvisoTesteExpirado() {
+    const existente = document.getElementById("aviso-teste-expirado");
+    if (!testeGratisExpirado()) { if (existente) existente.remove(); return; } // trocou de plano: some
+    const conteudo = document.querySelector(".conteudo");
+    if (!conteudo || existente) return;
+    const aviso = document.createElement("div");
+    aviso.id = "aviso-teste-expirado";
+    aviso.setAttribute("role", "alert");
+    aviso.style.cssText = "display:flex; flex-wrap:wrap; align-items:center; gap:12px; justify-content:space-between; margin:0 0 16px; padding:14px 18px; border:1.5px solid #e11d48; border-radius:12px; background:rgba(225,29,72,.08); font-size:14px;";
+    const texto = document.createElement("span");
+    texto.innerHTML = "<strong>Seu período grátis de 30 dias terminou.</strong> Troque de plano para continuar usando o sistema.";
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "btn-salvar";
+    botao.textContent = "Escolher plano";
+    botao.addEventListener("click", () => irParaTelaPlanos());
+    aviso.append(texto, botao);
+    conteudo.insertBefore(aviso, conteudo.firstChild);
+  }
+
   // --- INICIALIZAÇÃO DO DASHBOARD ---
   seletorData.value = obterDataHojeISO();
   mostrarAvisoPlanoVencido();
+  mostrarAvisoTesteExpirado();
   atualizarFinanceiro();
   atualizarPlano();
   aplicarPermissoes();
