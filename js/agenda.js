@@ -740,6 +740,29 @@ function iniciarDashboard() {
     PREMIUM: ["Sem limite de tempo", "Agendamentos ilimitados", "Colaboradores ilimitados", "Relatórios avançados (financeiro)", "Suporte prioritário (chat/telefone)", "Integração com WhatsApp", "Personalização de serviços e horários"]
   };
 
+  // Cartão visual da tela de Assinatura: preenche com os dados da assinatura salva.
+  function preencherCartaoAssinatura(card, plano, pendente) {
+    const caixa = card.querySelector(".sa-cartao");
+    if (!caixa) return;
+    const reg = lerJsonLocal(CHAVE_ASSINATURA, null) || {};
+    const boleto = pendente ? (lerDadosBoleto() || {}) : {};
+    const texto = (sel, v) => { const el = caixa.querySelector(sel); if (el) el.textContent = v; };
+    const nomesMetodo = { boleto: "Boleto", pix: "Pix", cartao: "Cartão de crédito" };
+    const metodo = pendente ? "boleto" : metodoDaAssinatura();
+    const precoPadrao = { BASICO: 80, PREMIUM: 150 }[plano] || 0;
+    const bruto = pendente ? boleto.valor : reg.valor;
+    const num = Number(String(bruto == null ? "" : bruto).replace(",", "."));
+    const valor = (bruto !== undefined && bruto !== "" && !isNaN(num) && num > 0) ? num : precoPadrao;
+    const dataIso = pendente ? boleto.vencimento : reg.validoAte;
+    const data = dataIso ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(dataIso) ? dataIso + "T12:00:00" : dataIso) : null;
+    texto(".sa-cartao-plano", nomesPlanos[plano] || plano);
+    texto(".sa-cartao-valor", formatarMoeda(valor) + " /mês");
+    texto(".sa-cartao-titular", (localStorage.getItem("nomeUsuarioCadastrado") || "").trim() || "—");
+    texto(".sa-cartao-forma", nomesMetodo[metodo] || "—");
+    texto(".sa-cartao-rotulo-data", pendente ? "Vencimento do boleto" : (metodo === "cartao" ? "Próxima cobrança" : "Válido até"));
+    texto(".sa-cartao-data", data && !isNaN(data) ? data.toLocaleDateString("pt-BR") : "—");
+  }
+
   function atualizarAssinatura() {
     const cartaoAtiva = document.getElementById("assinatura-ativa");
     const cartaoPendente = document.getElementById("assinatura-pendente");
@@ -766,6 +789,8 @@ function iniciarDashboard() {
     };
     preencher(cartaoAtiva, planoAtivo);
     preencher(cartaoPendente, planoPendente);
+    if (planoAtivo) preencherCartaoAssinatura(cartaoAtiva, planoAtivo, false);
+    if (planoPendente) preencherCartaoAssinatura(cartaoPendente, planoPendente, true);
     cartaoVazio.hidden = !!(planoAtivo || planoPendente);
 
     // Botão de pagamento do card ativo, conforme a forma de pagamento da assinatura:
@@ -989,6 +1014,10 @@ function iniciarDashboard() {
     };
   }
 
+  // Só conta na receita (cards, tabela, rosca e gráfico do mês) o agendamento marcado como Concluído.
+  // Agendado, Remarcado, Cancelado e Não compareceu ficam de fora até a pessoa concluir.
+  function contaNaReceita(a) { return a.status === "Concluido"; }
+
   // Soma o valor dos agendamentos de cada colaborador em cada período.
   // >>> API: quando o endpoint FINANCEIRO existir, estes totais podem vir dele.
   function calcularFaturamentoPorColaborador() {
@@ -996,7 +1025,7 @@ function iniciarDashboard() {
     const periodos = ["Dia", "Semana", "Mês"];
     const linhas = comDono(colaboradores).map(c => {
       const totais = { Dia: 0, Semana: 0, Mês: 0 };
-      agendamentos.filter(a => a.colaboradorId === c.id).forEach(a => {
+      agendamentos.filter(a => a.colaboradorId === c.id && contaNaReceita(a)).forEach(a => {
         periodos.forEach(p => {
           if (a.data >= limites[p][0] && a.data <= limites[p][1]) totais[p] += Number(a.valor) || 0;
         });
@@ -1061,7 +1090,7 @@ function iniciarDashboard() {
     const porDia = new Array(dias).fill(0);
     const prefixo = `${ano}-${String(mes0 + 1).padStart(2, "0")}-`;
     agendamentos.forEach(a => {
-      if (!ids.has(a.colaboradorId) || typeof a.data !== "string" || !a.data.startsWith(prefixo)) return;
+      if (!ids.has(a.colaboradorId) || !contaNaReceita(a) || typeof a.data !== "string" || !a.data.startsWith(prefixo)) return;
       const dia = parseInt(a.data.slice(8, 10), 10);
       if (dia >= 1 && dia <= dias) porDia[dia - 1] += Number(a.valor) || 0;
     });
@@ -1273,7 +1302,8 @@ function iniciarDashboard() {
     }).join("");
   }
 
-  // Financeiro: lista dos agendamentos CONCLUÍDOS no período escolhido (Dia/Semana/Mês)
+  // Financeiro: lista dos agendamentos CONCLUÍDOS no período escolhido (Dia/Semana/Mês).
+  // São exatamente os que entram na receita.
   function renderizarConcluidos(limites) {
     let caixa = document.getElementById("financeiro-concluidos");
     if (!caixa) {
@@ -1281,10 +1311,9 @@ function iniciarDashboard() {
       if (!tabela) return;
       caixa = document.createElement("div");
       caixa.id = "financeiro-concluidos";
-      caixa.className = "so-financeiro";
-      caixa.style.cssText = "margin-top:16px;";
-      const alvo = tabela.closest(".so-financeiro") || tabela;
-      alvo.insertAdjacentElement("afterend", caixa);
+      caixa.className = "financeiro-tabela-wrap so-financeiro";
+      const alvo = tabela.closest(".financeiro-tabela-wrap") || tabela;
+      alvo.insertAdjacentElement("beforebegin", caixa);
     }
     caixa.hidden = abaAtiva !== "Financeiro";
     const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
@@ -1293,16 +1322,16 @@ function iniciarDashboard() {
       .filter(a => a.status === "Concluido" && a.data >= ini && a.data <= fim)
       .sort((a, b) => (a.data + a.horaInicio).localeCompare(b.data + b.horaInicio));
     const total = lista.reduce((soma, a) => soma + (Number(a.valor) || 0), 0);
-    const titulo = `<h4 style="margin:0 0 8px;">Agendamentos concluídos (${modoVisualizacao}) · ${lista.length} · ${formatarMoeda(total)}</h4>`;
+    const topo = `<div class="concluidos-topo"><strong>Agendamentos concluídos (${modoVisualizacao})</strong><span>${lista.length} · ${formatarMoeda(total)}</span></div>`;
     if (!lista.length) {
-      caixa.innerHTML = titulo + `<p class="grafico-colab-vazio">Nenhum agendamento concluído neste período.</p>`;
+      caixa.innerHTML = topo + `<p class="concluidos-vazio">Nenhum agendamento concluído neste período. Abra o agendamento e clique em “✓ Concluído” para o valor entrar aqui.</p>`;
       return;
     }
     const linhas = lista.map(a => {
       const colab = comDono(colaboradores).find(c => c.id === a.colaboradorId);
       return `<tr><td>${esc(a.cliente)}</td><td>${esc(a.servico || "—")}</td><td>${esc(colab ? colab.nome : "—")}</td><td>${dataBR(a.data)} ${esc(a.horaInicio)}</td><td>${formatarMoeda(Number(a.valor) || 0)}</td></tr>`;
     }).join("");
-    caixa.innerHTML = titulo + `<table class="tabela-contratos"><thead><tr><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Data</th><th>Valor</th></tr></thead><tbody>${linhas}</tbody></table>`;
+    caixa.innerHTML = topo + `<table class="tabela-financeiro"><thead><tr><th>Cliente</th><th>Serviço</th><th>Profissional</th><th>Data</th><th>Valor</th></tr></thead><tbody>${linhas}</tbody></table>`;
   }
 
   function atualizarFinanceiro() {
@@ -1586,6 +1615,7 @@ function iniciarDashboard() {
       selectStatus.value = ag.status || "Agendado";
       pintarStatus();
       mostrarMsgStatus("");
+      selectStatus.disabled = true; // ninguém troca o status pela lista: só pelos botões Concluído e Cancelar
       selectStatus.onchange = async () => {
         const anterior = ag.status || "Agendado";
         const novoStatus = selectStatus.value;
@@ -1627,7 +1657,7 @@ function iniciarDashboard() {
             ? erro.message
             : mensagemErroApiComum(erro, "Não foi possível salvar o status no banco."));
         } finally {
-          selectStatus.disabled = false;
+          selectStatus.disabled = true; // continua travado
         }
       };
     }
@@ -1654,13 +1684,42 @@ function iniciarDashboard() {
         selectStatus.value = "Cancelado";
         selectStatus.onchange(); // reaproveita o mesmo salvamento do status (API)
         btnCancelarAg.hidden = true;
+        if (btnConcluirAg) btnConcluirAg.hidden = true;
+        const btnEditarAgora = document.getElementById("btn-editar-agendamento");
+        if (btnEditarAgora) btnEditarAgora.hidden = true; // cancelou: não edita mais
+      }
+    };
+
+    // Botão "Concluído": marca o agendamento como Concluído (o status não é mais trocado pela lista)
+    let btnConcluirAg = document.getElementById("btn-concluir-agendamento-det");
+    if (!btnConcluirAg) {
+      btnConcluirAg = document.createElement("button");
+      btnConcluirAg.type = "button";
+      btnConcluirAg.id = "btn-concluir-agendamento-det";
+      btnConcluirAg.className = "btn-cancelar";
+      btnConcluirAg.textContent = "✓ Concluído";
+      btnConcluirAg.style.cssText = "color:#00a862; border-color:#00a862;";
+      btnCancelarAg.parentElement.insertBefore(btnConcluirAg, btnCancelarAg);
+    }
+    btnConcluirAg.hidden = (ag.status === "Cancelado" || ag.status === "Concluido");
+    btnConcluirAg.onclick = async () => {
+      if (!confirm("Marcar este agendamento como Concluído?")) return;
+      if (selectStatus) {
+        selectStatus.value = "Concluido";
+        await selectStatus.onchange(); // reaproveita o mesmo salvamento do status (API)
+        const fechado = (ag.status === "Cancelado" || ag.status === "Concluido");
+        btnConcluirAg.hidden = fechado;
+        btnCancelarAg.hidden = fechado;
       }
     };
 
     document.getElementById("btn-fechar-detalhes").onclick = fechar;
     document.getElementById("btn-fechar-detalhes-2").onclick = fechar;
     modal.onclick = (e) => { if (e.target === modal) fechar(); };
-    document.getElementById("btn-editar-agendamento").onclick = () => { fechar(); abrirEdicaoAgendamento(ag); };
+    // Agendamento cancelado não pode ser editado: o botão Editar some
+    const btnEditarAg = document.getElementById("btn-editar-agendamento");
+    btnEditarAg.hidden = (ag.status === "Cancelado");
+    btnEditarAg.onclick = () => { if (ag.status === "Cancelado") return; fechar(); abrirEdicaoAgendamento(ag); };
     modal.hidden = false;
   }
   document.addEventListener("keydown", (e) => {
@@ -1722,6 +1781,7 @@ function iniciarDashboard() {
 
       const layoutColuna = calcularLayoutColuna(agsDoColab);
 
+      const rotuloStatusBloco = { Remarcado: "↻ Remarcado", Concluido: "✓ Concluído", Cancelado: "Cancelado", NaoCompareceu: "Não compareceu" };
       layoutColuna.forEach(item => {
         const ag = item.ag;
         const [hIni, mIni] = ag.horaInicio.split(":").map(Number);
@@ -1734,12 +1794,13 @@ function iniciarDashboard() {
         const bloco = document.createElement("div");
         bloco.className = "agendamento";
         bloco.style.cssText = `top: ${topPx}px; height: ${heightPx}px; left: calc(${esquerda}% + 2px); width: calc(${largura}% - 4px); background: ${ag.cor};`;
-        bloco.setAttribute("title", `Cliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nHorário: ${ag.horaInicio}`);
+        bloco.setAttribute("title", `Cliente: ${ag.cliente}\nServiço: ${ag.servico || 'Não informado'}\nHorário: ${ag.horaInicio}${ag.status && ag.status !== "Agendado" ? "\nStatus: " + (rotuloStatusBloco[ag.status] || ag.status) : ""}`);
         bloco.addEventListener("click", () => verDetalhesAgendamento(ag));
         bloco.innerHTML = `
           <button type="button" class="remover" onclick="removerAgendamento(${ag.id}, event)">✕</button>
           <strong>${ag.cliente}</strong>
           ${ag.servico ? `<span>${ag.servico}</span>` : ''}
+          ${rotuloStatusBloco[ag.status] ? `<em class="tag-status tag-${ag.status}">${rotuloStatusBloco[ag.status]}</em>` : ''}
         `;
         col.appendChild(bloco);
       });
@@ -1932,7 +1993,7 @@ function iniciarDashboard() {
         duracaoMinutos: ag.duracaoMin,
         valor: ag.valor,
         cor: ag.cor,
-        ...(ag.status ? { status: ag.status } : {}) // Agendado | Remarcado | Cancelado | Concluido
+        ...(ag.status ? { status: ag.status === "Remarcado" ? "Agendado" : ag.status } : {}) // a API não conhece "Remarcado": vai como Agendado e o Remarcado fica guardado na tela
       }
     };
   }
@@ -2147,6 +2208,102 @@ function iniciarDashboard() {
     };
     campoClienteAgend.addEventListener("input", preencherTelefoneDoCliente);
     campoClienteAgend.addEventListener("change", preencherTelefoneDoCliente);
+  }
+
+  // Lista de clientes do agendamento: painel próprio (nome + telefone), filtra enquanto digita
+  // e deixa cadastrar um cliente novo quando o nome não existe. Substitui a lista nativa do navegador.
+  if (campoClienteAgend) {
+    campoClienteAgend.removeAttribute("list");
+    const envolt = document.createElement("div");
+    envolt.className = "combo-wrap";
+    campoClienteAgend.parentNode.insertBefore(envolt, campoClienteAgend);
+    envolt.appendChild(campoClienteAgend);
+    const painel = document.createElement("div");
+    painel.className = "combo-lista";
+    painel.id = "combo-clientes";
+    painel.setAttribute("role", "listbox");
+    painel.hidden = true;
+    envolt.appendChild(painel);
+    campoClienteAgend.setAttribute("role", "combobox");
+    campoClienteAgend.setAttribute("aria-controls", "combo-clientes");
+    campoClienteAgend.setAttribute("aria-expanded", "false");
+
+    let indiceAtivo = -1;
+    const esc = t => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    const destacar = (nome, termo) => {
+      if (!termo) return esc(nome);
+      const i = nome.toLowerCase().indexOf(termo.toLowerCase());
+      if (i < 0) return esc(nome);
+      return esc(nome.slice(0, i)) + "<mark>" + esc(nome.slice(i, i + termo.length)) + "</mark>" + esc(nome.slice(i + termo.length));
+    };
+    const fechar = () => { painel.hidden = true; indiceAtivo = -1; campoClienteAgend.setAttribute("aria-expanded", "false"); };
+    const escolher = cliente => {
+      campoClienteAgend.value = cliente.nome;
+      const zap = document.getElementById("agend-whatsapp");
+      if (zap && cliente.telefone) zap.value = formatarTelefone(cliente.telefone);
+      fechar();
+      campoClienteAgend.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    const marcarAtivo = () => {
+      painel.querySelectorAll(".combo-item").forEach((el, i) => {
+        el.classList.toggle("ativo", i === indiceAtivo);
+        if (i === indiceAtivo) el.scrollIntoView({ block: "nearest" });
+      });
+    };
+    let visiveis = [];
+    const abrir = () => {
+      const termo = campoClienteAgend.value.trim();
+      const digitos = termo.replace(/\D/g, "");
+      visiveis = clientes
+        .filter(c => !termo || c.nome.toLowerCase().includes(termo.toLowerCase()) || (digitos && c.telefone.includes(digitos)))
+        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+      painel.innerHTML = "";
+      if (!visiveis.length) {
+        const vazio = document.createElement("div");
+        vazio.className = "combo-vazio";
+        vazio.innerHTML = termo
+          ? `<p>Nenhum cliente com “${esc(termo)}”.</p><button type="button" class="combo-novo">+ Cadastrar “${esc(termo)}”</button>`
+          : `<p>Nenhum cliente cadastrado ainda.</p><button type="button" class="combo-novo">+ Cadastrar novo cliente</button>`;
+        vazio.querySelector(".combo-novo").addEventListener("mousedown", e => {
+          e.preventDefault();
+          fechar();
+          abrirModalCliente(termo);
+        });
+        painel.appendChild(vazio);
+      } else {
+        visiveis.forEach(c => {
+          const item = document.createElement("div");
+          item.className = "combo-item";
+          item.setAttribute("role", "option");
+          item.innerHTML = `<span class="combo-avatar">${esc(c.nome.charAt(0).toUpperCase())}</span>` +
+            `<span class="combo-textos"><strong>${destacar(c.nome, termo)}</strong>` +
+            `<small>${c.telefone ? esc(formatarTelefone(c.telefone)) : "Sem telefone"}</small></span>`;
+          item.addEventListener("mousedown", e => { e.preventDefault(); escolher(c); });
+          painel.appendChild(item);
+        });
+      }
+      indiceAtivo = -1;
+      painel.hidden = false;
+      campoClienteAgend.setAttribute("aria-expanded", "true");
+    };
+    campoClienteAgend.addEventListener("focus", abrir);
+    campoClienteAgend.addEventListener("click", () => { if (painel.hidden) abrir(); });
+    campoClienteAgend.addEventListener("input", abrir);
+    campoClienteAgend.addEventListener("blur", () => setTimeout(fechar, 120));
+    campoClienteAgend.addEventListener("keydown", e => {
+      if (e.key === "Escape" && !painel.hidden) { e.stopPropagation(); fechar(); return; }
+      if (!visiveis.length) return;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (painel.hidden) abrir();
+        const passo = e.key === "ArrowDown" ? 1 : -1;
+        indiceAtivo = (indiceAtivo + passo + visiveis.length) % visiveis.length;
+        marcarAtivo();
+      } else if (e.key === "Enter" && !painel.hidden && indiceAtivo >= 0) {
+        e.preventDefault();
+        escolher(visiveis[indiceAtivo]);
+      }
+    });
   }
 
   // Campo Telefone do agendamento (é o #agend-whatsapp): escolheu/digitou um telefone cadastrado, o nome vem junto

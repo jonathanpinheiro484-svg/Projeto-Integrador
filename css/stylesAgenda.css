@@ -1913,3 +1913,216 @@ aside.sidebar .sb-usuario .btn-tema {
   .modal-card .form-botoes button,
   .modal-card .form-botoes a { width: 100%; text-align: center; }
 }
+
+/* =====================================================================
+   ASSINATURA: visual novo (só CSS, o HTML e o JS continuam iguais)
+   Colar no FINAL do arquivo para sobrescrever as regras antigas.
+   ===================================================================== */
+
+/* ---- faixa azul-marinho ---- */
+#secao-assinatura .sa-hero {
+  position: relative; overflow: hidden;
+  border-radius: 28px; padding: 34px 40px 96px;
+  background:
+    radial-gradient(620px 240px at 88% -10%, rgba(0, 200, 120, .38), transparent 65%),
+    radial-gradient(420px 220px at 0% 120%, rgba(42, 117, 224, .35), transparent 70%),
+    linear-gradient(135deg, #07182d 0%, #0d2a47 100%);
+}
+#secao-assinatura .sa-hero::after {
+  content: ""; position: absolute; right: -70px; bottom: -150px;
+  width: 340px; height: 340px; border-radius: 50%; pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, .12);
+  box-shadow: 0 0 0 46px rgba(255, 255, 255, .03), 0 0 0 92px rgba(255, 255, 255, .02);
+}
+#secao-assinatura .sa-hero > * { position: relative; z-index: 1; }
+#secao-assinatura .sa-hero .sa-eyebrow { color: #7cbcff; letter-spacing: .16em; }
+#secao-assinatura .sa-hero h3 {
+  font-size: clamp(30px, 4.4vw, 46px); line-height: 1.05; letter-spacing: -.02em; margin: 8px 0 8px;
+}
+#secao-assinatura .sa-hero p { font-size: 15px; color: #c4d3e6; }
+
+/* ---- selo de status (com bolinha) ---- */
+#secao-assinatura .sa-hero .assinatura-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; font-size: 13px; font-weight: 700;
+  background: rgba(0, 200, 120, .16); color: #5ff0b0; border: 1px solid rgba(0, 200, 120, .5);
+}
+#secao-assinatura .sa-hero .assinatura-status::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor;
+  box-shadow: 0 0 0 0 currentColor; animation: sa-pulso 2s ease-out 3;
+}
+#secao-assinatura .sa-hero .assinatura-status.pendente {
+  background: rgba(255, 176, 32, .16); color: #ffc857; border-color: rgba(255, 176, 32, .5);
+}
+#secao-assinatura .sa-hero .assinatura-status.sa-teste {
+  background: rgba(109, 179, 255, .16); color: #9ccbff; border-color: rgba(109, 179, 255, .5);
+}
+@keyframes sa-pulso { 70% { box-shadow: 0 0 0 9px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* ---- cards ---- */
+#secao-assinatura .sa-corpo { gap: 24px; }
+#secao-assinatura .sa-card {
+  border-radius: 24px; padding: 32px;
+  box-shadow: 0 24px 48px -22px rgba(10, 31, 56, .35);
+}
+#secao-assinatura .sa-card h4 { font-size: 20px; letter-spacing: -.01em; margin-bottom: 8px; }
+#secao-assinatura .sa-card > p { font-size: 14px; }
+
+/* ---- botões ---- */
+#secao-assinatura .sa-acoes { gap: 12px; margin-top: 22px; }
+#secao-assinatura .sa-acoes .btn-ver-boleto,
+#secao-assinatura .sa-acoes .btn-selecionar-plano,
+#secao-assinatura .sa-acoes .btn-pagar-pix {
+  border-radius: 14px; padding: 15px 24px; font-size: 15px;
+  background: linear-gradient(135deg, #00d683, #00b86f);
+  box-shadow: 0 10px 22px -10px rgba(0, 200, 120, .8);
+  transition: transform .15s, box-shadow .15s, filter .15s;
+}
+#secao-assinatura .sa-acoes .btn-ver-boleto:hover,
+#secao-assinatura .sa-acoes .btn-selecionar-plano:hover,
+#secao-assinatura .sa-acoes .btn-pagar-pix:hover {
+  background: linear-gradient(135deg, #00d683, #00b86f); filter: brightness(1.05);
+  transform: translateY(-2px); box-shadow: 0 14px 26px -10px rgba(0, 200, 120, .9);
+}
+#secao-assinatura .sa-acoes .btn-trocar-pagamento {
+  border-radius: 14px; padding: 14px 24px; font-size: 15px; font-weight: 700;
+  border: 1.5px solid var(--border); background: transparent; color: var(--texto);
+  transition: border-color .15s, background .15s, transform .15s;
+}
+#secao-assinatura .sa-acoes .btn-trocar-pagamento:hover {
+  border-color: var(--primaria); background: rgba(0, 200, 120, .1);
+}
+#secao-assinatura .sa-acoes button:active { transform: scale(.98); }
+#secao-assinatura .sa-acoes button:focus-visible,
+#secao-assinatura .sa-cancelar-linha button:focus-visible { outline: 3px solid rgba(42, 117, 224, .45); outline-offset: 3px; }
+#secao-assinatura .sa-cancelar-linha { margin-top: 14px; text-align: center; }
+#secao-assinatura .sa-cancelar-linha .btn-cancelar-assinatura {
+  padding: 6px 10px; font-size: 13px; text-underline-offset: 3px; cursor: pointer;
+}
+
+/* ---- lista "o que está incluso" ---- */
+#secao-assinatura .sa-lista { gap: 4px; margin-top: 18px; }
+#secao-assinatura .sa-lista li { gap: 14px; padding: 10px 12px; border-radius: 12px; font-weight: 500; transition: background .15s; }
+#secao-assinatura .sa-lista li:hover { background: var(--hover-menu); }
+#secao-assinatura .sa-lista li::before {
+  content: "✓"; flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 13px; font-weight: 800;
+  color: var(--primaria-hover); background: rgba(0, 200, 120, .14);
+}
+
+@media (max-width: 900px) {
+  #secao-assinatura .sa-hero { padding: 26px 22px 88px; border-radius: 22px; }
+  #secao-assinatura .sa-card { padding: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #secao-assinatura * { animation: none !important; transition: none !important; }
+}
+
+
+/* =====================================================================
+   PLANOS: tudo centralizado (cabeçalho e cards)
+   ===================================================================== */
+#secao-planos .pl-hero { text-align: center; }
+#secao-planos .planos-grid {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch;
+}
+#secao-planos .planos-grid .card-plano { flex: 0 1 400px; min-width: 0; }
+@media (max-width: 900px) {
+  #secao-planos .planos-grid { flex-direction: column; }
+  #secao-planos .planos-grid .card-plano { flex: 0 0 auto; width: 100%; }
+}
+
+
+/* Status do agendamento: só leitura (muda pelos botões Concluído e Cancelar) */
+.select-status-agendamento:disabled { opacity: 1; cursor: default; -webkit-appearance: none; appearance: none; padding-right: 12px; }
+
+
+/* Detalhes do agendamento: os 4 botões (Concluído, Cancelar, Fechar, Editar) cabem na linha, sem cortar nem quebrar o texto */
+@media (min-width: 561px) {
+  #modal-detalhes-agendamento .form-botoes { flex-wrap: wrap; gap: 8px; }
+  #modal-detalhes-agendamento .form-botoes button { flex: 0 0 auto; white-space: nowrap; padding: 11px 16px; font-size: 13px; }
+}
+
+
+/* =====================================================================
+   ASSINATURA: cartão visual com as informações do plano
+   ===================================================================== */
+#secao-assinatura .sa-cartao {
+  position: relative; overflow: hidden; color: #fff; margin-top: 22px;
+  border-radius: 22px; padding: 24px 26px; min-height: 210px;
+  background:
+    radial-gradient(circle at 88% 0%, rgba(0, 200, 120, .45), transparent 50%),
+    linear-gradient(135deg, #07182d 0%, #0d2a47 62%, #0d4a55 100%);
+  box-shadow: 0 22px 38px -16px rgba(10, 31, 56, .7);
+}
+#secao-assinatura .sa-cartao::after {
+  content: ""; position: absolute; right: -70px; bottom: -120px; width: 270px; height: 270px;
+  border-radius: 50%; border: 32px solid rgba(255, 255, 255, .06); pointer-events: none;
+}
+#secao-assinatura .sa-cartao > * { position: relative; z-index: 1; }
+#secao-assinatura .sa-cartao-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+#secao-assinatura .sa-cartao-marca { font-weight: 900; font-size: 20px; line-height: .95; }
+#secao-assinatura .sa-cartao-marca span { display: block; color: #00d683; }
+#secao-assinatura .sa-cartao-plano { font-size: 13px; font-weight: 700; padding: 5px 14px; border-radius: 999px; background: rgba(255, 255, 255, .15); }
+#secao-assinatura .sa-cartao-chip {
+  width: 44px; height: 33px; border-radius: 7px; margin: 20px 0 12px;
+  background: linear-gradient(135deg, #f4d98a, #c9a54a);
+}
+#secao-assinatura .sa-cartao-valor { font-size: clamp(22px, 3vw, 28px); font-weight: 800; letter-spacing: .5px; }
+#secao-assinatura .sa-cartao-rodape { display: flex; flex-wrap: wrap; gap: 14px 32px; margin-top: 18px; }
+#secao-assinatura .sa-cartao-rodape small { display: block; font-size: 11px; color: #fff; opacity: .7; margin-bottom: 2px; }
+#secao-assinatura .sa-cartao-rodape strong { font-size: 14px; font-weight: 700; }
+
+
+/* =====================================================================
+   AGENDAMENTO: lista de clientes (painel próprio no lugar da lista do navegador)
+   ===================================================================== */
+.combo-wrap { position: relative; }
+.combo-wrap > input { width: 100%; padding-right: 42px; }
+.combo-wrap::after {
+  content: ""; position: absolute; right: 18px; top: 50%; width: 8px; height: 8px; margin-top: -6px;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg); pointer-events: none;
+}
+.combo-lista {
+  position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 60;
+  max-height: 264px; overflow-y: auto; padding: 6px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 18px 40px -12px rgba(10, 31, 56, .35);
+}
+.combo-lista[hidden] { display: none; }
+.combo-item { display: flex; align-items: center; gap: 12px; padding: 9px 10px; border-radius: 12px; cursor: pointer; }
+.combo-item:hover, .combo-item.ativo { background: rgba(0, 200, 120, .12); }
+.combo-avatar {
+  flex: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  font-weight: 800; font-size: 15px; color: #fff; background: linear-gradient(135deg, #0d2a47, #0d4a55);
+}
+.combo-textos { display: grid; min-width: 0; }
+.combo-textos strong { font-size: 14px; color: var(--texto); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.combo-textos small { font-size: 12px; color: var(--muted); }
+.combo-textos mark { background: rgba(0, 200, 120, .28); color: inherit; border-radius: 3px; padding: 0 1px; }
+.combo-vazio { padding: 14px 12px; text-align: center; }
+.combo-vazio p { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.combo-novo {
+  border: 1.5px dashed var(--primaria); background: transparent; color: var(--primaria-hover);
+  border-radius: 12px; padding: 9px 14px; font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.combo-novo:hover { background: rgba(0, 200, 120, .1); }
+
+
+/* Financeiro: cartão "Agendamentos concluídos" */
+#financeiro-concluidos .concluidos-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 18px 20px 8px; }
+#financeiro-concluidos .concluidos-topo strong { font-size: 15px; }
+#financeiro-concluidos .concluidos-topo span { font-size: 14px; font-weight: 700; color: var(--primaria-hover); padding-right: 68px; }
+#financeiro-concluidos .concluidos-vazio { margin: 0; padding: 4px 20px 20px; font-size: 13px; color: var(--muted); }
+
+
+/* Status no bloco da agenda */
+.agendamento .tag-status {
+  align-self: flex-start; margin-top: 3px; padding: 1px 7px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; font-style: normal; line-height: 1.4; white-space: nowrap;
+  background: rgba(0, 0, 0, .3); color: #fff;
+}
+.agendamento .tag-Remarcado { background: #ffb020; color: #0a1f38; }
+.agendamento .tag-Concluido { background: #00c878; color: #06281a; }
+.agendamento .tag-Cancelado { background: #e11d48; color: #fff; }

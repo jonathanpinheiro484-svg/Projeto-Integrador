@@ -352,13 +352,21 @@ function iniciarAssinatura() {
     return d;
   }
 
+  // true se a data (AAAA-MM-DD) cai em sábado ou domingo
+  function fimDeSemana(iso) {
+    if (!iso) return false;
+    const [a, m, d] = iso.split("-").map(Number);
+    const dia = new Date(a, m - 1, d).getDay();
+    return dia === 0 || dia === 6;
+  }
+
   // Data da próxima cobrança escolhida pela pessoa (sem escolha válida = 1 mês depois, o padrão).
   // Só vale na compra normal; renovar pelo Pix e trocar a forma de pagamento usam a data padrão.
   function proximaData() {
     const padrao = dataRenovacao(planoEscolhido, ciclo, renovarBase);
     const campo = $("ass-prox-cobranca");
     if (!campo || !campo.value || modoTrocar || modoRenovar || planoEscolhido === "FREE") return padrao;
-    if (campo.value < campo.min || campo.value > campo.max) return padrao;
+    if (campo.value < campo.min || campo.value > campo.max || fimDeSemana(campo.value)) return padrao;
     const [a, m, d] = campo.value.split("-").map(Number);
     return new Date(a, m - 1, d, 12, 0, 0);
   }
@@ -643,8 +651,8 @@ function iniciarAssinatura() {
 
     const campoProx = $("ass-prox-cobranca");
     if (campoProx && !modoTrocar && !modoRenovar && planoEscolhido !== "FREE" &&
-        (!campoProx.value || campoProx.value < campoProx.min || campoProx.value > campoProx.max)) {
-      falhar("Escolha uma data de próxima cobrança entre amanhã e daqui a 1 mês.", "ass-prox-cobranca");
+        (!campoProx.value || campoProx.value < campoProx.min || campoProx.value > campoProx.max || fimDeSemana(campoProx.value))) {
+      falhar("Escolha uma data de próxima cobrança entre amanhã e daqui a 1 mês, de segunda a sexta (não vale sábado nem domingo).", "ass-prox-cobranca");
     }
 
     if (planoEscolhido !== "FREE" && metodoAtual() === "cartao") {
@@ -1546,8 +1554,23 @@ function iniciarAssinatura() {
     const limite = new Date(); limite.setMonth(limite.getMonth() + 1);
     campo.min = iso(amanha);
     campo.max = iso(limite);
-    campo.value = iso(limite);
-    campo.addEventListener("change", atualizarResumo);
+    // o padrão (1 mês depois) não pode cair no fim de semana: recua para a sexta
+    const padraoUtil = new Date(limite);
+    while (padraoUtil.getDay() === 0 || padraoUtil.getDay() === 6) padraoUtil.setDate(padraoUtil.getDate() - 1);
+    campo.value = iso(padraoUtil);
+    let ultimaValida = campo.value;
+    let avisouFimDeSemana = false;
+    campo.addEventListener("change", () => {
+      if (fimDeSemana(campo.value)) {
+        campo.value = ultimaValida; // sábado e domingo não são aceitos: volta para a última data válida
+        avisouFimDeSemana = true;
+        mostrarErro("Não é possível escolher sábado ou domingo. Escolha um dia de segunda a sexta.", campo);
+      } else {
+        ultimaValida = campo.value;
+        if (avisouFimDeSemana) { limparErro(); avisouFimDeSemana = false; }
+      }
+      atualizarResumo();
+    });
   })();
 
   // O plano vem da tela de Planos: assinatura.html?plano=profissional
