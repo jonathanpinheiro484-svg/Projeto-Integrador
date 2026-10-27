@@ -29,7 +29,16 @@ document.addEventListener("DOMContentLoaded", function () {
   const EMAIL_MAX = 80;
   const CODIGO_TAMANHO = 6;
   const SENHA_MIN = 8;
+  const SENHA_MAX = 15; // limite de caracteres da nova senha e da confirmação
   const PAGINA_LOGIN = "cadastro.html?modo=entrar";
+
+  // Trava o limite nos dois campos de senha: não deixa digitar nem colar mais que SENHA_MAX caracteres
+  [campoSenha, campoSenha2].forEach(function (campo) {
+    campo.maxLength = SENHA_MAX;
+    campo.addEventListener("input", function () {
+      if (campo.value.length > SENHA_MAX) campo.value = campo.value.slice(0, SENHA_MAX);
+    });
+  });
 
   let emailRecuperacao = "";
   let codigoDigitado = "";
@@ -250,7 +259,10 @@ document.addEventListener("DOMContentLoaded", function () {
       campoErro = campoSenha;
     } else {
       const faltando = senhaFaltando(senha);
-      if (faltando.length > 0) {
+      if (senha.length > SENHA_MAX) {
+        erros.push(`A senha pode ter no máximo ${SENHA_MAX} caracteres.`);
+        campoErro = campoSenha;
+      } else if (faltando.length > 0) {
         erros.push(`A senha precisa ter pelo menos ${listaEmTexto(faltando)}.`);
         campoErro = campoSenha;
       }
